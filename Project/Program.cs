@@ -6,7 +6,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
-builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SchedulerDbContext")));
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SchedulerDbContext")));
+}
 
 
 var app = builder.Build();
@@ -47,3 +50,6 @@ using (var serviceScope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Expose a Program class for integration testing (WebApplicationFactory uses this)
+public partial class Program { }

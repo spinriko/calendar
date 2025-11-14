@@ -20,7 +20,8 @@ namespace Project.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SchedulerResource>>> GetResources()
         {
-            return await _context.Resources.ToListAsync();
+            var resources = await _context.Resources.AsNoTracking().ToListAsync();
+            return resources;
         }
 
     }

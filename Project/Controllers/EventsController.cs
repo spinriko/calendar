@@ -28,17 +28,22 @@ namespace Project.Controllers
             {
                 return NotFound();
             }
-            return await _context.Events.Where(e => !((e.End <= start) || (e.Start >= end))).ToListAsync();
+            var events = await _context.Events
+                .AsNoTracking()
+                .Where(e => !((e.End <= start) || (e.Start >= end)))
+                .ToListAsync();
+
+            return events;
         }
 
         // GET: api/Events/5
         [HttpGet("{id}")]
         public async Task<ActionResult<SchedulerEvent>> GetSchedulerEvent(int id)
         {
-          if (_context.Events == null)
-          {
-              return NotFound();
-          }
+            if (_context.Events == null)
+            {
+                return NotFound();
+            }
             var schedulerEvent = await _context.Events.FindAsync(id);
 
             if (schedulerEvent == null)
@@ -58,8 +63,27 @@ namespace Project.Controllers
             {
                 return BadRequest();
             }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            if (_context.Events == null)
+            {
+                return NotFound();
+            }
 
-            _context.Entry(schedulerEvent).State = EntityState.Modified;
+            // Load existing entity and update fields to avoid tracking conflicts
+            var existing = await _context.Events.FindAsync(id);
+            if (existing == null)
+            {
+                return NotFound();
+            }
+
+            existing.Start = schedulerEvent.Start;
+            existing.End = schedulerEvent.End;
+            existing.Text = schedulerEvent.Text;
+            existing.Color = schedulerEvent.Color;
+            existing.ResourceId = schedulerEvent.ResourceId;
 
             try
             {
@@ -85,10 +109,14 @@ namespace Project.Controllers
         [HttpPost]
         public async Task<ActionResult<SchedulerEvent>> PostSchedulerEvent(SchedulerEvent schedulerEvent)
         {
-          if (_context.Events == null)
-          {
-              return Problem("Entity set 'SchedulerDbContext.Events'  is null.");
-          }
+            if (_context.Events == null)
+            {
+                return Problem("Entity set 'SchedulerDbContext.Events'  is null.");
+            }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             _context.Events.Add(schedulerEvent);
             await _context.SaveChangesAsync();
 

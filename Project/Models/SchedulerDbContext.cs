@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace Project.Models
 {
@@ -11,6 +12,13 @@ namespace Project.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Skip model-level seeding when running tests so tests can control DB contents.
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            if (string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 1, Name = "Resource A" });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 2, Name = "Resource B" });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 3, Name = "Resource C" });

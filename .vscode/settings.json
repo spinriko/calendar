@@ -1,0 +1,14 @@
+{
+  // C# language settings
+  "csharp.suppressDotnetInstallWarning": true,
+  "omnisharp.enableRoslynAnalyzers": true,
+  "omnisharp.enableEditorConfigSupport": true,
+  // Test Explorer (extensions recommended above will use their own settings)
+  "dotnet-test-explorer.testProjectPath": "${workspaceFolder}/Project.Tests",
+  "dotnet-test-explorer.autoWatch": true,
+  "dotnet-test-explorer.showCodeLens": true,
+  // Native .NET test discovery (VS Code 1.70+)
+  "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
+  // Editor convenience
+  "editor.formatOnSave": true
+}
