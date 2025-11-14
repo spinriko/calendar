@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Project.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,13 +17,13 @@ namespace Project.Migrations
                 name: "Events",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Start = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    End = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Text = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Color = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ResourceId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Start = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    End = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    Text = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
+                    Color = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
+                    ResourceId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -34,9 +34,9 @@ namespace Project.Migrations
                 name: "Resources",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
