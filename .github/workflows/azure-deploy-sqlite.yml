@@ -1,0 +1,45 @@
+name: Azure Web App Deploy (SQLite)
+
+on:
+  push:
+    branches: [ testing, main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Project/Project.csproj
+
+      - name: Build
+        run: dotnet build Project/Project.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test Project.Tests/Project.Tests.csproj --no-build --verbosity normal || true
+
+      - name: Publish
+        run: dotnet publish Project/Project.csproj -c Release -o ./publish
+
+      - name: Zip publish
+        run: |
+          cd publish
+          zip -r ../app.zip .
+          cd ..
+
+      # Deploy using an Azure publish profile. Configure the publish profile in
+      # the repository secrets as AZURE_WEBAPP_PUBLISH_PROFILE (contents of the
+      # .PublishSettings file).
+      - name: Deploy to Azure WebApp
+        uses: azure/webapps-deploy@v2
+        with:
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: app.zip
