@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using pto.track.data;
-using pto.track.services;
+using pto.track.services.DTOs;
 using Xunit;
 
 namespace pto.track.tests.Integration

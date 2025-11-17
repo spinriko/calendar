@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace pto.track.services;
+namespace pto.track.services.DTOs;
 
 public record EventDto(
     int Id,
