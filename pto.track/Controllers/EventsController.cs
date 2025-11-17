@@ -1,151 +1,83 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using pto.track.data;
+﻿using Microsoft.AspNetCore.Mvc;
+using pto.track.services;
 
-namespace pto.track.Controllers
+namespace pto.track.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class EventsController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class EventsController : ControllerBase
+    private readonly IEventService _eventService;
+
+    public EventsController(IEventService eventService)
     {
-        private readonly SchedulerDbContext _context;
+        _eventService = eventService;
+    }
 
-        public EventsController(SchedulerDbContext context)
+    // GET: api/Events
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<EventDto>>> GetSchedulerEvents([FromQuery] DateTime start, [FromQuery] DateTime end)
+    {
+        var events = await _eventService.GetEventsAsync(start, end);
+        return Ok(events);
+    }
+
+    // GET: api/Events/5
+    [HttpGet("{id}")]
+    public async Task<ActionResult<EventDto>> GetSchedulerEvent(int id)
+    {
+        var evt = await _eventService.GetEventByIdAsync(id);
+        if (evt == null)
         {
-            _context = context;
+            return NotFound();
         }
 
-        // GET: api/Events
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<SchedulerEvent>>> GetSchedulerEvents([FromQuery] DateTime start, [FromQuery] DateTime end)
-        {
-            if (_context.Events == null)
-            {
-                return NotFound();
-            }
-            var events = await _context.Events
-                .AsNoTracking()
-                .Where(e => !((e.End <= start) || (e.Start >= end)))
-                .ToListAsync();
+        return Ok(evt);
+    }
 
-            return events;
+    // PUT: api/Events/5
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutSchedulerEvent(int id, UpdateEventDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        // GET: api/Events/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<SchedulerEvent>> GetSchedulerEvent(int id)
+        var success = await _eventService.UpdateEventAsync(id, dto);
+        if (!success)
         {
-            if (_context.Events == null)
-            {
-                return NotFound();
-            }
-            var schedulerEvent = await _context.Events.FindAsync(id);
-
-            if (schedulerEvent == null)
-            {
-                return NotFound();
-            }
-
-            return schedulerEvent;
+            return NotFound();
         }
 
-        // PUT: api/Events/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutSchedulerEvent(int id, SchedulerEvent schedulerEvent)
+        return NoContent();
+    }
+
+    // POST: api/Events
+    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    [HttpPost]
+    public async Task<ActionResult<EventDto>> PostSchedulerEvent(CreateEventDto dto)
+    {
+        if (!ModelState.IsValid)
         {
-            if (id != schedulerEvent.Id)
-            {
-                return BadRequest();
-            }
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            if (_context.Events == null)
-            {
-                return NotFound();
-            }
-
-            // Load existing entity and update fields to avoid tracking conflicts
-            var existing = await _context.Events.FindAsync(id);
-            if (existing == null)
-            {
-                return NotFound();
-            }
-
-            existing.Start = schedulerEvent.Start;
-            existing.End = schedulerEvent.End;
-            existing.Text = schedulerEvent.Text;
-            existing.Color = schedulerEvent.Color;
-            existing.ResourceId = schedulerEvent.ResourceId;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!SchedulerEventExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return BadRequest(ModelState);
         }
 
-        // POST: api/Events
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<SchedulerEvent>> PostSchedulerEvent(SchedulerEvent schedulerEvent)
-        {
-            if (_context.Events == null)
-            {
-                return Problem("Entity set 'SchedulerDbContext.Events'  is null.");
-            }
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            _context.Events.Add(schedulerEvent);
-            await _context.SaveChangesAsync();
+        var created = await _eventService.CreateEventAsync(dto);
+        return CreatedAtAction(nameof(GetSchedulerEvent), new { id = created.Id }, created);
+    }
 
-            return CreatedAtAction("GetSchedulerEvent", new { id = schedulerEvent.Id }, schedulerEvent);
+    // DELETE: api/Events/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteSchedulerEvent(int id)
+    {
+        var success = await _eventService.DeleteEventAsync(id);
+        if (!success)
+        {
+            return NotFound();
         }
 
-        // DELETE: api/Events/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSchedulerEvent(int id)
-        {
-            if (_context.Events == null)
-            {
-                return NotFound();
-            }
-            var schedulerEvent = await _context.Events.FindAsync(id);
-            if (schedulerEvent == null)
-            {
-                return NotFound();
-            }
-
-            _context.Events.Remove(schedulerEvent);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool SchedulerEventExists(int id)
-        {
-            return (_context.Events?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
+        return NoContent();
     }
 }

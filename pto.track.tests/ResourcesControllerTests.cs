@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pto.track.Controllers;
 using pto.track.data;
+using pto.track.services;
 using Xunit;
 
 namespace pto.track.tests
@@ -24,13 +25,15 @@ namespace pto.track.tests
             context.Resources.AddRange(resources);
             await context.SaveChangesAsync();
 
-            var controller = new ResourcesController(context);
+            var service = new ResourceService(context);
+            var controller = new ResourcesController(service);
 
             // Act
             var result = await controller.GetResources();
 
             // Assert
-            var returnedResources = Assert.IsAssignableFrom<IEnumerable<SchedulerResource>>(result.Value);
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedResources = Assert.IsAssignableFrom<IEnumerable<ResourceDto>>(okResult.Value);
             Assert.Equal(3, returnedResources.Count());
         }
 
@@ -39,13 +42,15 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var controller = new ResourcesController(context);
+            var service = new ResourceService(context);
+            var controller = new ResourcesController(service);
 
             // Act
             var result = await controller.GetResources();
 
             // Assert
-            var returnedResources = Assert.IsAssignableFrom<IEnumerable<SchedulerResource>>(result.Value);
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedResources = Assert.IsAssignableFrom<IEnumerable<ResourceDto>>(okResult.Value);
             Assert.Empty(returnedResources);
         }
 
@@ -63,13 +68,15 @@ namespace pto.track.tests
             context.Resources.AddRange(resources);
             await context.SaveChangesAsync();
 
-            var controller = new ResourcesController(context);
+            var service = new ResourceService(context);
+            var controller = new ResourcesController(service);
 
             // Act
             var result = await controller.GetResources();
 
             // Assert
-            var returnedResources = Assert.IsAssignableFrom<IEnumerable<SchedulerResource>>(result.Value).ToList();
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedResources = Assert.IsAssignableFrom<IEnumerable<ResourceDto>>(okResult.Value).ToList();
             Assert.Equal("Resource A", returnedResources[0].Name);
             Assert.Equal("Resource B", returnedResources[1].Name);
         }

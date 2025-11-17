@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using pto.track.data;
+using pto.track.services;
 using Xunit;
 
 namespace pto.track.tests.Integration
@@ -149,17 +150,17 @@ namespace pto.track.tests.Integration
             var client = GetClientWithInMemoryDb();
 
             // Create
-            var newEvent = new SchedulerEvent
-            {
-                Start = new DateTime(2025, 11, 13, 10, 0, 0),
-                End = new DateTime(2025, 11, 13, 11, 0, 0),
-                Text = "E2E Event",
-                ResourceId = 1
-            };
+            var newEvent = new CreateEventDto(
+                Start: new DateTime(2025, 11, 13, 10, 0, 0),
+                End: new DateTime(2025, 11, 13, 11, 0, 0),
+                Text: "E2E Event",
+                Color: null,
+                ResourceId: 1
+            );
 
             var postResp = await client.PostAsJsonAsync("/api/events", newEvent);
             Assert.Equal(HttpStatusCode.Created, postResp.StatusCode);
-            var created = await postResp.Content.ReadFromJsonAsync<SchedulerEvent>();
+            var created = await postResp.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(created);
             Assert.NotEqual(0, created.Id);
 
@@ -168,19 +169,25 @@ namespace pto.track.tests.Integration
             // Read
             var getResp = await client.GetAsync($"/api/events/{id}");
             getResp.EnsureSuccessStatusCode();
-            var fetched = await getResp.Content.ReadFromJsonAsync<SchedulerEvent>();
+            var fetched = await getResp.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(fetched);
             Assert.Equal("E2E Event", fetched.Text);
 
             // Update
-            fetched.Text = "E2E Updated";
-            var putResp = await client.PutAsJsonAsync($"/api/events/{id}", fetched);
+            var updateDto = new UpdateEventDto(
+                Start: fetched.Start,
+                End: fetched.End,
+                Text: "E2E Updated",
+                Color: fetched.Color,
+                ResourceId: fetched.ResourceId
+            );
+            var putResp = await client.PutAsJsonAsync($"/api/events/{id}", updateDto);
             Assert.Equal(HttpStatusCode.NoContent, putResp.StatusCode);
 
             // Read back updated
             var getResp2 = await client.GetAsync($"/api/events/{id}");
             getResp2.EnsureSuccessStatusCode();
-            var fetched2 = await getResp2.Content.ReadFromJsonAsync<SchedulerEvent>();
+            var fetched2 = await getResp2.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(fetched2);
             Assert.Equal("E2E Updated", fetched2.Text);
 

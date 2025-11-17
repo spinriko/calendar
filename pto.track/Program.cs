@@ -1,20 +1,12 @@
-using System;
-using System.IO;
-using Microsoft.EntityFrameworkCore;
-using pto.track.data;
+using pto.track.services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 
-// Configure DB provider - use SQL Server
-var connStr = builder.Configuration.GetConnectionString("SchedulerDbContext");
-
-if (!builder.Environment.IsEnvironment("Testing"))
-{
-    builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseSqlServer(connStr));
-}
+// Configure database and register application services
+builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -38,21 +30,7 @@ app.MapRazorPages()
 app.MapControllers();
 
 // Ensure the database is migrated/created at startup.
-using (var serviceScope = app.Services.CreateScope())
-{
-    var services = serviceScope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<SchedulerDbContext>();
-        // Prefer migrations when available so schema upgrades work on deployment
-        context.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred migrating or creating the DB.");
-    }
-}
+app.Services.MigrateDatabase();
 
 app.Run();
 

@@ -1,28 +1,24 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using pto.track.data;
+using pto.track.services;
 
-namespace pto.track.Controllers
+namespace pto.track.Controllers;
+
+[Produces("application/json")]
+[Route("api/resources")]
+public class ResourcesController : Controller
 {
-    [Produces("application/json")]
-    [Route("api/resources")]
-    public class ResourcesController : Controller
+    private readonly IResourceService _resourceService;
+
+    public ResourcesController(IResourceService resourceService)
     {
+        _resourceService = resourceService;
+    }
 
-        private readonly SchedulerDbContext _context;
-
-        public ResourcesController(SchedulerDbContext context)
-        {
-            _context = context;
-        }
-
-        // GET: api/resources
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<SchedulerResource>>> GetResources()
-        {
-            var resources = await _context.Resources.AsNoTracking().ToListAsync();
-            return resources;
-        }
-
+    // GET: api/resources
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<ResourceDto>>> GetResources()
+    {
+        var resources = await _resourceService.GetResourcesAsync();
+        return Ok(resources);
     }
 }

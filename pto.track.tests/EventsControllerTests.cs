@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pto.track.Controllers;
 using pto.track.data;
+using pto.track.services;
 using Xunit;
 
 namespace pto.track.tests
@@ -28,13 +29,15 @@ namespace pto.track.tests
             context.Events.AddRange(events);
             await context.SaveChangesAsync();
 
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.GetSchedulerEvents(start, end);
 
             // Assert
-            var returnedEvents = Assert.IsAssignableFrom<IEnumerable<SchedulerEvent>>(result.Value);
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedEvents = Assert.IsAssignableFrom<IEnumerable<EventDto>>(okResult.Value);
             Assert.Equal(2, returnedEvents.Count());
         }
 
@@ -56,13 +59,15 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.GetSchedulerEvent(eventId);
 
             // Assert
-            var returnedEvent = Assert.IsType<SchedulerEvent>(result.Value);
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var returnedEvent = Assert.IsType<EventDto>(okResult.Value);
             Assert.Equal(eventId, returnedEvent.Id);
             Assert.Equal("Test Event", returnedEvent.Text);
         }
@@ -72,7 +77,8 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.GetSchedulerEvent(999);
@@ -86,15 +92,16 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var newEvent = new SchedulerEvent
-            {
-                Start = new DateTime(2025, 11, 13, 10, 0, 0),
-                End = new DateTime(2025, 11, 13, 11, 0, 0),
-                Text = "New Event",
-                ResourceId = 1
-            };
+            var newEvent = new CreateEventDto(
+                Start: new DateTime(2025, 11, 13, 10, 0, 0),
+                End: new DateTime(2025, 11, 13, 11, 0, 0),
+                Text: "New Event",
+                Color: null,
+                ResourceId: 1
+            );
 
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.PostSchedulerEvent(newEvent);
@@ -102,7 +109,7 @@ namespace pto.track.tests
             // Assert
             var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
             Assert.Equal("GetSchedulerEvent", createdResult.ActionName);
-            var returnedEvent = Assert.IsType<SchedulerEvent>(createdResult.Value);
+            var returnedEvent = Assert.IsType<EventDto>(createdResult.Value);
             Assert.NotEqual(0, returnedEvent.Id);
         }
 
@@ -124,44 +131,49 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            // Detach the original event so we can attach an updated one
-            context.Entry(testEvent).State = EntityState.Detached;
+            var updateDto = new UpdateEventDto(
+                Start: new DateTime(2025, 11, 13, 11, 0, 0),
+                End: new DateTime(2025, 11, 13, 12, 0, 0),
+                Text: "Updated Event",
+                Color: null,
+                ResourceId: 1
+            );
 
-            var updatedEvent = new SchedulerEvent
-            {
-                Id = eventId,
-                Start = new DateTime(2025, 11, 13, 11, 0, 0),
-                End = new DateTime(2025, 11, 13, 12, 0, 0),
-                Text = "Updated Event",
-                ResourceId = 1
-            };
-
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
-            var result = await controller.PutSchedulerEvent(eventId, updatedEvent);
+            var result = await controller.PutSchedulerEvent(eventId, updateDto);
 
             // Assert
             Assert.IsType<NoContentResult>(result);
 
             // Verify the update
             var verifyEvent = await context.Events.FindAsync(eventId);
+            Assert.NotNull(verifyEvent);
             Assert.Equal("Updated Event", verifyEvent.Text);
         }
 
         [Fact]
-        public async Task PutSchedulerEvent_WithMismatchedId_ReturnsBadRequest()
+        public async Task PutSchedulerEvent_WithMismatchedId_ReturnsNotFound()
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var event_ = new SchedulerEvent { Id = 2, Start = DateTime.Now, End = DateTime.Now.AddHours(1), ResourceId = 1 };
-            var controller = new EventsController(context);
+            var updateDto = new UpdateEventDto(
+                Start: DateTime.Now,
+                End: DateTime.Now.AddHours(1),
+                Text: null,
+                Color: null,
+                ResourceId: 1
+            );
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
-            // Act - passing id=1 but event has id=2
-            var result = await controller.PutSchedulerEvent(1, event_);
+            // Act - passing id=1 but no event exists
+            var result = await controller.PutSchedulerEvent(1, updateDto);
 
             // Assert
-            Assert.IsType<BadRequestResult>(result);
+            Assert.IsType<NotFoundResult>(result);
         }
 
         [Fact]
@@ -182,7 +194,8 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.DeleteSchedulerEvent(eventId);
@@ -200,7 +213,8 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var controller = new EventsController(context);
+            var service = new EventService(context);
+            var controller = new EventsController(service);
 
             // Act
             var result = await controller.DeleteSchedulerEvent(999);

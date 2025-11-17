@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\pto.track.data\pto.track.data.csproj" />
     <ProjectReference Include="..\pto.track.services\pto.track.services.csproj" />
   </ItemGroup>
 
