@@ -32,6 +32,31 @@
             "args": [
                 "publish",
                 "${workspaceFolder}/pto.track/pto.track.csproj",
+                "-c",
+                "Release",
+                "-o",
+                "${workspaceFolder}/publish",
+                "--no-self-contained",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
+            "dependsOn": "build"
+        },
+        {
+            "label": "publish-standalone",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/pto.track/pto.track.csproj",
+                "-c",
+                "Release",
+                "-o",
+                "${workspaceFolder}/publish-standalone",
+                "--self-contained",
+                "-r",
+                "linux-x64",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

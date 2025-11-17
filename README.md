@@ -1,37 +1,191 @@
-# ASP.NET Core Resource Scheduling Calendar (Open-Source)
+# PTO Track - Resource Scheduling Calendar
 
-This is the code repository for the [ASP.NET Core Resource Scheduling Calendar (Open-Source)](https://code.daypilot.org/20604/asp-net-core-resource-calendar-open-source) tutorial by [DayPilot](https://www.daypilot.org/).
+A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive calendar interface powered by DayPilot for managing events across multiple resources.
 
-## Description
-- Includes [DayPilot Lite for JavaScript](https://javascript.daypilot.org/open-source/) - open-source calendar/scheduling components for JavaScript/Angular/React/Vue (Apache License 2.0).
-- This project was generated using the [DayPilot UI Builder](https://builder.daypilot.org/), an online tool for configuring DayPilot components and generating starter projects.
+## Architecture Overview
 
-## License
-- The code of this tutorial is licensed under Apache License 2.0.
-- This tutorial may include third-party libraries available under their respective licenses.
-## Deploying to Azure (SQLite)
+This solution implements a clean, layered architecture with clear separation of concerns:
 
-This repository can be deployed to Azure App Service using a file-based SQLite database (cheapest option). This is suitable for development or low-traffic single-instance apps.
-
-Quick steps:
-
-- Build and publish the app locally:
-
-```bash
-dotnet publish Project/Project.csproj -c Release -o ./publish
-cd publish
-zip -r ../app.zip .
-cd ..
+```
+pto.track              → Web layer (UI + API Controllers)
+pto.track.services     → Business logic layer (Services + DTOs)
+pto.track.data         → Data access layer (EF Core + Entities)
 ```
 
-- Provision an App Service (Free/S1) and Web App using `az` (example script provided in `scripts/azure-deploy-sqlite.sh`). Before running, replace `RESOURCE_GROUP`, `APP_NAME`, and `LOCATION` with your choices.
+### Project Structure
 
-- The script sets the SQLite connection string to `Data Source=/home/site/wwwroot/App_Data/scheduler.db` and deploys the zip package.
+#### **pto.track** (Main Web Application)
+- **Technology**: ASP.NET Core 10.0 Razor Pages + Web API
+- **Purpose**: Frontend UI and RESTful API endpoints
+- **Key Components**:
+  - `Controllers/EventsController.cs` - Event CRUD operations API
+  - `Controllers/ResourcesController.cs` - Resource management API
+  - `Pages/Index.cshtml` - Interactive calendar UI using DayPilot
+  - `Program.cs` - Application configuration and service registration
+- **Features**:
+  - Interactive drag-and-drop calendar interface
+  - Date range filtering for events
+  - Resource-based event scheduling
+  - Color-coded event display
+  - Modal dialogs for event creation/editing
 
-Notes & caveats:
+#### **pto.track.services** (Business Logic Layer)
+- **Technology**: .NET 10.0 Class Library
+- **Purpose**: Decouples business logic from web and data layers
+- **Key Components**:
+  - `IEventService.cs` / `EventService.cs` - Event business logic
+  - `IResourceService.cs` / `ResourceService.cs` - Resource business logic
+  - `DTOs/EventDto.cs` - Data transfer objects with JSON serialization attributes
+  - `DTOs/ResourceDto.cs` - Resource data transfer objects
+  - `ServiceCollectionExtensions.cs` - Dependency injection configuration
+- **Features**:
+  - DTO-based API contracts (camelCase JSON serialization for JavaScript compatibility)
+  - Validation logic (IValidatableObject implementation)
+  - Database migration management
+  - Clean separation from data entities
 
-- SQLite stores the database file in the App Service file system. Do not scale out to multiple instances — SQLite is not safe to share between instances.
-- Back up the SQLite file (`/home/site/wwwroot/App_Data/scheduler.db`) by copying it to Azure Blob Storage periodically.
-- For production usage, prefer Azure SQL Database and set the connection string accordingly.
+#### **pto.track.data** (Data Access Layer)
+- **Technology**: Entity Framework Core 10.0
+- **Purpose**: Database access and entity management
+- **Key Components**:
+  - `SchedulerDbContext.cs` - EF Core database context
+  - `Entities/SchedulerEvent.cs` - Event entity model
+  - `Entities/SchedulerResource.cs` - Resource entity model
+  - `Migrations/` - Database schema migrations
+- **Database**: SQL Server (configurable via connection string)
+- **Features**:
+  - Code-first migrations
+  - Entity relationships and constraints
+  - Data seeding support
 
-See `scripts/azure-deploy-sqlite.sh` for an example `az` script.
+### Test Projects
+
+#### **pto.track.tests** (Integration Tests)
+- **Tests**: 16 integration tests
+- **Coverage**:
+  - Controller endpoint testing (8 tests)
+  - End-to-end CRUD workflows (5 tests)
+  - Resource retrieval (3 tests)
+- **Dependencies**: xUnit, Microsoft.AspNetCore.Mvc.Testing, In-Memory Database
+
+#### **pto.track.services.tests** (Service Layer Tests)
+- **Tests**: 29 unit tests
+- **Coverage**:
+  - EventService business logic (14 tests)
+  - ResourceService operations (7 tests)
+  - DTO JSON serialization (8 tests)
+- **Dependencies**: xUnit, Entity Framework In-Memory Database
+
+#### **pto.track.data.tests** (Data Layer Tests)
+- **Status**: Placeholder project for future data layer testing
+
+**Total Test Coverage**: 45 passing tests
+
+See [TESTING.md](TESTING.md) for detailed test documentation.
+
+## Getting Started
+
+### Prerequisites
+- .NET 10.0 SDK
+- SQL Server (or SQL Server Express/LocalDB for development)
+- Visual Studio Code (recommended) or Visual Studio 2022+
+
+### Configuration
+
+1. **Set up the database connection**:
+   ```bash
+   cd pto.track
+   dotnet user-secrets set "ConnectionStrings:Database" "Server=localhost;Database=SchedulerDb;Trusted_Connection=True;TrustServerCertificate=True"
+   ```
+
+2. **Apply database migrations**:
+   ```bash
+   dotnet ef database update --project pto.track.data --startup-project pto.track
+   ```
+
+3. **Run the application**:
+   ```bash
+   dotnet run --project pto.track
+   ```
+
+4. **Access the application**:
+   - Navigate to `https://localhost:5001` (or the port specified in console output)
+
+### Building and Testing
+
+```bash
+# Build the solution
+dotnet build
+
+# Run all tests
+dotnet test
+
+# Run specific test project
+dotnet test pto.track.services.tests
+dotnet test pto.track.tests
+
+# Build for release
+dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
+```
+
+## Key Features
+
+### Calendar Functionality
+- **Resource-based Scheduling**: Organize events by resources (employees, rooms, equipment)
+- **Drag & Drop**: Move events between resources or adjust time ranges
+- **Date Range Navigation**: Previous/Today/Next day navigation
+- **Multi-month Date Picker**: 3-month view for quick date selection
+- **Color Coding**: Visual categorization with customizable colors
+- **Event CRUD**: Create, read, update, and delete events via intuitive UI
+
+### Technical Highlights
+- **Clean Architecture**: Clear separation between presentation, business logic, and data layers
+- **API-First Design**: RESTful API endpoints that support both UI and external integrations
+- **DTO Pattern**: Decoupled data contracts with validation
+- **Dependency Injection**: Constructor-based DI throughout the application
+- **JSON Compatibility**: Proper camelCase serialization for JavaScript frontend
+- **Async/Await**: Non-blocking operations for better performance
+- **Comprehensive Testing**: 45 automated tests covering critical functionality
+
+## API Endpoints
+
+### Events API (`/api/events`)
+- `GET /api/events?start={date}&end={date}` - Get events in date range
+- `GET /api/events/{id}` - Get specific event
+- `POST /api/events` - Create new event
+- `PUT /api/events/{id}` - Update event
+- `DELETE /api/events/{id}` - Delete event
+
+### Resources API (`/api/resources`)
+- `GET /api/resources` - Get all resources
+
+## Technology Stack
+
+- **Framework**: ASP.NET Core 10.0
+- **Database**: Entity Framework Core 10.0 + SQL Server
+- **Testing**: xUnit 2.9.3+ with In-Memory Database
+- **Frontend**: DayPilot Lite for JavaScript (Apache License 2.0)
+- **UI**: Razor Pages with interactive JavaScript components
+
+## Development
+
+### VS Code Setup
+- Install recommended extensions (C# Dev Kit, .NET Test Explorer)
+- Use `F5` to start debugging
+- Test Explorer available via beaker icon 🧪
+- See [TESTING_VSCODE.md](TESTING_VSCODE.md) for detailed VS Code testing instructions
+
+### Project Dependencies
+```
+pto.track → pto.track.services → pto.track.data
+pto.track.tests → pto.track → pto.track.services → pto.track.data
+pto.track.services.tests → pto.track.services → pto.track.data
+```
+
+## License
+- Application code: Apache License 2.0
+- DayPilot Lite for JavaScript: Apache License 2.0
+- Third-party libraries: See [LicensesThirdParty/nuget.txt](LicensesThirdParty/nuget.txt)
+
+## Attribution
+This project was originally based on the [DayPilot Resource Scheduling Calendar](https://code.daypilot.org/20604/asp-net-core-resource-calendar-open-source) tutorial and has been significantly enhanced with clean architecture, comprehensive testing, and service layer implementation.
