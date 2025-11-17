@@ -43,22 +43,12 @@ if (!builder.Environment.IsEnvironment("Testing"))
             // best-effort directory creation; failure is non-fatal here
         }
 
-        builder.Services.AddDbContext<SchedulerDbContext>(options =>
-        {
-            options.UseSqlite(connStr);
-            // Suppress the pending changes warning which would otherwise fail on deploy
-            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-        });
+        builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseSqlite(connStr));
     }
     else
     {
         // default to SQL Server (existing behavior)
-        builder.Services.AddDbContext<SchedulerDbContext>(options =>
-        {
-            options.UseSqlServer(connStr);
-            // Suppress the pending changes warning which would otherwise fail on deploy
-            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-        });
+        builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseSqlServer(connStr));
     }
 }
 
