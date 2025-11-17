@@ -4,11 +4,10 @@ set -euo pipefail
 # Example Azure deployment script for App Service using SQLite
 # Replace the variables below with your desired resource names and region.
 
-RESOURCE_GROUP="rg-daypilot-demo"
-LOCATION="eastus"
-PLAN_NAME="daypilot-plan"
-APP_NAME="daypilot-sqlite-
-$(date +%s)"
+RESOURCE_GROUP="timeoff-management-rg"
+LOCATION="westus2"
+PLAN_NAME="resource-app-service-plan"
+APP_NAME="resource-sqlite-$(date +%s)"
 SKU="F1" # Free tier; change to B1 for paid
 
 # Path to the zip produced by `dotnet publish` as described in README
@@ -23,8 +22,8 @@ if [ ! -f "$ZIP_PATH" ]; then
   exit 2
 fi
 
-echo "Creating resource group..."
-az group create -n "$RESOURCE_GROUP" -l "$LOCATION"
+#echo "Creating resource group..."
+#az group create -n "$RESOURCE_GROUP" -l "$LOCATION"
 
 echo "Creating App Service plan ($PLAN_NAME)..."
 az appservice plan create -g "$RESOURCE_GROUP" -n "$PLAN_NAME" --is-linux --sku "$SKU"
