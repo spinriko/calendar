@@ -4,6 +4,10 @@ on:
   push:
     branches: [ testing, main ]
 
+env:
+  AZURE_RESOURCE_GROUP: "timeoff-management-rg"
+  AZURE_APP_NAME: "ptoreq"
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -35,11 +39,13 @@ jobs:
           zip -r ../app.zip .
           cd ..
 
-      # Deploy using an Azure publish profile. Configure the publish profile in
-      # the repository secrets as AZURE_WEBAPP_PUBLISH_PROFILE (contents of the
-      # .PublishSettings file).
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          app-name: ${{ env.AZURE_APP_NAME }}
           package: app.zip
