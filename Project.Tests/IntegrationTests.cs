@@ -48,10 +48,13 @@ namespace Project.Tests.Integration
                         services.Remove(d);
                     }
 
-                    // Remove EF Core SQL Server provider service registrations which may have been added
+                    // Remove any EF Core provider service registrations which may have been added
+                    // (match by namespace or full name containing 'EntityFrameworkCore')
                     var providerDescriptors = services.Where(d =>
-                        (d.ServiceType?.Namespace != null && d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore.SqlServer")) ||
-                        (d.ImplementationType?.Namespace != null && d.ImplementationType.Namespace.StartsWith("Microsoft.EntityFrameworkCore.SqlServer"))
+                        (d.ServiceType?.Namespace != null && d.ServiceType.Namespace.Contains("EntityFrameworkCore")) ||
+                        (d.ImplementationType?.Namespace != null && d.ImplementationType.Namespace.Contains("EntityFrameworkCore")) ||
+                        (d.ServiceType?.FullName != null && d.ServiceType.FullName.Contains("EntityFrameworkCore")) ||
+                        (d.ImplementationType?.FullName != null && d.ImplementationType.FullName.Contains("EntityFrameworkCore"))
                     ).ToList();
 
                     foreach (var d in providerDescriptors)
