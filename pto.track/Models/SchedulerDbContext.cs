@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
 
-namespace Pto.Track.Web.Models
+namespace pto.track.legacy.Models
 {
     public class SchedulerDbContext : DbContext
     {

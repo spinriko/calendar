@@ -1,7 +1,8 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
+using pto.track.data;
 
-namespace Project.Models
+namespace pto.track.data
 {
     public class SchedulerDbContext : DbContext
     {

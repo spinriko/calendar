@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Project.Models;
+using pto.track.data;
 
-namespace Project.Controllers
+namespace pto.track.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

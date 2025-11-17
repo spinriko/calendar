@@ -1,8 +1,8 @@
 using System;
 using Microsoft.EntityFrameworkCore;
-using Project.Models;
+using pto.track.data;
 
-namespace Project.Tests
+namespace pto.track.tests
 {
     public abstract class TestBase
     {

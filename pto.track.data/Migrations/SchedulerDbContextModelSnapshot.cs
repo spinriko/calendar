@@ -3,11 +3,11 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Project.Models;
+using pto.track.data;
 
 #nullable disable
 
-namespace Project.Migrations
+namespace pto.track.data.Migrations
 {
     [DbContext(typeof(SchedulerDbContext))]
     partial class SchedulerDbContextModelSnapshot : ModelSnapshot
@@ -100,7 +100,7 @@ namespace Project.Migrations
                         new
                         {
                             Id = 8,
-                            Name = "Resource H"
+                            Name = "PResource H"
                         },
                         new
                         {

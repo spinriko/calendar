@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Pto.Track.Web.Models
+namespace pto.track.legacy.Models
 {
     public class SchedulerResource
     {

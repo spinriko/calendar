@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
-using Project.Models;
+using pto.track.data;
 
 var builder = WebApplication.CreateBuilder(args);
 

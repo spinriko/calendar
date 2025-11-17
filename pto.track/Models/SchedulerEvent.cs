@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-namespace Pto.Track.Web.Models
+namespace pto.track.legacy.Models
 {
     public class SchedulerEvent : IValidatableObject
     {

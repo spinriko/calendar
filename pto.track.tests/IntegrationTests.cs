@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Project.Models;
+using pto.track.data;
 using Xunit;
 
-namespace Project.Tests.Integration
+namespace pto.track.tests.Integration
 {
     public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     {

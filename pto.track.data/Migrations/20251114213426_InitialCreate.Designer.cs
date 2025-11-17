@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Project.Models;
+using pto.track.data;
 
 #nullable disable
 
-namespace Project.Migrations
+namespace pto.track.data.Migrations
 {
     [DbContext(typeof(SchedulerDbContext))]
     [Migration("20251114213426_InitialCreate")]

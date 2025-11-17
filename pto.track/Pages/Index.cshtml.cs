@@ -1,11 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 
-namespace Project.Pages
+namespace pto.track.Pages
 {
-    public class IndexModel(ILogger<IndexModel> logger) : PageModel
+    public class IndexModel : PageModel
     {
-        private readonly ILogger<IndexModel> _logger = logger;
+        private readonly ILogger<IndexModel> _logger;
+
+        public IndexModel(ILogger<IndexModel> logger)
+        {
+            _logger = logger;
+        }
 
         public void OnGet()
         {

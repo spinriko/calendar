@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Project.Models;
+using pto.track.data;
 
 #nullable disable
 
-namespace Project.Migrations
+namespace pto.track.Migrations
 {
     [DbContext(typeof(SchedulerDbContext))]
     [Migration("20251114213426_InitialCreate")]
@@ -20,7 +20,7 @@ namespace Project.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
-            modelBuilder.Entity("Project.Models.SchedulerEvent", b =>
+            modelBuilder.Entity("pto.track.data.SchedulerEvent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -49,7 +49,7 @@ namespace Project.Migrations
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("Project.Models.SchedulerResource", b =>
+            modelBuilder.Entity("pto.track.data.SchedulerResource", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

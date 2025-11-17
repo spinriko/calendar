@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Project.Controllers;
-using Project.Models;
+using pto.track.Controllers;
+using pto.track.data;
 using Xunit;
 
-namespace Project.Tests
+namespace pto.track.tests
 {
     public class EventsControllerTests : TestBase
     {
