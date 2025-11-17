@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/Project/Project.csproj",
+                "${workspaceFolder}/pto.track/pto.track.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "test",
-                "${workspaceFolder}/Project.Tests/Project.Tests.csproj",
+                "${workspaceFolder}/pto.track.tests/pto.track.tests.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -31,7 +31,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/Project/Project.csproj",
+                "${workspaceFolder}/pto.track/pto.track.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -45,7 +45,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/Project/Project.csproj"
+                "${workspaceFolder}/pto.track/pto.track.csproj"
             ],
             "isBackground": true,
             "problemMatcher": "$msCompile",

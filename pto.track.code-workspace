@@ -5,7 +5,7 @@
     }
   ],
   "settings": {
-    "dotnet-test-explorer.testProjectPath": "${workspaceFolder}/Project.Tests",
+    "dotnet-test-explorer.testProjectPath": "${workspaceFolder}/*.Tests",
     "dotnet-test-explorer.autoWatch": true,
     "dotnet-test-explorer.showCodeLens": true,
     "testing.automaticallyOpenPeekView": "failureInVisibleDocument"

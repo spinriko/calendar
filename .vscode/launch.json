@@ -6,9 +6,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Project/bin/Debug/net10.0/Project.dll",
+            "program": "${workspaceFolder}/pto.track/bin/Debug/net10.0/pto.track.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Project",
+            "cwd": "${workspaceFolder}/pto.track",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
@@ -30,9 +30,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "test",
-            "program": "${workspaceFolder}/Project.Tests/bin/Debug/net10.0/Project.Tests.dll",
+            "program": "${workspaceFolder}/pto.track.tests/bin/Debug/net10.0/pto.track.tests.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Project.Tests",
+            "cwd": "${workspaceFolder}/pto.track.tests",
             "stopAtEntry": false,
             "console": "internalConsole"
         }
