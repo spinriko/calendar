@@ -50,8 +50,10 @@ namespace Project.Tests.Integration
 
                     // Remove EF Core SQL Server provider service registrations which may have been added
                     var providerDescriptors = services.Where(d =>
-                        (d.ServiceType?.Namespace != null && d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore.SqlServer")) ||
-                        (d.ImplementationType?.Namespace != null && d.ImplementationType.Namespace.StartsWith("Microsoft.EntityFrameworkCore.SqlServer"))
+                        (d.ServiceType?.Namespace != null && d.ServiceType.Namespace.Contains("SqlServer")) ||
+                        (d.ImplementationType?.Namespace != null && d.ImplementationType.Namespace.Contains("SqlServer")) ||
+                        (d.ServiceType?.FullName != null && d.ServiceType.FullName.Contains("SqlServer")) ||
+                        (d.ImplementationType?.FullName != null && d.ImplementationType.FullName.Contains("SqlServer"))
                     ).ToList();
 
                     foreach (var d in providerDescriptors)
