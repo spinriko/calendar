@@ -61,6 +61,13 @@ if (!builder.Environment.IsEnvironment("Testing"))
         });
     }
 }
+else
+{
+    // Testing environment: register with a placeholder, tests will override via WebApplicationFactory
+    builder.Services.AddDbContext<SchedulerDbContext>(options =>
+        options.UseSqlServer("Server=.;Database=TestDb;Trusted_Connection=true;"));
+}
+
 
 var app = builder.Build();
 
@@ -97,6 +104,26 @@ using (var serviceScope = app.Services.CreateScope())
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred migrating or creating the DB.");
+    }
+}
+// Skip database initialization in Testing environment (WebApplicationFactory handles it)
+// Skip database initialization in Testing environment (WebApplicationFactory handles it)
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using (var serviceScope = app.Services.CreateScope())
+    {
+        var services = serviceScope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<SchedulerDbContext>();
+            // Prefer migrations when available so schema upgrades work on deployment
+            context.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred migrating or creating the DB.");
+        }
     }
 }
 
