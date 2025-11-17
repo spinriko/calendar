@@ -90,23 +90,6 @@ app.MapRazorPages()
    .WithStaticAssets();
 app.MapControllers();
 
-// Ensure the database is migrated/created at startup.
-using (var serviceScope = app.Services.CreateScope())
-{
-    var services = serviceScope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<SchedulerDbContext>();
-        // Prefer migrations when available so schema upgrades work on deployment
-        context.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred migrating or creating the DB.");
-    }
-}
-// Skip database initialization in Testing environment (WebApplicationFactory handles it)
 // Skip database initialization in Testing environment (WebApplicationFactory handles it)
 if (!app.Environment.IsEnvironment("Testing"))
 {
