@@ -8,20 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
-// Configure DB provider based on connection string. If no connection string is present and
-// environment is not Testing, the app will attempt to use SQL Server (same as before).
+// Configure DB provider based on connection string.
+// Priority: SQLite if detected -> default to SQLite if no/empty/user-secrets connection string -> SQL Server for valid SQL Server strings
 var connStr = builder.Configuration.GetConnectionString("SchedulerDbContext");
+
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    if (!string.IsNullOrEmpty(connStr) &&
+    // Determine if we should use SQLite or SQL Server
+    var useSqlite = !string.IsNullOrEmpty(connStr) && !string.Equals(connStr, "user-secrets", StringComparison.OrdinalIgnoreCase) &&
         (connStr.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
          || connStr.Contains("Filename=", StringComparison.OrdinalIgnoreCase)
-         || connStr.EndsWith(".db", StringComparison.OrdinalIgnoreCase)))
+         || connStr.EndsWith(".db", StringComparison.OrdinalIgnoreCase));
+
+    if (useSqlite)
     {
         // SQLite - ensure containing directory exists if using a file-based Data Source
         try
         {
-            var ds = connStr;
+            var ds = connStr!;
             var marker = "Data Source=";
             var start = ds.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
             if (start >= 0)
@@ -46,17 +50,32 @@ if (!builder.Environment.IsEnvironment("Testing"))
         builder.Services.AddDbContext<SchedulerDbContext>(options =>
         {
             options.UseSqlite(connStr);
-            // Suppress the pending changes warning which would otherwise fail on deploy
+            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        });
+    }
+    else if (string.IsNullOrEmpty(connStr) || string.Equals(connStr, "user-secrets", StringComparison.OrdinalIgnoreCase))
+    {
+        // No connection string provided or placeholder; default to SQLite at a safe location
+        var defaultSqlitePath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "scheduler.db");
+        var dir = Path.GetDirectoryName(defaultSqlitePath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        var defaultConnStr = $"Data Source={defaultSqlitePath}";
+        builder.Services.AddDbContext<SchedulerDbContext>(options =>
+        {
+            options.UseSqlite(defaultConnStr);
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
     }
     else
     {
-        // default to SQL Server (existing behavior)
+        // SQL Server connection string provided
         builder.Services.AddDbContext<SchedulerDbContext>(options =>
         {
             options.UseSqlServer(connStr);
-            // Suppress the pending changes warning which would otherwise fail on deploy
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
     }
