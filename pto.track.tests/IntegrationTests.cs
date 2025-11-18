@@ -19,7 +19,7 @@ namespace pto.track.tests.Integration
             _factory = factory;
         }
 
-        private HttpClient GetClientWithInMemoryDb(Action<SchedulerDbContext>? seed = null)
+        private HttpClient GetClientWithInMemoryDb(Action<PtoTrackDbContext>? seed = null)
         {
             var factory = _factory.WithWebHostBuilder(builder =>
             {
@@ -30,7 +30,7 @@ namespace pto.track.tests.Integration
                 {
                     var dict = new Dictionary<string, string?>
                     {
-                        ["ConnectionStrings:SchedulerDbContext"] = string.Empty
+                        ["ConnectionStrings:PtoTrackDbContext"] = string.Empty
                     };
                     config.AddInMemoryCollection(dict);
                 });
@@ -39,9 +39,9 @@ namespace pto.track.tests.Integration
                 {
                     // Remove existing DbContext registrations (both the context type and its options)
                     var descriptors = services.Where(d =>
-                        d.ServiceType == typeof(DbContextOptions<SchedulerDbContext>) ||
-                        d.ServiceType == typeof(SchedulerDbContext) ||
-                        (d.ImplementationType != null && d.ImplementationType == typeof(SchedulerDbContext))
+                        d.ServiceType == typeof(DbContextOptions<PtoTrackDbContext>) ||
+                        d.ServiceType == typeof(PtoTrackDbContext) ||
+                        (d.ImplementationType != null && d.ImplementationType == typeof(PtoTrackDbContext))
                     ).ToList();
 
                     foreach (var d in descriptors)
@@ -63,7 +63,7 @@ namespace pto.track.tests.Integration
                     }
 
                     var dbName = "IntegrationTestDb_" + Guid.NewGuid().ToString();
-                    services.AddDbContext<SchedulerDbContext>(options =>
+                    services.AddDbContext<PtoTrackDbContext>(options =>
                     {
                         options.UseInMemoryDatabase(dbName);
                     });
@@ -71,7 +71,7 @@ namespace pto.track.tests.Integration
                     var sp = services.BuildServiceProvider();
                     using (var scope = sp.CreateScope())
                     {
-                        var db = scope.ServiceProvider.GetRequiredService<SchedulerDbContext>();
+                        var db = scope.ServiceProvider.GetRequiredService<PtoTrackDbContext>();
                         db.Database.EnsureCreated();
 
                         // If the test provides a seed action, clear any model-seeded data

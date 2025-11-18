@@ -11,9 +11,9 @@ using pto.track.data;
 
 namespace pto.track.data.Migrations
 {
-    [DbContext(typeof(SchedulerDbContext))]
-    [Migration("20251118005220_AddAbsenceRequests")]
-    partial class AddAbsenceRequests
+    [DbContext(typeof(PtoTrackDbContext))]
+    [Migration("20251118012544_AddAbsenceRequestsTable")]
+    partial class AddAbsenceRequestsTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

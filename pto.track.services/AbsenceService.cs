@@ -6,9 +6,9 @@ namespace pto.track.services;
 
 public class AbsenceService : IAbsenceService
 {
-    private readonly SchedulerDbContext _context;
+    private readonly PtoTrackDbContext _context;
 
-    public AbsenceService(SchedulerDbContext context)
+    public AbsenceService(PtoTrackDbContext context)
     {
         _context = context;
     }

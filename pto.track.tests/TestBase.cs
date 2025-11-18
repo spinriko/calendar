@@ -4,15 +4,15 @@ using pto.track.data;
 
 namespace pto.track.tests
 {
-    public abstract class TestBase
+    public class TestBase
     {
-        protected SchedulerDbContext CreateInMemoryContext()
+        protected PtoTrackDbContext CreateInMemoryContext()
         {
-            var options = new DbContextOptionsBuilder<SchedulerDbContext>()
+            var options = new DbContextOptionsBuilder<PtoTrackDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
-            return new SchedulerDbContext(options);
+            return new PtoTrackDbContext(options);
         }
     }
 }

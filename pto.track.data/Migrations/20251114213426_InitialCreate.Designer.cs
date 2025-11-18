@@ -10,7 +10,7 @@ using pto.track.data;
 
 namespace pto.track.data.Migrations
 {
-    [DbContext(typeof(SchedulerDbContext))]
+    [DbContext(typeof(PtoTrackDbContext))]
     [Migration("20251114213426_InitialCreate")]
     partial class InitialCreate
     {

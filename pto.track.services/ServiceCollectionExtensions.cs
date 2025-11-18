@@ -15,11 +15,11 @@ public static class ServiceCollectionExtensions
         IHostEnvironment environment)
     {
         // Configure DB provider - use SQL Server
-        var connStr = configuration.GetConnectionString("SchedulerDbContext");
+        var connStr = configuration.GetConnectionString("PtoTrackDbContext");
 
         if (!environment.IsEnvironment("Testing"))
         {
-            services.AddDbContext<SchedulerDbContext>(options => options.UseSqlServer(connStr));
+            services.AddDbContext<PtoTrackDbContext>(options => options.UseSqlServer(connStr));
         }
 
         // Register application services
@@ -36,13 +36,13 @@ public static class ServiceCollectionExtensions
         var services = serviceScope.ServiceProvider;
         try
         {
-            var context = services.GetRequiredService<SchedulerDbContext>();
+            var context = services.GetRequiredService<PtoTrackDbContext>();
             // Prefer migrations when available so schema upgrades work on deployment
             context.Database.Migrate();
         }
         catch (Exception ex)
         {
-            var logger = services.GetRequiredService<ILogger<SchedulerDbContext>>();
+            var logger = services.GetRequiredService<ILogger<PtoTrackDbContext>>();
             logger.LogError(ex, "An error occurred migrating or creating the DB.");
         }
     }

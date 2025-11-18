@@ -6,9 +6,9 @@ namespace pto.track.services;
 
 public class ResourceService : IResourceService
 {
-    private readonly SchedulerDbContext _context;
+    private readonly PtoTrackDbContext _context;
 
-    public ResourceService(SchedulerDbContext context)
+    public ResourceService(PtoTrackDbContext context)
     {
         _context = context;
     }

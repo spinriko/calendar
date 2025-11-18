@@ -6,9 +6,9 @@ namespace pto.track.services;
 
 public class EventService : IEventService
 {
-    private readonly SchedulerDbContext _context;
+    private readonly PtoTrackDbContext _context;
 
-    public EventService(SchedulerDbContext context)
+    public EventService(PtoTrackDbContext context)
     {
         _context = context;
     }

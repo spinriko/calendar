@@ -4,13 +4,13 @@ using pto.track.data;
 
 namespace pto.track.data
 {
-    public class SchedulerDbContext : DbContext
+    public class PtoTrackDbContext : DbContext
     {
         public DbSet<SchedulerEvent> Events { get; set; }
         public DbSet<SchedulerResource> Resources { get; set; }
         public DbSet<AbsenceRequest> AbsenceRequests { get; set; }
 
-        public SchedulerDbContext(DbContextOptions<SchedulerDbContext> options) : base(options) { }
+        public PtoTrackDbContext(DbContextOptions<PtoTrackDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
