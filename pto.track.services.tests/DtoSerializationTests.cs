@@ -19,8 +19,9 @@ public class DtoSerializationTests
     public void EventDto_SerializesToCamelCase()
     {
         // Arrange
+        var testId = Guid.NewGuid();
         var dto = new EventDto(
-            Id: 1,
+            Id: testId,
             Start: new DateTime(2025, 1, 15, 9, 0, 0),
             End: new DateTime(2025, 1, 15, 17, 0, 0),
             Text: "Test Event",
@@ -35,7 +36,7 @@ public class DtoSerializationTests
 
         // Assert
         Assert.True(root.TryGetProperty("id", out var idProp));
-        Assert.Equal(1, idProp.GetInt32());
+        Assert.Equal(testId, Guid.Parse(idProp.GetString()!));
 
         Assert.True(root.TryGetProperty("start", out var startProp));
         Assert.Equal(dto.Start, startProp.GetDateTime());
@@ -58,7 +59,7 @@ public class DtoSerializationTests
     {
         // Arrange
         var dto = new EventDto(
-            Id: 1,
+            Id: Guid.NewGuid(),
             Start: DateTime.Now,
             End: DateTime.Now.AddHours(1),
             Text: "Test",
@@ -171,7 +172,7 @@ public class DtoSerializationTests
     {
         // Arrange
         var originalDto = new EventDto(
-            Id: 42,
+            Id: Guid.NewGuid(),
             Start: new DateTime(2025, 3, 10, 8, 0, 0),
             End: new DateTime(2025, 3, 10, 16, 30, 0),
             Text: "Round Trip Test",
@@ -197,8 +198,9 @@ public class DtoSerializationTests
     public void EventDto_SerializedJsonMatchesExpectedFormat()
     {
         // Arrange
+        var testId = Guid.NewGuid();
         var dto = new EventDto(
-            Id: 99,
+            Id: testId,
             Start: new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             End: new DateTime(2025, 1, 2, 0, 0, 0, DateTimeKind.Utc),
             Text: "Format Test",
@@ -210,7 +212,7 @@ public class DtoSerializationTests
         var json = JsonSerializer.Serialize(dto, _jsonOptions);
 
         // Assert
-        Assert.Contains("\"id\":99", json);
+        Assert.Contains($"\"id\":\"{testId}\"", json);
         Assert.Contains("\"start\":", json);
         Assert.Contains("\"end\":", json);
         Assert.Contains("\"text\":\"Format Test\"", json);

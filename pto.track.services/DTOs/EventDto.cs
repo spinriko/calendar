@@ -5,7 +5,7 @@ namespace pto.track.services.DTOs;
 
 public record EventDto(
     [property: JsonPropertyName("id")]
-    int Id,
+    Guid Id,
     [property: JsonPropertyName("start")]
     DateTime Start,
     [property: JsonPropertyName("end")]

@@ -22,7 +22,7 @@ public class EventService : IEventService
             .ToListAsync();
     }
 
-    public async Task<EventDto?> GetEventByIdAsync(int id)
+    public async Task<EventDto?> GetEventByIdAsync(Guid id)
     {
         var evt = await _context.Events.FindAsync(id);
         return evt == null ? null : new EventDto(evt.Id, evt.Start, evt.End, evt.Text, evt.Color, evt.ResourceId);
@@ -45,7 +45,7 @@ public class EventService : IEventService
         return new EventDto(entity.Id, entity.Start, entity.End, entity.Text, entity.Color, entity.ResourceId);
     }
 
-    public async Task<bool> UpdateEventAsync(int id, UpdateEventDto dto)
+    public async Task<bool> UpdateEventAsync(Guid id, UpdateEventDto dto)
     {
         var existing = await _context.Events.FindAsync(id);
         if (existing == null) return false;
@@ -71,7 +71,7 @@ public class EventService : IEventService
         }
     }
 
-    public async Task<bool> DeleteEventAsync(int id)
+    public async Task<bool> DeleteEventAsync(Guid id)
     {
         var entity = await _context.Events.FindAsync(id);
         if (entity == null) return false;

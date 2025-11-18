@@ -5,9 +5,9 @@ This solution includes comprehensive test coverage across multiple test projects
 ## Test Projects Overview
 
 ### Summary Statistics
-- **Total Tests**: 45 (all passing ✓)
+- **Total Tests**: 90 (all passing ✓)
 - **Test Projects**: 3
-- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization
+- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation
 
 ## Test Projects
 
@@ -83,7 +83,7 @@ End-to-end integration tests:
 ---
 
 ### 2. pto.track.services.tests (Service Layer Unit Tests)
-**Total Tests**: 29  
+**Total Tests**: 50  
 **Technology**: xUnit 3.1.4, EF Core In-Memory Database
 
 Unit tests for the business logic layer, ensuring services work correctly in isolation.
@@ -154,6 +154,72 @@ Tests the `ResourceService` business logic:
 7. **GetResourcesAsync_UsesNoTracking**  
    Ensures queries use AsNoTracking for performance
 
+#### AbsenceServiceTests.cs (21 tests)
+Tests the `AbsenceService` approval workflow business logic:
+
+1. **GetAbsencesAsync_WithAbsencesInDateRange_ReturnsMatchingAbsences**  
+   Verifies date range filtering logic
+
+2. **GetAbsencesAsync_WithNoAbsencesInRange_ReturnsEmpty**  
+   Ensures empty results when no absences match date range
+
+3. **GetAbsencesByEmployeeAsync_WithValidEmployeeId_ReturnsEmployeeAbsences**  
+   Tests filtering by employee ID
+
+4. **GetAbsencesByEmployeeAsync_WithNoAbsences_ReturnsEmpty**  
+   Validates empty results for employees with no absences
+
+5. **GetPendingAbsencesAsync_ReturnsOnlyPendingAbsences**  
+   Confirms only Pending status absences are returned
+
+6. **GetPendingAbsencesAsync_WithNoPending_ReturnsEmpty**  
+   Ensures empty results when no pending absences exist
+
+7. **GetAbsenceByIdAsync_WithValidId_ReturnsAbsence**  
+   Tests single absence retrieval by ID
+
+8. **GetAbsenceByIdAsync_WithInvalidId_ReturnsNull**  
+   Validates null is returned for non-existent IDs
+
+9. **CreateAbsenceAsync_WithValidDto_CreatesAndReturnsAbsence**  
+   Tests absence creation from DTO with default Pending status
+
+10. **CreateAbsenceAsync_SetsDefaultStatus_ToPending**  
+    Confirms new absences default to Pending status
+
+11. **UpdateAbsenceAsync_WithValidIdAndDto_UpdatesAbsence**  
+    Verifies absence updates modify all fields correctly
+
+12. **UpdateAbsenceAsync_WithInvalidId_ReturnsFalse**  
+    Confirms false is returned when updating non-existent absences
+
+13. **ApproveAbsenceAsync_WithValidId_ApprovesAbsence**  
+    Tests approval workflow sets Status to Approved
+
+14. **ApproveAbsenceAsync_SetsApproverIdAndDate**  
+    Validates approver ID and approval date are set
+
+15. **ApproveAbsenceAsync_WithInvalidId_ReturnsFalse**  
+    Confirms false is returned for non-existent absence IDs
+
+16. **RejectAbsenceAsync_WithValidId_RejectsAbsence**  
+    Tests rejection workflow sets Status to Rejected
+
+17. **RejectAbsenceAsync_SetsApproverIdAndComments**  
+    Validates approver ID, date, and comments are set on rejection
+
+18. **CancelAbsenceAsync_WithValidId_CancelsAbsence**  
+    Tests cancellation workflow sets Status to Cancelled
+
+19. **CancelAbsenceAsync_WithInvalidId_ReturnsFalse**  
+    Confirms false is returned for non-existent absence IDs
+
+20. **DeleteAbsenceAsync_WithValidId_DeletesAbsence**  
+    Tests absence deletion and confirms removal from database
+
+21. **DeleteAbsenceAsync_WithInvalidId_ReturnsFalse**  
+    Validates false is returned when deleting non-existent absences
+
 #### DtoSerializationTests.cs (8 tests)
 Tests JSON serialization of DTOs:
 
@@ -191,13 +257,97 @@ Tests JSON serialization of DTOs:
 ---
 
 ### 3. pto.track.data.tests (Data Layer Tests)
-**Total Tests**: 1 (placeholder)  
-**Status**: Placeholder project for future data layer specific testing
+**Total Tests**: 24  
+**Technology**: xUnit 2.5.3, System.ComponentModel.DataAnnotations
 
-Currently contains a basic placeholder test. Future enhancements could include:
-- Entity validation tests
-- Database constraint tests
-- Migration tests
+Unit tests for entity validation logic using IValidatableObject implementations.
+
+#### SchedulerEventValidationTests.cs (9 tests)
+Tests the `SchedulerEvent` entity validation:
+
+1. **Validate_EndAfterStart_NoValidationErrors**  
+   Verifies valid events (End > Start) pass validation
+
+2. **Validate_EndBeforeStart_ReturnsValidationError**  
+   Tests that End date before Start date produces validation error
+
+3. **Validate_EndEqualsStart_ReturnsValidationError**  
+   Confirms End date equal to Start date produces validation error
+
+4. **Validate_ResourceIdZero_ReturnsValidationError**  
+   Tests that ResourceId of 0 fails validation (must be positive)
+
+5. **Validate_ResourceIdNegative_ReturnsValidationError**  
+   Validates that negative ResourceId fails validation
+
+6. **Validate_TextExceedsMaxLength_ReturnsValidationError**  
+   Tests that Text exceeding 200 characters fails validation
+
+7. **Validate_ColorExceedsMaxLength_ReturnsValidationError**  
+   Validates that Color exceeding 50 characters fails validation
+
+8. **Validate_TextAtMaxLength_NoValidationErrors**  
+   Confirms Text at exactly 200 characters passes validation
+
+9. **Validate_ColorAtMaxLength_NoValidationErrors**  
+   Tests that Color at exactly 50 characters passes validation
+
+#### AbsenceRequestValidationTests.cs (11 tests)
+Tests the `AbsenceRequest` entity validation:
+
+1. **Validate_EndAfterStart_NoValidationErrors**  
+   Verifies valid absence requests (End > Start) pass validation
+
+2. **Validate_EndBeforeStart_ReturnsValidationError**  
+   Tests that End date before Start date produces validation error
+
+3. **Validate_EndEqualsStart_ReturnsValidationError**  
+   Confirms End date equal to Start date produces validation error
+
+4. **Validate_PastDateWithPendingStatus_ReturnsValidationError**  
+   Tests that Pending absences cannot be created for past dates
+
+5. **Validate_PastDateWithApprovedStatus_NoValidationError**  
+   Validates that Approved absences can exist for past dates
+
+6. **Validate_ReasonExceedsMaxLength_ReturnsValidationError**  
+   Tests that Reason exceeding 500 characters fails validation
+
+7. **Validate_ReasonAtMaxLength_NoValidationErrors**  
+   Confirms Reason at exactly 500 characters passes validation
+
+8. **Validate_ApprovalCommentsExceedsMaxLength_ReturnsValidationError**  
+   Tests that ApprovalComments exceeding 1000 characters fails validation
+
+9. **Validate_ApprovalCommentsAtMaxLength_NoValidationErrors**  
+   Validates that ApprovalComments at exactly 1000 characters passes
+
+10. **DefaultStatus_IsPending**  
+    Tests that new absence requests default to Pending status
+
+11. **RequestedDate_DefaultsToUtcNow**  
+    Confirms RequestedDate is automatically set to current UTC time
+
+#### SchedulerResourceValidationTests.cs (4 tests)
+Tests the `SchedulerResource` entity validation:
+
+1. **Validate_NameWithinMaxLength_NoValidationErrors**  
+   Verifies valid resource names pass validation
+
+2. **Validate_NameAtMaxLength_NoValidationErrors**  
+   Tests that Name at exactly 100 characters passes validation
+
+3. **Validate_NameExceedsMaxLength_ReturnsValidationError**  
+   Validates that Name exceeding 100 characters fails validation
+
+4. **Validate_NameRequired_ReturnsValidationError**  
+   Tests that null or empty Name fails validation
+
+**Key Testing Features**:
+- Direct entity validation using System.ComponentModel.DataAnnotations
+- Tests both attribute-based validation (StringLength, Required) and custom IValidatableObject validation
+- Validates business rules (date ranges, status-based constraints)
+- Ensures data integrity at the entity level
 - Complex query tests
 
 ---

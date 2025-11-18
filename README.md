@@ -20,7 +20,9 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Key Components**:
   - `Controllers/EventsController.cs` - Event CRUD operations API
   - `Controllers/ResourcesController.cs` - Resource management API
-  - `Pages/Index.cshtml` - Interactive calendar UI using DayPilot
+  - `Controllers/AbsenceController.cs` - Absence request approval workflow API
+  - `Pages/Index.cshtml` - Interactive calendar UI using DayPilot (scheduling)
+  - `Pages/Absences.cshtml` - Absence request calendar UI with approval actions
   - `Program.cs` - Application configuration and service registration
 - **Features**:
   - Interactive drag-and-drop calendar interface
@@ -28,6 +30,7 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - Resource-based event scheduling
   - Color-coded event display
   - Modal dialogs for event creation/editing
+  - Absence request approval workflow (Pending/Approved/Rejected/Cancelled)
 
 #### **pto.track.services** (Business Logic Layer)
 - **Technology**: .NET 10.0 Class Library
@@ -35,28 +38,33 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Key Components**:
   - `IEventService.cs` / `EventService.cs` - Event business logic
   - `IResourceService.cs` / `ResourceService.cs` - Resource business logic
+  - `IAbsenceService.cs` / `AbsenceService.cs` - Absence request approval workflow business logic
   - `DTOs/EventDto.cs` - Data transfer objects with JSON serialization attributes
   - `DTOs/ResourceDto.cs` - Resource data transfer objects
+  - `DTOs/AbsenceRequestDto.cs` - Absence request DTOs (Create/Update/Approve/Reject variants)
   - `ServiceCollectionExtensions.cs` - Dependency injection configuration
 - **Features**:
   - DTO-based API contracts (camelCase JSON serialization for JavaScript compatibility)
   - Validation logic (IValidatableObject implementation)
   - Database migration management
   - Clean separation from data entities
+  - Approval workflow state management
 
 #### **pto.track.data** (Data Access Layer)
 - **Technology**: Entity Framework Core 10.0
 - **Purpose**: Database access and entity management
 - **Key Components**:
-  - `SchedulerDbContext.cs` - EF Core database context
+  - `PtoTrackDbContext.cs` - EF Core database context
   - `Entities/SchedulerEvent.cs` - Event entity model
   - `Entities/SchedulerResource.cs` - Resource entity model
+  - `Entities/AbsenceRequest.cs` - PTO/absence request entity with approval workflow
   - `Migrations/` - Database schema migrations
 - **Database**: SQL Server (configurable via connection string)
 - **Features**:
   - Code-first migrations
   - Entity relationships and constraints
   - Data seeding support
+  - IValidatableObject validation on entities
 
 ### Test Projects
 
@@ -69,17 +77,23 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Dependencies**: xUnit, Microsoft.AspNetCore.Mvc.Testing, In-Memory Database
 
 #### **pto.track.services.tests** (Service Layer Tests)
-- **Tests**: 29 unit tests
+- **Tests**: 50 unit tests
 - **Coverage**:
   - EventService business logic (14 tests)
   - ResourceService operations (7 tests)
+  - AbsenceService workflow logic (21 tests)
   - DTO JSON serialization (8 tests)
 - **Dependencies**: xUnit, Entity Framework In-Memory Database
 
 #### **pto.track.data.tests** (Data Layer Tests)
-- **Status**: Placeholder project for future data layer testing
+- **Tests**: 24 entity validation tests
+- **Coverage**:
+  - SchedulerEvent validation (9 tests)
+  - AbsenceRequest validation (11 tests)
+  - SchedulerResource validation (4 tests)
+- **Dependencies**: xUnit, System.ComponentModel.DataAnnotations
 
-**Total Test Coverage**: 45 passing tests
+**Total Test Coverage**: 90 passing tests
 
 See [TESTING.md](TESTING.md) for detailed test documentation.
 
@@ -95,7 +109,7 @@ See [TESTING.md](TESTING.md) for detailed test documentation.
 1. **Set up the database connection**:
    ```bash
    cd pto.track
-   dotnet user-secrets set "ConnectionStrings:Database" "Server=localhost;Database=SchedulerDb;Trusted_Connection=True;TrustServerCertificate=True"
+   dotnet user-secrets set "ConnectionStrings:PtoTrackDbContext" "Server=localhost;Database=PtoTrackDb;Trusted_Connection=True;TrustServerCertificate=True"
    ```
 
 2. **Apply database migrations**:
@@ -145,7 +159,7 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 - **Dependency Injection**: Constructor-based DI throughout the application
 - **JSON Compatibility**: Proper camelCase serialization for JavaScript frontend
 - **Async/Await**: Non-blocking operations for better performance
-- **Comprehensive Testing**: 45 automated tests covering critical functionality
+- **Comprehensive Testing**: 90 automated tests covering critical functionality
 
 ## API Endpoints
 
@@ -158,6 +172,18 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 
 ### Resources API (`/api/resources`)
 - `GET /api/resources` - Get all resources
+
+### Absence API (`/api/absence`)
+- `GET /api/absence?start={date}&end={date}` - Get absence requests in date range
+- `GET /api/absence/employee/{employeeId}` - Get absence requests for specific employee
+- `GET /api/absence/pending` - Get all pending absence requests
+- `GET /api/absence/{id}` - Get specific absence request
+- `POST /api/absence` - Create new absence request
+- `PUT /api/absence/{id}` - Update absence request
+- `POST /api/absence/{id}/approve` - Approve absence request
+- `POST /api/absence/{id}/reject` - Reject absence request
+- `POST /api/absence/{id}/cancel` - Cancel absence request
+- `DELETE /api/absence/{id}` - Delete absence request
 
 ## Technology Stack
 

@@ -1,0 +1,227 @@
+﻿@page
+@model pto.track.Pages.SchedulingModel
+@{
+    ViewData["Title"] = "Scheduling Calendar";
+}
+
+<script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
+
+<div class="main">
+    <div class="left">
+        <div id="datepicker"></div>
+    </div>
+    <div class="right">
+        <div class="buttons">
+            <button id="previous">Previous</button>
+            <button id="today">Today</button>
+            <button id="next">Next</button>
+        </div>
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<script>
+  const calendar = new DayPilot.Calendar("calendar", {
+    viewType: "Resources",
+    durationBarVisible: false,
+    onTimeRangeSelected: async (args) => {
+      const modal = await DayPilot.Modal.prompt("Create a new event:", "Event 1");
+      calendar.clearSelection();
+      if (modal.canceled) {
+        return;
+      }
+
+      const event = {
+        start: args.start,
+        end: args.end,
+        resource: args.resource,
+        text: modal.result
+      };
+      const { data } = await DayPilot.Http.post(`/api/events`, event);
+
+      calendar.events.add({
+        start: args.start,
+        end: args.end,
+        id: data.id,
+        text: modal.result,
+        resource: args.resource
+      });
+
+    },
+    onEventMoved: async (args) => {
+      const params = {
+        id: args.e.id(),
+        start: args.newStart,
+        end: args.newEnd,
+        resource: args.newResource,
+        text: args.e.text()
+      };
+      await DayPilot.Http.put(`/api/events/${params.id}`, params);               
+    },
+    onEventResized: async (args) => {
+      const params = {
+        id: args.e.id(),
+        start: args.newStart,
+        end: args.newEnd,
+        resource: args.newResource,
+        text: args.e.text()
+      };
+      await DayPilot.Http.put(`/api/events/${params.id}`, params);
+    },
+    onEventClick: async (args) => {
+        const colors = [
+            {name: "Default", id: null},
+            { name: "Blue", id: "#2e78d6cc" },
+            { name: "Green", id: "#6aa84fcc" },
+            { name: "Yellow", id: "#f1c232cc" },
+            { name: "Red", id: "#cc4125cc" },
+        ];
+      const form = [
+        {name: "Name", id: "text"},
+        {name: "Color", id: "color", type: "select", options: colors}
+      ];
+
+      const modal = await DayPilot.Modal.form(form, args.e.data);
+      if (modal.canceled) {
+        return;
+      }
+
+      const data = {
+        id: args.e.id(),
+        start: args.e.start(),
+        end: args.e.end(),
+        resource: args.e.resource(),
+        text: modal.result.text,
+        color: modal.result.color
+      };
+
+      await DayPilot.Http.put(`/api/events/${data.id}`, data);
+
+      calendar.events.update({
+        ...args.e.data,
+        text: modal.result.text,
+        color: modal.result.color
+      });
+      console.log("Updated.");
+    },
+    onBeforeEventRender: args => {
+      args.data.backColor = args.data.color;
+      args.data.borderColor = "darker";
+      args.data.fontColor = "#ffffff";
+      
+      args.data.areas = [
+          {
+              right: 5,
+              top: 5,
+              width: 22,
+              height: 22,
+              symbol: "icons/daypilot.svg#x-2",
+              cssClass: "area_action",
+              padding: 2,
+              onClick: async args => {
+                  const e = args.source;
+                  const modal = await DayPilot.Modal.confirm("Do you want to delete this event?");
+                  if (modal.canceled) {
+                      return true;
+                  }
+                  await DayPilot.Http.delete(`/api/events/${e.id()}`);
+                  calendar.events.remove(e);
+                  console.log("Deleted.");
+              }
+          }
+      ];
+    },
+    onBeforeHeaderRender: args => {
+        args.header.verticalAlignment = "top";
+        args.header.areas = [
+            {
+                left: "calc(50% - 15px)",
+                bottom: 5,
+                width: 30,
+                height: 30,
+                symbol: "icons/daypilot.svg#edit",
+                cssClass: "area_action",
+                onClick: async args => {
+                    const column = args.source;
+                    console.log("column", column);
+                    const modal = await DayPilot.Modal.prompt("Resource name:", column.name);
+                    if (modal.canceled) {
+                        return true;
+                    }
+                    const columns = calendar.columns.list.map(c => c.id === column.id ? {...c, name: modal.result} : c);
+                    calendar.update({columns});
+                }
+            }
+        ];
+    },
+    headerHeight: 60,
+  });
+  calendar.init();
+  
+  const datepicker = new DayPilot.Navigator("datepicker", {
+    selectMode: "Day",
+    showMonths: 3,
+    skipMonths: 3,
+    onTimeRangeSelected: args => {
+      calendar.update({
+        startDate: args.start,
+      });
+      app.loadCalendarData();
+    },
+    onVisibleRangeChanged: args => {
+      app.loadDatePickerData();
+    }
+  });
+  datepicker.init();
+    
+  
+  const app = {
+    elements: {
+      previous: document.getElementById("previous"),
+      today: document.getElementById("today"),
+      next: document.getElementById("next")
+    },
+    async loadCalendarData() {
+      const start = calendar.visibleStart();
+      const end = calendar.visibleEnd();
+    
+      const promiseEvents = DayPilot.Http.get(`/api/events?start=${start}&end=${end}`);
+      const promiseResources = DayPilot.Http.get("/api/resources");
+    
+      const [{data: columns}, {data: events}] = await Promise.all([promiseResources, promiseEvents]);
+      
+      calendar.update({
+        columns,
+        events
+      });
+    },
+    async loadDatePickerData() {
+      const start = datepicker.visibleStart();
+      const end = datepicker.visibleEnd();
+    
+      const {data} = await DayPilot.Http.get(`/api/events?start=${start}&end=${end}`);
+      datepicker.update({events: data});
+    },
+    addHandlers() {
+      app.elements.previous.addEventListener("click", () => {
+        const current = datepicker.selectionDay;
+        datepicker.select(current.addDays(-1));
+      });
+      app.elements.next.addEventListener("click", () => {
+        const current = datepicker.selectionDay;
+        datepicker.select(current.addDays(1));
+      });
+      app.elements.today.addEventListener("click", () => {
+        datepicker.select(DayPilot.Date.today());
+      });
+    },
+    init() {
+      app.addHandlers();
+      app.loadCalendarData();
+      app.loadDatePickerData();
+    }
+  };
+  
+  app.init();
+
+</script>

@@ -5,7 +5,7 @@ namespace pto.track.services.DTOs;
 
 public record AbsenceRequestDto(
     [property: JsonPropertyName("id")]
-    int Id,
+    Guid Id,
     [property: JsonPropertyName("start")]
     DateTime Start,
     [property: JsonPropertyName("end")]

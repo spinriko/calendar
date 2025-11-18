@@ -14,8 +14,8 @@ VS Code will prompt you to install recommended extensions on first open. If not,
 - Click the beaker icon 🧪 in the Activity Bar (left sidebar)
 - Tests will auto-discover from all three test projects:
   - `pto.track.tests` (16 integration tests)
-  - `pto.track.services.tests` (29 service layer tests)
-  - `pto.track.data.tests` (1 placeholder test)
+  - `pto.track.services.tests` (50 service layer tests)
+  - `pto.track.data.tests` (24 entity validation tests)
 
 ### 3. Run Tests
 - **Run All**: Click the ▶️ icon at the top of Test Explorer
@@ -52,7 +52,29 @@ Tests are organized hierarchically:
 │       ├── GetResources_ReturnsAllResources
 │       ├── GetResources_WithNoResources_ReturnsEmptyList
 │       └── GetResources_ReturnsResourcesWithCorrectData
-├── pto.track.services.tests (29 tests)
+├── pto.track.services.tests (50 tests)
+│   ├── AbsenceServiceTests (21 tests)
+│   │   ├── GetAbsencesAsync_WithAbsencesInDateRange_ReturnsMatchingAbsences
+│   │   ├── GetAbsencesAsync_WithNoAbsencesInRange_ReturnsEmpty
+│   │   ├── GetAbsencesByEmployeeAsync_WithValidEmployeeId_ReturnsEmployeeAbsences
+│   │   ├── GetAbsencesByEmployeeAsync_WithNoAbsences_ReturnsEmpty
+│   │   ├── GetPendingAbsencesAsync_ReturnsOnlyPendingAbsences
+│   │   ├── GetPendingAbsencesAsync_WithNoPending_ReturnsEmpty
+│   │   ├── GetAbsenceByIdAsync_WithValidId_ReturnsAbsence
+│   │   ├── GetAbsenceByIdAsync_WithInvalidId_ReturnsNull
+│   │   ├── CreateAbsenceAsync_WithValidDto_CreatesAndReturnsAbsence
+│   │   ├── CreateAbsenceAsync_SetsDefaultStatus_ToPending
+│   │   ├── UpdateAbsenceAsync_WithValidIdAndDto_UpdatesAbsence
+│   │   ├── UpdateAbsenceAsync_WithInvalidId_ReturnsFalse
+│   │   ├── ApproveAbsenceAsync_WithValidId_ApprovesAbsence
+│   │   ├── ApproveAbsenceAsync_SetsApproverIdAndDate
+│   │   ├── ApproveAbsenceAsync_WithInvalidId_ReturnsFalse
+│   │   ├── RejectAbsenceAsync_WithValidId_RejectsAbsence
+│   │   ├── RejectAbsenceAsync_SetsApproverIdAndComments
+│   │   ├── CancelAbsenceAsync_WithValidId_CancelsAbsence
+│   │   ├── CancelAbsenceAsync_WithInvalidId_ReturnsFalse
+│   │   ├── DeleteAbsenceAsync_WithValidId_DeletesAbsence
+│   │   └── DeleteAbsenceAsync_WithInvalidId_ReturnsFalse
 │   ├── DtoSerializationTests (8 tests)
 │   │   ├── EventDto_SerializesToCamelCase
 │   │   ├── EventDto_DoesNotSerializeWithPascalCase
@@ -84,9 +106,34 @@ Tests are organized hierarchically:
 │       ├── GetResourcesAsync_ReturnsInDatabaseOrder
 │       ├── GetResourcesAsync_WithSingleResource_ReturnsSingle
 │       └── GetResourcesAsync_UsesNoTracking
-└── pto.track.data.tests (1 test)
-    └── UnitTest1
-        └── Test1 (placeholder)
+└── pto.track.data.tests (24 tests)
+    ├── AbsenceRequestValidationTests (11 tests)
+    │   ├── Validate_EndAfterStart_NoValidationErrors
+    │   ├── Validate_EndBeforeStart_ReturnsValidationError
+    │   ├── Validate_EndEqualsStart_ReturnsValidationError
+    │   ├── Validate_PastDateWithPendingStatus_ReturnsValidationError
+    │   ├── Validate_PastDateWithApprovedStatus_NoValidationError
+    │   ├── Validate_ReasonExceedsMaxLength_ReturnsValidationError
+    │   ├── Validate_ReasonAtMaxLength_NoValidationErrors
+    │   ├── Validate_ApprovalCommentsExceedsMaxLength_ReturnsValidationError
+    │   ├── Validate_ApprovalCommentsAtMaxLength_NoValidationErrors
+    │   ├── DefaultStatus_IsPending
+    │   └── RequestedDate_DefaultsToUtcNow
+    ├── SchedulerEventValidationTests (9 tests)
+    │   ├── Validate_EndAfterStart_NoValidationErrors
+    │   ├── Validate_EndBeforeStart_ReturnsValidationError
+    │   ├── Validate_EndEqualsStart_ReturnsValidationError
+    │   ├── Validate_ResourceIdZero_ReturnsValidationError
+    │   ├── Validate_ResourceIdNegative_ReturnsValidationError
+    │   ├── Validate_TextExceedsMaxLength_ReturnsValidationError
+    │   ├── Validate_ColorExceedsMaxLength_ReturnsValidationError
+    │   ├── Validate_TextAtMaxLength_NoValidationErrors
+    │   └── Validate_ColorAtMaxLength_NoValidationErrors
+    └── SchedulerResourceValidationTests (4 tests)
+        ├── Validate_NameWithinMaxLength_NoValidationErrors
+        ├── Validate_NameAtMaxLength_NoValidationErrors
+        ├── Validate_NameExceedsMaxLength_ReturnsValidationError
+        └── Validate_NameRequired_ReturnsValidationError
 ```
 
 ---
@@ -123,7 +170,7 @@ Tests are organized hierarchically:
 Press `Ctrl+Shift+P` and type:
 
 ### Testing Commands
-- `Test: Run All Tests` - Execute all 45 tests
+- `Test: Run All Tests` - Execute all 90 tests
 - `Test: Run Failed Tests` - Rerun only failed tests
 - `Test: Debug Last Run` - Debug the last executed test
 - `Test: Cancel Test Run` - Stop running tests
@@ -150,18 +197,21 @@ Open integrated terminal: `` Ctrl+` `` or `View → Terminal`
 # Navigate to solution root
 cd /home/spinriko/code/dotnet/resource
 
-# Run all tests (45 tests)
+# Run all tests (90 tests)
 dotnet test
 
 # Run specific test project
 dotnet test pto.track.tests                    # 16 integration tests
-dotnet test pto.track.services.tests           # 29 service layer tests
-dotnet test pto.track.data.tests               # 1 placeholder test
+dotnet test pto.track.services.tests           # 50 service layer tests
+dotnet test pto.track.data.tests               # 24 entity validation tests
 
 # Run specific test class
 dotnet test --filter "EventsControllerTests"
 dotnet test --filter "EventServiceTests"
+dotnet test --filter "AbsenceServiceTests"
 dotnet test --filter "DtoSerializationTests"
+dotnet test --filter "SchedulerEventValidationTests"
+dotnet test --filter "AbsenceRequestValidationTests"
 
 # Run specific test method
 dotnet test --filter "GetSchedulerEvents_WithValidDateRange_ReturnsMatchingEvents"

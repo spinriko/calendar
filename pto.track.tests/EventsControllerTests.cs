@@ -22,9 +22,9 @@ namespace pto.track.tests
 
             var events = new[]
             {
-                new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Event 1", ResourceId = 1 },
-                new SchedulerEvent { Id = 2, Start = new DateTime(2025, 11, 13, 14, 0, 0), End = new DateTime(2025, 11, 13, 15, 0, 0), Text = "Event 2", ResourceId = 1 },
-                new SchedulerEvent { Id = 3, Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "Event 3", ResourceId = 1 }
+                new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Event 1", ResourceId = 1 },
+                new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 14, 0, 0), End = new DateTime(2025, 11, 13, 15, 0, 0), Text = "Event 2", ResourceId = 1 },
+                new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "Event 3", ResourceId = 1 }
             };
 
             context.Events.AddRange(events);
@@ -47,10 +47,9 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var eventId = 1;
             var testEvent = new SchedulerEvent
             {
-                Id = eventId,
+                Id = Guid.NewGuid(),
                 Start = new DateTime(2025, 11, 13, 10, 0, 0),
                 End = new DateTime(2025, 11, 13, 11, 0, 0),
                 Text = "Test Event",
@@ -64,12 +63,12 @@ namespace pto.track.tests
             var controller = new EventsController(service);
 
             // Act
-            var result = await controller.GetSchedulerEvent(eventId);
+            var result = await controller.GetSchedulerEvent(testEvent.Id);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var returnedEvent = Assert.IsType<EventDto>(okResult.Value);
-            Assert.Equal(eventId, returnedEvent.Id);
+            Assert.Equal(testEvent.Id, returnedEvent.Id);
             Assert.Equal("Test Event", returnedEvent.Text);
         }
 
@@ -82,7 +81,7 @@ namespace pto.track.tests
             var controller = new EventsController(service);
 
             // Act
-            var result = await controller.GetSchedulerEvent(999);
+            var result = await controller.GetSchedulerEvent(Guid.NewGuid());
 
             // Assert
             Assert.IsType<NotFoundResult>(result.Result);
@@ -111,7 +110,7 @@ namespace pto.track.tests
             var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
             Assert.Equal("GetSchedulerEvent", createdResult.ActionName);
             var returnedEvent = Assert.IsType<EventDto>(createdResult.Value);
-            Assert.NotEqual(0, returnedEvent.Id);
+            Assert.NotEqual(Guid.Empty, returnedEvent.Id);
         }
 
         [Fact]
@@ -119,10 +118,9 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var eventId = 1;
             var testEvent = new SchedulerEvent
             {
-                Id = eventId,
+                Id = Guid.NewGuid(),
                 Start = new DateTime(2025, 11, 13, 10, 0, 0),
                 End = new DateTime(2025, 11, 13, 11, 0, 0),
                 Text = "Original Event",
@@ -144,13 +142,13 @@ namespace pto.track.tests
             var controller = new EventsController(service);
 
             // Act
-            var result = await controller.PutSchedulerEvent(eventId, updateDto);
+            var result = await controller.PutSchedulerEvent(testEvent.Id, updateDto);
 
             // Assert
             Assert.IsType<NoContentResult>(result);
 
             // Verify the update
-            var verifyEvent = await context.Events.FindAsync(eventId);
+            var verifyEvent = await context.Events.FindAsync(testEvent.Id);
             Assert.NotNull(verifyEvent);
             Assert.Equal("Updated Event", verifyEvent.Text);
         }
@@ -170,8 +168,8 @@ namespace pto.track.tests
             var service = new EventService(context);
             var controller = new EventsController(service);
 
-            // Act - passing id=1 but no event exists
-            var result = await controller.PutSchedulerEvent(1, updateDto);
+            // Act - passing non-existent id
+            var result = await controller.PutSchedulerEvent(Guid.NewGuid(), updateDto);
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
@@ -182,10 +180,9 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var eventId = 1;
             var testEvent = new SchedulerEvent
             {
-                Id = eventId,
+                Id = Guid.NewGuid(),
                 Start = new DateTime(2025, 11, 13, 10, 0, 0),
                 End = new DateTime(2025, 11, 13, 11, 0, 0),
                 Text = "Event to Delete",
@@ -199,13 +196,13 @@ namespace pto.track.tests
             var controller = new EventsController(service);
 
             // Act
-            var result = await controller.DeleteSchedulerEvent(eventId);
+            var result = await controller.DeleteSchedulerEvent(testEvent.Id);
 
             // Assert
             Assert.IsType<NoContentResult>(result);
 
             // Verify deletion
-            var deletedEvent = await context.Events.FindAsync(eventId);
+            var deletedEvent = await context.Events.FindAsync(testEvent.Id);
             Assert.Null(deletedEvent);
         }
 
@@ -218,7 +215,7 @@ namespace pto.track.tests
             var controller = new EventsController(service);
 
             // Act
-            var result = await controller.DeleteSchedulerEvent(999);
+            var result = await controller.DeleteSchedulerEvent(Guid.NewGuid());
 
             // Assert
             Assert.IsType<NotFoundResult>(result);

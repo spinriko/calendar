@@ -16,9 +16,9 @@ public class EventServiceTests : TestBase
 
         var events = new[]
         {
-            new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Event 1", ResourceId = 1 },
-            new SchedulerEvent { Id = 2, Start = new DateTime(2025, 11, 13, 14, 0, 0), End = new DateTime(2025, 11, 13, 15, 0, 0), Text = "Event 2", ResourceId = 1 },
-            new SchedulerEvent { Id = 3, Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "Event 3", ResourceId = 1 }
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Event 1", ResourceId = 1 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 14, 0, 0), End = new DateTime(2025, 11, 13, 15, 0, 0), Text = "Event 2", ResourceId = 1 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "Event 3", ResourceId = 1 }
         };
         context.Events.AddRange(events);
         await context.SaveChangesAsync();
@@ -41,7 +41,7 @@ public class EventServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new EventService(context);
 
-        var event1 = new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 10, 10, 0, 0), End = new DateTime(2025, 11, 10, 11, 0, 0), Text = "Event 1", ResourceId = 1 };
+        var event1 = new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 10, 10, 0, 0), End = new DateTime(2025, 11, 10, 11, 0, 0), Text = "Event 1", ResourceId = 1 };
         context.Events.Add(event1);
         await context.SaveChangesAsync();
 
@@ -64,9 +64,9 @@ public class EventServiceTests : TestBase
 
         var events = new[]
         {
-            new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 13, 8, 0, 0), End = new DateTime(2025, 11, 13, 9, 0, 0), Text = "Before", ResourceId = 1 },
-            new SchedulerEvent { Id = 2, Start = new DateTime(2025, 11, 13, 9, 30, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Overlapping", ResourceId = 1 },
-            new SchedulerEvent { Id = 3, Start = new DateTime(2025, 11, 13, 12, 0, 0), End = new DateTime(2025, 11, 13, 13, 0, 0), Text = "After", ResourceId = 1 }
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 8, 0, 0), End = new DateTime(2025, 11, 13, 9, 0, 0), Text = "Before", ResourceId = 1 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 9, 30, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Overlapping", ResourceId = 1 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 12, 0, 0), End = new DateTime(2025, 11, 13, 13, 0, 0), Text = "After", ResourceId = 1 }
         };
         context.Events.AddRange(events);
         await context.SaveChangesAsync();
@@ -90,7 +90,7 @@ public class EventServiceTests : TestBase
 
         var event1 = new SchedulerEvent
         {
-            Id = 1,
+            Id = Guid.NewGuid(),
             Start = new DateTime(2025, 11, 13, 10, 0, 0),
             End = new DateTime(2025, 11, 13, 11, 0, 0),
             Text = "Test Event",
@@ -101,7 +101,7 @@ public class EventServiceTests : TestBase
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.GetEventByIdAsync(1);
+        var result = await service.GetEventByIdAsync(event1.Id);
 
         // Assert
         Assert.NotNull(result);
@@ -118,7 +118,7 @@ public class EventServiceTests : TestBase
         var service = new EventService(context);
 
         // Act
-        var result = await service.GetEventByIdAsync(999);
+        var result = await service.GetEventByIdAsync(Guid.NewGuid());
 
         // Assert
         Assert.Null(result);
@@ -143,7 +143,7 @@ public class EventServiceTests : TestBase
         var result = await service.CreateEventAsync(createDto);
 
         // Assert
-        Assert.NotEqual(0, result.Id);
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Equal("New Event", result.Text);
         Assert.Equal("red", result.Color);
 
@@ -172,7 +172,7 @@ public class EventServiceTests : TestBase
         var result = await service.CreateEventAsync(createDto);
 
         // Assert
-        Assert.NotEqual(0, result.Id);
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Null(result.Text);
         Assert.Null(result.Color);
     }
@@ -186,7 +186,7 @@ public class EventServiceTests : TestBase
 
         var event1 = new SchedulerEvent
         {
-            Id = 1,
+            Id = Guid.NewGuid(),
             Start = new DateTime(2025, 11, 13, 10, 0, 0),
             End = new DateTime(2025, 11, 13, 11, 0, 0),
             Text = "Original",
@@ -204,12 +204,12 @@ public class EventServiceTests : TestBase
         );
 
         // Act
-        var result = await service.UpdateEventAsync(1, updateDto);
+        var result = await service.UpdateEventAsync(event1.Id, updateDto);
 
         // Assert
         Assert.True(result);
 
-        var updated = await context.Events.FindAsync(1);
+        var updated = await context.Events.FindAsync(event1.Id);
         Assert.NotNull(updated);
         Assert.Equal("Updated", updated.Text);
         Assert.Equal("green", updated.Color);
@@ -233,7 +233,7 @@ public class EventServiceTests : TestBase
         );
 
         // Act
-        var result = await service.UpdateEventAsync(999, updateDto);
+        var result = await service.UpdateEventAsync(Guid.NewGuid(), updateDto);
 
         // Assert
         Assert.False(result);
@@ -248,7 +248,7 @@ public class EventServiceTests : TestBase
 
         var event1 = new SchedulerEvent
         {
-            Id = 1,
+            Id = Guid.NewGuid(),
             Start = new DateTime(2025, 11, 13, 10, 0, 0),
             End = new DateTime(2025, 11, 13, 11, 0, 0),
             Text = "To Delete",
@@ -258,12 +258,12 @@ public class EventServiceTests : TestBase
         await context.SaveChangesAsync();
 
         // Act
-        var result = await service.DeleteEventAsync(1);
+        var result = await service.DeleteEventAsync(event1.Id);
 
         // Assert
         Assert.True(result);
 
-        var deleted = await context.Events.FindAsync(1);
+        var deleted = await context.Events.FindAsync(event1.Id);
         Assert.Null(deleted);
     }
 
@@ -275,7 +275,7 @@ public class EventServiceTests : TestBase
         var service = new EventService(context);
 
         // Act
-        var result = await service.DeleteEventAsync(999);
+        var result = await service.DeleteEventAsync(Guid.NewGuid());
 
         // Assert
         Assert.False(result);
@@ -316,9 +316,9 @@ public class EventServiceTests : TestBase
 
         var events = new[]
         {
-            new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 1", ResourceId = 1 },
-            new SchedulerEvent { Id = 2, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 2", ResourceId = 2 },
-            new SchedulerEvent { Id = 3, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 3", ResourceId = 3 }
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 1", ResourceId = 1 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 2", ResourceId = 2 },
+            new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "Resource 3", ResourceId = 3 }
         };
         context.Events.AddRange(events);
         await context.SaveChangesAsync();

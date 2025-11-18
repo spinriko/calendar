@@ -131,8 +131,8 @@ namespace pto.track.tests.Integration
         {
             var client = GetClientWithInMemoryDb(db =>
             {
-                db.Events.Add(new SchedulerEvent { Id = 1, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "E1", ResourceId = 1 });
-                db.Events.Add(new SchedulerEvent { Id = 2, Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "E2", ResourceId = 1 });
+                db.Events.Add(new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "E1", ResourceId = 1 });
+                db.Events.Add(new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 14, 10, 0, 0), End = new DateTime(2025, 11, 14, 11, 0, 0), Text = "E2", ResourceId = 1 });
             });
 
             var start = "2025-11-13T00:00:00";
@@ -162,7 +162,7 @@ namespace pto.track.tests.Integration
             Assert.Equal(HttpStatusCode.Created, postResp.StatusCode);
             var created = await postResp.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(created);
-            Assert.NotEqual(0, created.Id);
+            Assert.NotEqual(Guid.Empty, created.Id);
 
             var id = created.Id;
 
@@ -220,13 +220,14 @@ namespace pto.track.tests.Integration
         [Fact]
         public async Task PutSchedulerEvent_InvalidDates_ReturnsBadRequest()
         {
+            var eventId = Guid.NewGuid();
             var client = GetClientWithInMemoryDb(db =>
             {
-                db.Events.Add(new SchedulerEvent { Id = 100, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "t", ResourceId = 1 });
+                db.Events.Add(new SchedulerEvent { Id = eventId, Start = new DateTime(2025, 11, 13, 10, 0, 0), End = new DateTime(2025, 11, 13, 11, 0, 0), Text = "t", ResourceId = 1 });
             });
 
             // Fetch the created event
-            var get = await client.GetAsync($"/api/events/100");
+            var get = await client.GetAsync($"/api/events/{eventId}");
             get.EnsureSuccessStatusCode();
             var ev = await get.Content.ReadFromJsonAsync<SchedulerEvent>();
             Assert.NotNull(ev);

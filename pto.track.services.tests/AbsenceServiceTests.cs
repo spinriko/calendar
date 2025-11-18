@@ -224,7 +224,7 @@ public class AbsenceServiceTests : TestBase
         var service = new AbsenceService(context);
 
         // Act
-        var result = await service.GetAbsenceRequestByIdAsync(999);
+        var result = await service.GetAbsenceRequestByIdAsync(Guid.NewGuid());
 
         // Assert
         Assert.Null(result);
@@ -253,7 +253,7 @@ public class AbsenceServiceTests : TestBase
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(result.Id > 0);
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Equal("Family vacation", result.Reason);
         Assert.Equal(1, result.EmployeeId);
         Assert.Equal("Eve", result.EmployeeName);
@@ -321,7 +321,7 @@ public class AbsenceServiceTests : TestBase
         );
 
         // Act
-        var result = await service.UpdateAbsenceRequestAsync(999, updateDto);
+        var result = await service.UpdateAbsenceRequestAsync(Guid.NewGuid(), updateDto);
 
         // Assert
         Assert.False(result);
@@ -421,7 +421,7 @@ public class AbsenceServiceTests : TestBase
         );
 
         // Act
-        var result = await service.ApproveAbsenceRequestAsync(999, approveDto);
+        var result = await service.ApproveAbsenceRequestAsync(Guid.NewGuid(), approveDto);
 
         // Assert
         Assert.False(result);
@@ -520,7 +520,7 @@ public class AbsenceServiceTests : TestBase
         );
 
         // Act
-        var result = await service.RejectAbsenceRequestAsync(999, rejectDto);
+        var result = await service.RejectAbsenceRequestAsync(Guid.NewGuid(), rejectDto);
 
         // Assert
         Assert.False(result);
@@ -632,7 +632,7 @@ public class AbsenceServiceTests : TestBase
         var service = new AbsenceService(context);
 
         // Act
-        var result = await service.DeleteAbsenceRequestAsync(999);
+        var result = await service.DeleteAbsenceRequestAsync(Guid.NewGuid());
 
         // Assert
         Assert.False(result);

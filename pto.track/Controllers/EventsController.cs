@@ -6,14 +6,9 @@ namespace pto.track.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class EventsController : ControllerBase
+public class EventsController(IEventService eventService) : ControllerBase
 {
-    private readonly IEventService _eventService;
-
-    public EventsController(IEventService eventService)
-    {
-        _eventService = eventService;
-    }
+    private readonly IEventService _eventService = eventService;
 
     // GET: api/Events
     [HttpGet]
@@ -25,7 +20,7 @@ public class EventsController : ControllerBase
 
     // GET: api/Events/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<EventDto>> GetSchedulerEvent(int id)
+    public async Task<ActionResult<EventDto>> GetSchedulerEvent(Guid id)
     {
         var evt = await _eventService.GetEventByIdAsync(id);
         if (evt == null)
@@ -39,7 +34,7 @@ public class EventsController : ControllerBase
     // PUT: api/Events/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutSchedulerEvent(int id, UpdateEventDto dto)
+    public async Task<IActionResult> PutSchedulerEvent(Guid id, UpdateEventDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -71,7 +66,7 @@ public class EventsController : ControllerBase
 
     // DELETE: api/Events/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteSchedulerEvent(int id)
+    public async Task<IActionResult> DeleteSchedulerEvent(Guid id)
     {
         var success = await _eventService.DeleteEventAsync(id);
         if (!success)

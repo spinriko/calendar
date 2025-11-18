@@ -12,7 +12,7 @@ public enum AbsenceStatus
 
 public class AbsenceRequest : IValidatableObject
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [Required]
     public DateTime Start { get; set; }

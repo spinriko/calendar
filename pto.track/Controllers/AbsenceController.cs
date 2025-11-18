@@ -49,7 +49,7 @@ public class AbsenceController : ControllerBase
 
     // GET: api/Absence/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<AbsenceRequestDto>> GetAbsenceRequest(int id)
+    public async Task<ActionResult<AbsenceRequestDto>> GetAbsenceRequest(Guid id)
     {
         var absence = await _absenceService.GetAbsenceRequestByIdAsync(id);
         if (absence == null)
@@ -75,7 +75,7 @@ public class AbsenceController : ControllerBase
 
     // PUT: api/Absence/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutAbsenceRequest(int id, UpdateAbsenceRequestDto dto)
+    public async Task<IActionResult> PutAbsenceRequest(Guid id, UpdateAbsenceRequestDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -93,7 +93,7 @@ public class AbsenceController : ControllerBase
 
     // POST: api/Absence/5/approve
     [HttpPost("{id}/approve")]
-    public async Task<IActionResult> ApproveAbsenceRequest(int id, ApproveAbsenceRequestDto dto)
+    public async Task<IActionResult> ApproveAbsenceRequest(Guid id, ApproveAbsenceRequestDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -111,7 +111,7 @@ public class AbsenceController : ControllerBase
 
     // POST: api/Absence/5/reject
     [HttpPost("{id}/reject")]
-    public async Task<IActionResult> RejectAbsenceRequest(int id, RejectAbsenceRequestDto dto)
+    public async Task<IActionResult> RejectAbsenceRequest(Guid id, RejectAbsenceRequestDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -129,7 +129,7 @@ public class AbsenceController : ControllerBase
 
     // POST: api/Absence/5/cancel
     [HttpPost("{id}/cancel")]
-    public async Task<IActionResult> CancelAbsenceRequest(int id, [FromQuery] int employeeId)
+    public async Task<IActionResult> CancelAbsenceRequest(Guid id, [FromQuery] int employeeId)
     {
         var success = await _absenceService.CancelAbsenceRequestAsync(id, employeeId);
         if (!success)
@@ -142,7 +142,7 @@ public class AbsenceController : ControllerBase
 
     // DELETE: api/Absence/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteAbsenceRequest(int id)
+    public async Task<IActionResult> DeleteAbsenceRequest(Guid id)
     {
         var success = await _absenceService.DeleteAbsenceRequestAsync(id);
         if (!success)

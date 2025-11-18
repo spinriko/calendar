@@ -50,7 +50,7 @@ public class AbsenceService : IAbsenceService
         return absences.Select(MapToDto);
     }
 
-    public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(int id)
+    public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id)
     {
         var absence = await _context.AbsenceRequests
             .Include(a => a.Employee)
@@ -84,7 +84,7 @@ public class AbsenceService : IAbsenceService
         return MapToDto(absence);
     }
 
-    public async Task<bool> UpdateAbsenceRequestAsync(int id, UpdateAbsenceRequestDto dto)
+    public async Task<bool> UpdateAbsenceRequestAsync(Guid id, UpdateAbsenceRequestDto dto)
     {
         var absence = await _context.AbsenceRequests.FindAsync(id);
         if (absence == null || absence.Status != AbsenceStatus.Pending)
@@ -100,7 +100,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
-    public async Task<bool> ApproveAbsenceRequestAsync(int id, ApproveAbsenceRequestDto dto)
+    public async Task<bool> ApproveAbsenceRequestAsync(Guid id, ApproveAbsenceRequestDto dto)
     {
         var absence = await _context.AbsenceRequests.FindAsync(id);
         if (absence == null || absence.Status != AbsenceStatus.Pending)
@@ -117,7 +117,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
-    public async Task<bool> RejectAbsenceRequestAsync(int id, RejectAbsenceRequestDto dto)
+    public async Task<bool> RejectAbsenceRequestAsync(Guid id, RejectAbsenceRequestDto dto)
     {
         var absence = await _context.AbsenceRequests.FindAsync(id);
         if (absence == null || absence.Status != AbsenceStatus.Pending)
@@ -134,7 +134,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
-    public async Task<bool> CancelAbsenceRequestAsync(int id, int employeeId)
+    public async Task<bool> CancelAbsenceRequestAsync(Guid id, int employeeId)
     {
         var absence = await _context.AbsenceRequests.FindAsync(id);
         if (absence == null || absence.EmployeeId != employeeId || absence.Status == AbsenceStatus.Cancelled)
@@ -147,7 +147,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
-    public async Task<bool> DeleteAbsenceRequestAsync(int id)
+    public async Task<bool> DeleteAbsenceRequestAsync(Guid id)
     {
         var absence = await _context.AbsenceRequests.FindAsync(id);
         if (absence == null)
