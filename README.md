@@ -1,6 +1,30 @@
 # PTO Track - Resource Scheduling Calendar
 
-A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive calendar interface powered by DayPilot for managing events across multiple resources.
+A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features two interactive calendar interfaces powered by DayPilot for managing events across multiple resources.
+
+## Features
+
+### 🗓️ Dual Calendar System
+
+The application provides two specialized calendar views:
+
+1. **Scheduling Calendar** (`/Scheduling`)
+   - Resource-based event scheduling across multiple resources
+   - Interactive drag-and-drop interface for event management
+   - Color-coded events with customizable attributes
+   - Real-time event creation, editing, and deletion
+   - Date range filtering and navigation
+   - Perfect for managing equipment, rooms, or personnel schedules
+
+2. **Absence Calendar** (`/Absences`)
+   - Employee PTO (Paid Time Off) and absence request management
+   - Approval workflow with four states: Pending, Approved, Rejected, Cancelled
+   - Request submission and approval interface
+   - Manager approval actions with comments
+   - Employee-specific absence tracking
+   - Comprehensive absence request history
+
+Both calendars share the same clean architecture and provide seamless navigation through an intuitive landing page.
 
 ## Architecture Overview
 
@@ -21,16 +45,19 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - `Controllers/EventsController.cs` - Event CRUD operations API
   - `Controllers/ResourcesController.cs` - Resource management API
   - `Controllers/AbsenceController.cs` - Absence request approval workflow API
-  - `Pages/Index.cshtml` - Interactive calendar UI using DayPilot (scheduling)
+  - `Pages/Index.cshtml` - Landing page with navigation to both calendars
+  - `Pages/Scheduling.cshtml` - Interactive scheduling calendar UI using DayPilot
   - `Pages/Absences.cshtml` - Absence request calendar UI with approval actions
   - `Program.cs` - Application configuration and service registration
 - **Features**:
+  - Dual calendar system (Scheduling + Absences)
   - Interactive drag-and-drop calendar interface
   - Date range filtering for events
   - Resource-based event scheduling
   - Color-coded event display
   - Modal dialogs for event creation/editing
   - Absence request approval workflow (Pending/Approved/Rejected/Cancelled)
+  - Responsive Bootstrap 5 UI with navigation
 
 #### **pto.track.services** (Business Logic Layer)
 - **Technology**: .NET 10.0 Class Library
