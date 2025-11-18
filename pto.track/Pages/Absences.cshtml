@@ -1,0 +1,331 @@
+@page
+@model pto.track.Pages.AbsencesModel
+@{
+    ViewData["Title"] = "Absence Requests";
+}
+
+<script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
+
+<div class="main">
+    <div class="left">
+        <div id="datepicker"></div>
+        <div style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+            <h4>Legend</h4>
+            <div style="margin: 5px 0;"><span
+                    style="display: inline-block; width: 20px; height: 20px; background: #ffa500cc; margin-right: 5px;"></span>Pending
+            </div>
+            <div style="margin: 5px 0;"><span
+                    style="display: inline-block; width: 20px; height: 20px; background: #6aa84fcc; margin-right: 5px;"></span>Approved
+            </div>
+            <div style="margin: 5px 0;"><span
+                    style="display: inline-block; width: 20px; height: 20px; background: #cc4125cc; margin-right: 5px;"></span>Rejected
+            </div>
+            <div style="margin: 5px 0;"><span
+                    style="display: inline-block; width: 20px; height: 20px; background: #999999cc; margin-right: 5px;"></span>Cancelled
+            </div>
+        </div>
+    </div>
+    <div class="right">
+        <div class="buttons">
+            <button id="previous">Previous</button>
+            <button id="today">Today</button>
+            <button id="next">Next</button>
+            <button id="pending" style="margin-left: 20px; background: #2e78d6;">View Pending</button>
+        </div>
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<script>
+    const calendar = new DayPilot.Calendar("calendar", {
+        viewType: "Resources",
+        durationBarVisible: false,
+        eventMoveHandling: "Disabled",
+        eventResizeHandling: "Disabled",
+        onTimeRangeSelected: async (args) => {
+            const form = [
+                { name: "Reason", id: "reason", type: "textarea" },
+            ];
+
+            const modal = await DayPilot.Modal.form(form);
+            calendar.clearSelection();
+            if (modal.canceled) {
+                return;
+            }
+
+            const absence = {
+                start: args.start,
+                end: args.end,
+                employeeId: args.resource,
+                reason: modal.result.reason
+            };
+
+            const { data } = await DayPilot.Http.post(`/api/absence`, absence);
+
+            calendar.events.add({
+                start: data.start,
+                end: data.end,
+                id: data.id,
+                text: data.reason,
+                resource: data.employeeId,
+                barColor: getStatusColor(data.status),
+                data: data
+            });
+
+        },
+        onEventClick: async (args) => {
+            const absence = args.e.data;
+
+            const form = [
+                { name: "Employee", id: "employeeName", disabled: true },
+                { name: "Reason", id: "reason", type: "textarea" },
+                { name: "Status", id: "status", disabled: true },
+                { name: "Requested", id: "requestedDate", type: "date", disabled: true },
+            ];
+
+            if (absence.approverName) {
+                form.push({ name: "Approver", id: "approverName", disabled: true });
+                form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
+            }
+
+            if (absence.approvalComments) {
+                form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
+            }
+
+            const modal = await DayPilot.Modal.form(form, absence);
+            if (modal.canceled) {
+                return;
+            }
+
+            // For now, only show details. Update functionality would need status checking
+            if (absence.status === "Pending") {
+                const updateData = {
+                    start: absence.start,
+                    end: absence.end,
+                    reason: modal.result.reason
+                };
+
+                await DayPilot.Http.put(`/api/absence/${absence.id}`, updateData);
+
+                calendar.events.update({
+                    ...args.e.data,
+                    reason: modal.result.reason,
+                    text: modal.result.reason
+                });
+            }
+        },
+        onBeforeEventRender: args => {
+            const status = args.data.status || args.data.data?.status;
+            args.data.backColor = getStatusColor(status);
+            args.data.borderColor = "darker";
+            args.data.fontColor = "#ffffff";
+
+            args.data.areas = [];
+
+            // Add approve/reject buttons for pending requests
+            if (status === "Pending") {
+                args.data.areas.push({
+                    right: 35,
+                    top: 5,
+                    width: 22,
+                    height: 22,
+                    symbol: "icons/daypilot.svg#checkmark",
+                    cssClass: "area_action",
+                    padding: 2,
+                    toolTip: "Approve",
+                    onClick: async args => {
+                        const e = args.source;
+                        const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
+                        if (modal.canceled) {
+                            return true;
+                        }
+
+                        // In production, you'd get the approverId from the logged-in user
+                        const approvalData = {
+                            approverId: 1,  // TODO: Get from current user
+                            comments: modal.result
+                        };
+
+                        await DayPilot.Http.post(`/api/absence/${e.id()}/approve`, approvalData);
+                        app.loadCalendarData();
+                        console.log("Approved.");
+                    }
+                });
+
+                args.data.areas.push({
+                    right: 5,
+                    top: 5,
+                    width: 22,
+                    height: 22,
+                    symbol: "icons/daypilot.svg#x-2",
+                    cssClass: "area_action",
+                    padding: 2,
+                    toolTip: "Reject",
+                    onClick: async args => {
+                        const e = args.source;
+                        const modal = await DayPilot.Modal.prompt("Rejection reason:");
+                        if (modal.canceled || !modal.result) {
+                            return true;
+                        }
+
+                        const rejectionData = {
+                            approverId: 1,  // TODO: Get from current user
+                            reason: modal.result
+                        };
+
+                        await DayPilot.Http.post(`/api/absence/${e.id()}/reject`, rejectionData);
+                        app.loadCalendarData();
+                        console.log("Rejected.");
+                    }
+                });
+            }
+
+            // Add delete button for all statuses
+            if (status === "Pending" || status === "Cancelled") {
+                args.data.areas.push({
+                    right: 5,
+                    bottom: 5,
+                    width: 22,
+                    height: 22,
+                    symbol: "icons/daypilot.svg#x-circle",
+                    cssClass: "area_action",
+                    padding: 2,
+                    toolTip: "Delete",
+                    onClick: async args => {
+                        const e = args.source;
+                        const modal = await DayPilot.Modal.confirm("Delete this absence request?");
+                        if (modal.canceled) {
+                            return true;
+                        }
+                        await DayPilot.Http.delete(`/api/absence/${e.id()}`);
+                        calendar.events.remove(e);
+                        console.log("Deleted.");
+                    }
+                });
+            }
+        },
+        onBeforeHeaderRender: args => {
+            args.header.verticalAlignment = "top";
+        },
+        headerHeight: 60,
+    });
+    calendar.init();
+
+    const datepicker = new DayPilot.Navigator("datepicker", {
+        selectMode: "Day",
+        showMonths: 3,
+        skipMonths: 3,
+        onTimeRangeSelected: args => {
+            calendar.update({
+                startDate: args.start,
+            });
+            app.loadCalendarData();
+        },
+        onVisibleRangeChanged: args => {
+            app.loadDatePickerData();
+        }
+    });
+    datepicker.init();
+
+    function getStatusColor(status) {
+        switch (status) {
+            case "Pending": return "#ffa500cc";
+            case "Approved": return "#6aa84fcc";
+            case "Rejected": return "#cc4125cc";
+            case "Cancelled": return "#999999cc";
+            default: return "#2e78d6cc";
+        }
+    }
+
+    const app = {
+        elements: {
+            previous: document.getElementById("previous"),
+            today: document.getElementById("today"),
+            next: document.getElementById("next"),
+            pending: document.getElementById("pending")
+        },
+        async loadCalendarData() {
+            const start = calendar.visibleStart();
+            const end = calendar.visibleEnd();
+
+            const promiseAbsences = DayPilot.Http.get(`/api/absence?start=${start}&end=${end}`);
+            const promiseResources = DayPilot.Http.get("/api/resources");
+
+            const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
+
+            // Map absences to calendar events
+            const events = absences.map(a => ({
+                id: a.id,
+                start: a.start,
+                end: a.end,
+                text: a.reason,
+                resource: a.employeeId,
+                barColor: getStatusColor(a.status),
+                data: a
+            }));
+
+            calendar.update({
+                columns,
+                events
+            });
+        },
+        async loadDatePickerData() {
+            const start = datepicker.visibleStart();
+            const end = datepicker.visibleEnd();
+
+            const { data } = await DayPilot.Http.get(`/api/absence?start=${start}&end=${end}`);
+
+            const events = data.map(a => ({
+                start: a.start,
+                end: a.end,
+                text: a.reason,
+                barColor: getStatusColor(a.status)
+            }));
+
+            datepicker.update({ events });
+        },
+        async showPendingRequests() {
+            const { data } = await DayPilot.Http.get(`/api/absence/pending`);
+
+            if (data.length === 0) {
+                await DayPilot.Modal.alert("No pending absence requests.");
+                return;
+            }
+
+            // Create a simple list view
+            let html = "<div style='padding: 20px;'><h3>Pending Absence Requests</h3><ul>";
+            data.forEach(a => {
+                const startDate = new Date(a.start).toLocaleDateString();
+                const endDate = new Date(a.end).toLocaleDateString();
+                html += `<li><strong>${a.employeeName}</strong>: ${startDate} - ${endDate}<br>${a.reason}</li>`;
+            });
+            html += "</ul></div>";
+
+            await DayPilot.Modal.alert(html);
+        },
+        addHandlers() {
+            app.elements.previous.addEventListener("click", () => {
+                const current = datepicker.selectionDay;
+                datepicker.select(current.addDays(-1));
+            });
+            app.elements.next.addEventListener("click", () => {
+                const current = datepicker.selectionDay;
+                datepicker.select(current.addDays(1));
+            });
+            app.elements.today.addEventListener("click", () => {
+                datepicker.select(DayPilot.Date.today());
+            });
+            app.elements.pending.addEventListener("click", () => {
+                app.showPendingRequests();
+            });
+        },
+        init() {
+            app.addHandlers();
+            app.loadCalendarData();
+            app.loadDatePickerData();
+        }
+    };
+
+    app.init();
+
+</script>

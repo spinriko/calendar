@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
         // Register application services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IResourceService, ResourceService>();
+        services.AddScoped<IAbsenceService, AbsenceService>();
 
         return services;
     }

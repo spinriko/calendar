@@ -8,6 +8,7 @@ namespace pto.track.data
     {
         public DbSet<SchedulerEvent> Events { get; set; }
         public DbSet<SchedulerResource> Resources { get; set; }
+        public DbSet<AbsenceRequest> AbsenceRequests { get; set; }
 
         public SchedulerDbContext(DbContextOptions<SchedulerDbContext> options) : base(options) { }
 
