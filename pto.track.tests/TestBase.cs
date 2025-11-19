@@ -1,5 +1,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using pto.track.data;
 
 namespace pto.track.tests
@@ -13,6 +15,11 @@ namespace pto.track.tests
                 .Options;
 
             return new PtoTrackDbContext(options);
+        }
+
+        protected ILogger<T> CreateLogger<T>()
+        {
+            return NullLogger<T>.Instance;
         }
     }
 }

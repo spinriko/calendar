@@ -12,7 +12,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var events = new[]
         {
@@ -39,7 +39,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var event1 = new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 10, 10, 0, 0), End = new DateTime(2025, 11, 10, 11, 0, 0), Text = "Event 1", ResourceId = 1 };
         context.Events.Add(event1);
@@ -60,7 +60,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var events = new[]
         {
@@ -86,7 +86,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var event1 = new SchedulerEvent
         {
@@ -115,7 +115,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         // Act
         var result = await service.GetEventByIdAsync(Guid.NewGuid());
@@ -129,7 +129,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 0, 0),
@@ -158,7 +158,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 0, 0),
@@ -182,7 +182,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var event1 = new SchedulerEvent
         {
@@ -222,7 +222,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var updateDto = new UpdateEventDto(
             Start: new DateTime(2025, 11, 13, 14, 0, 0),
@@ -244,7 +244,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var event1 = new SchedulerEvent
         {
@@ -272,7 +272,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         // Act
         var result = await service.DeleteEventAsync(Guid.NewGuid());
@@ -286,7 +286,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 30, 45),
@@ -312,7 +312,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context);
+        var service = new EventService(context, CreateLogger<EventService>());
 
         var events = new[]
         {

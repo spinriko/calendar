@@ -12,7 +12,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "John Doe" };
         context.Resources.Add(employee);
@@ -64,7 +64,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Jane Doe" };
         context.Resources.Add(employee);
@@ -94,7 +94,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee1 = new SchedulerResource { Id = 1, Name = "Alice" };
         var employee2 = new SchedulerResource { Id = 2, Name = "Bob" };
@@ -137,7 +137,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Charlie" };
         context.Resources.Add(employee);
@@ -188,7 +188,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Diana" };
         context.Resources.Add(employee);
@@ -221,7 +221,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         // Act
         var result = await service.GetAbsenceRequestByIdAsync(Guid.NewGuid());
@@ -235,7 +235,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Eve" };
         context.Resources.Add(employee);
@@ -270,7 +270,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Frank" };
         context.Resources.Add(employee);
@@ -312,7 +312,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var updateDto = new UpdateAbsenceRequestDto(
             Start: new DateTime(2025, 5, 2),
@@ -332,7 +332,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Grace" };
         context.Resources.Add(employee);
@@ -370,7 +370,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Henry" };
         var approver = new SchedulerResource { Id = 2, Name = "Manager" };
@@ -413,7 +413,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var approveDto = new ApproveAbsenceRequestDto(
             ApproverId: 1,
@@ -432,7 +432,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Ivy" };
         context.Resources.Add(employee);
@@ -469,7 +469,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Jack" };
         var approver = new SchedulerResource { Id = 2, Name = "Manager" };
@@ -512,7 +512,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var rejectDto = new RejectAbsenceRequestDto(
             ApproverId: 1,
@@ -531,7 +531,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Karen" };
         context.Resources.Add(employee);
@@ -565,7 +565,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Leo" };
         context.Resources.Add(employee);
@@ -595,7 +595,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Mia" };
         context.Resources.Add(employee);
@@ -629,7 +629,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         // Act
         var result = await service.DeleteAbsenceRequestAsync(Guid.NewGuid());
@@ -643,7 +643,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 5, Name = "Noah Smith" };
         context.Resources.Add(employee);
@@ -669,7 +669,7 @@ public class AbsenceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new AbsenceService(context);
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
         var employee = new SchedulerResource { Id = 1, Name = "Olivia" };
         var approver = new SchedulerResource { Id = 2, Name = "Manager Smith" };

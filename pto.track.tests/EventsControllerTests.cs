@@ -30,8 +30,8 @@ namespace pto.track.tests
             context.Events.AddRange(events);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.GetSchedulerEvents(start, end);
@@ -59,8 +59,8 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.GetSchedulerEvent(testEvent.Id);
@@ -77,8 +77,8 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.GetSchedulerEvent(Guid.NewGuid());
@@ -100,8 +100,8 @@ namespace pto.track.tests
                 ResourceId: 1
             );
 
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.PostSchedulerEvent(newEvent);
@@ -138,8 +138,8 @@ namespace pto.track.tests
                 ResourceId: 1
             );
 
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.PutSchedulerEvent(testEvent.Id, updateDto);
@@ -165,8 +165,8 @@ namespace pto.track.tests
                 Color: null,
                 ResourceId: 1
             );
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act - passing non-existent id
             var result = await controller.PutSchedulerEvent(Guid.NewGuid(), updateDto);
@@ -192,8 +192,8 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.DeleteSchedulerEvent(testEvent.Id);
@@ -211,8 +211,8 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var service = new EventService(context);
-            var controller = new EventsController(service);
+            var service = new EventService(context, CreateLogger<EventService>());
+            var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
             var result = await controller.DeleteSchedulerEvent(Guid.NewGuid());

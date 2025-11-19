@@ -11,7 +11,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resources = new[]
         {
@@ -34,7 +34,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         // Act
         var result = await service.GetResourcesAsync();
@@ -48,7 +48,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resources = new[]
         {
@@ -77,7 +77,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
         context.Resources.Add(resource);
@@ -97,7 +97,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resources = new[]
         {
@@ -124,7 +124,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resource = new SchedulerResource { Id = 1, Name = "Only Resource" };
         context.Resources.Add(resource);
@@ -143,7 +143,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context);
+        var service = new ResourceService(context, CreateLogger<ResourceService>());
 
         var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
         context.Resources.Add(resource);
