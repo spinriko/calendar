@@ -9,33 +9,44 @@
 <div class="main">
     <div class="left">
         <div id="datepicker"></div>
-        <div style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-            <h4>Legend</h4>
-            <div style="margin: 5px 0;"><span
-                    style="display: inline-block; width: 20px; height: 20px; background: #ffa500cc; margin-right: 5px;"></span>Pending
-            </div>
-            <div style="margin: 5px 0;"><span
-                    style="display: inline-block; width: 20px; height: 20px; background: #6aa84fcc; margin-right: 5px;"></span>Approved
-            </div>
-            <div style="margin: 5px 0;"><span
-                    style="display: inline-block; width: 20px; height: 20px; background: #cc4125cc; margin-right: 5px;"></span>Rejected
-            </div>
-            <div style="margin: 5px 0;"><span
-                    style="display: inline-block; width: 20px; height: 20px; background: #999999cc; margin-right: 5px;"></span>Cancelled
-            </div>
-        </div>
     </div>
     <div class="right">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
             <div class="buttons">
                 <button id="previous">Previous</button>
                 <button id="today">Today</button>
                 <button id="next">Next</button>
-                <button id="pending" style="margin-left: 20px; width: 130px; font-size: 13px;">View Pending</button>
             </div>
-            <div id="impersonationPanel" style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
+            <div id="statusFilters"
+                style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f5f5f5; border-radius: 4px;">
+                <span style="font-weight: 600; margin-right: 5px;">Show:</span>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterPending" value="Pending" checked
+                        style="width: 16px; height: 16px; accent-color: #ffa500;">
+                    <span>Pending</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterApproved" value="Approved" checked
+                        style="width: 16px; height: 16px; accent-color: #6aa84f;">
+                    <span>Approved</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterRejected" value="Rejected" checked
+                        style="width: 16px; height: 16px; accent-color: #cc4125;">
+                    <span>Rejected</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterCancelled" value="Cancelled" checked
+                        style="width: 16px; height: 16px; accent-color: #999999;">
+                    <span>Cancelled</span>
+                </label>
+            </div>
+            <div id="impersonationPanel"
+                style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
                 <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
-                <select id="impersonateRole" style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
+                <select id="impersonateRole"
+                    style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
                     <option value="Admin">Admin (All Roles)</option>
                     <option value="Manager">Manager</option>
                     <option value="Approver">Approver</option>
@@ -43,7 +54,6 @@
                 </select>
             </div>
         </div>
-        <h3 id="viewIndicator" style="margin: 10px 0; color: #0C7379; font-weight: 600;">Viewing: Approved Requests</h3>
         <div id="calendar"></div>
     </div>
 </div>
@@ -54,6 +64,9 @@
         durationBarVisible: false,
         eventMoveHandling: "Disabled",
         eventResizeHandling: "Disabled",
+        cellWidthMin: 50, // Minimum column width to keep readable
+        scrollDelayEvents: 0,
+        scrollX: "Enabled", // Enable horizontal scrolling
         onTimeRangeSelected: async (args) => {
             const form = [
                 { name: "Reason", id: "reason", type: "textarea" },
@@ -265,13 +278,15 @@
             previous: document.getElementById("previous"),
             today: document.getElementById("today"),
             next: document.getElementById("next"),
-            pending: document.getElementById("pending"),
-            viewIndicator: document.getElementById("viewIndicator"),
+            filterPending: document.getElementById("filterPending"),
+            filterApproved: document.getElementById("filterApproved"),
+            filterRejected: document.getElementById("filterRejected"),
+            filterCancelled: document.getElementById("filterCancelled"),
             impersonationPanel: document.getElementById("impersonationPanel"),
             impersonateRole: document.getElementById("impersonateRole")
         },
         state: {
-            showPending: false,
+            selectedStatuses: ["Pending", "Approved"],
             currentEmployeeId: null,
             isManager: false,
             currentUser: null,
@@ -281,9 +296,44 @@
             // Load current user information
             await this.loadCurrentUser();
 
+            // Initialize checkboxes based on role
+            this.initializeCheckboxes();
+
             this.loadCalendarData();
             this.loadDatePickerData();
             this.initEventHandlers();
+        },
+        initializeCheckboxes() {
+            // Determine which checkboxes should be available based on role
+            const isAdmin = this.state.currentUser?.roles?.includes("Admin");
+            const isManagerOrApprover = this.state.isManager;
+            const isEmployee = !isAdmin && !isManagerOrApprover;
+
+            // Hide/show checkboxes based on role
+            if (isEmployee) {
+                // Employees can only see their own requests in all states
+                this.elements.filterPending.checked = true;
+                this.elements.filterApproved.checked = false;
+                this.elements.filterRejected.checked = false;
+                this.elements.filterCancelled.checked = false;
+                this.state.selectedStatuses = ["Pending"];
+            } else if (isManagerOrApprover && !isAdmin) {
+                // Managers/Approvers mainly care about Pending (to approve) and Approved (to verify)
+                this.elements.filterPending.checked = true;
+                this.elements.filterApproved.checked = true;
+                this.elements.filterRejected.checked = false;
+                this.elements.filterCancelled.checked = false;
+                this.elements.filterRejected.parentElement.style.display = "none";
+                this.elements.filterCancelled.parentElement.style.display = "none";
+                this.state.selectedStatuses = ["Pending", "Approved"];
+            } else if (isAdmin) {
+                // Admins see everything by default
+                this.elements.filterPending.checked = true;
+                this.elements.filterApproved.checked = true;
+                this.elements.filterRejected.checked = true;
+                this.elements.filterCancelled.checked = true;
+                this.state.selectedStatuses = ["Pending", "Approved", "Rejected", "Cancelled"];
+            }
         },
         async loadCurrentUser() {
             try {
@@ -297,17 +347,17 @@
                             r.toLowerCase() === 'manager' ||
                             r.toLowerCase() === 'approver'
                         );
-                    
+
                     // Show impersonation panel in mock mode
                     if (this.state.isMockMode) {
                         this.elements.impersonationPanel.style.display = "block";
                         // Set current role in dropdown
                         const currentRole = response.data.roles?.includes("Admin") ? "Admin" :
-                                          response.data.roles?.includes("Manager") ? "Manager" :
-                                          response.data.roles?.includes("Approver") ? "Approver" : "Employee";
+                            response.data.roles?.includes("Manager") ? "Manager" :
+                                response.data.roles?.includes("Approver") ? "Approver" : "Employee";
                         this.elements.impersonateRole.value = currentRole;
                     }
-                    
+
                     console.log("Current user:", this.state.currentUser);
                     console.log("Is manager/approver:", this.state.isManager);
                     console.log("Mock mode:", this.state.isMockMode);
@@ -324,17 +374,14 @@
 
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
-            if (app.state.showPending) {
-                if (app.state.isManager) {
-                    // Manager: Show all pending requests from all employees
-                    absencesUrl += `&status=Pending`;
-                } else {
-                    // Employee: Show only their own pending requests
-                    absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
-                }
-            } else {
-                // Show all approved requests (organization-wide)
-                absencesUrl += `&status=Approved`;
+            // Add all selected statuses to the query
+            this.state.selectedStatuses.forEach(status => {
+                absencesUrl += `&status=${status}`;
+            });
+
+            // For employees, only show their own requests
+            if (!this.state.isManager && !this.state.currentUser?.roles?.includes("Admin")) {
+                absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
             }
 
             const promiseAbsences = DayPilot.Http.get(absencesUrl);
@@ -364,14 +411,14 @@
 
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
-            if (app.state.showPending) {
-                if (app.state.isManager) {
-                    absencesUrl += `&status=Pending`;
-                } else {
-                    absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
-                }
-            } else {
-                absencesUrl += `&status=Approved`;
+            // Add all selected statuses to the query
+            this.state.selectedStatuses.forEach(status => {
+                absencesUrl += `&status=${status}`;
+            });
+
+            // For employees, only show their own requests
+            if (!this.state.isManager && !this.state.currentUser?.roles?.includes("Admin")) {
+                absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
             }
 
             const { data } = await DayPilot.Http.get(absencesUrl);
@@ -385,24 +432,6 @@
 
             datepicker.update({ events });
         },
-        togglePendingView() {
-            app.state.showPending = !app.state.showPending;
-
-            // Update button appearance and text
-            if (app.state.showPending) {
-                app.elements.pending.classList.add("selected");
-                app.elements.pending.textContent = "View Approved";
-                app.elements.viewIndicator.textContent = "Viewing: Pending Requests";
-            } else {
-                app.elements.pending.classList.remove("selected");
-                app.elements.pending.textContent = "View Pending";
-                app.elements.viewIndicator.textContent = "Viewing: Approved Requests";
-            }
-
-            // Reload data with new filter
-            app.loadCalendarData();
-            app.loadDatePickerData();
-        },
         addHandlers() {
             app.elements.previous.addEventListener("click", () => {
                 const current = datepicker.selectionDay;
@@ -415,10 +444,24 @@
             app.elements.today.addEventListener("click", () => {
                 datepicker.select(DayPilot.Date.today());
             });
-            app.elements.pending.addEventListener("click", () => {
-                app.togglePendingView();
-            });
-            
+
+            // Checkbox filter handlers
+            const updateFilters = () => {
+                app.state.selectedStatuses = [];
+                if (app.elements.filterPending.checked) app.state.selectedStatuses.push("Pending");
+                if (app.elements.filterApproved.checked) app.state.selectedStatuses.push("Approved");
+                if (app.elements.filterRejected.checked) app.state.selectedStatuses.push("Rejected");
+                if (app.elements.filterCancelled.checked) app.state.selectedStatuses.push("Cancelled");
+
+                app.loadCalendarData();
+                app.loadDatePickerData();
+            };
+
+            app.elements.filterPending.addEventListener("change", updateFilters);
+            app.elements.filterApproved.addEventListener("change", updateFilters);
+            app.elements.filterRejected.addEventListener("change", updateFilters);
+            app.elements.filterCancelled.addEventListener("change", updateFilters);
+
             // Impersonation handler
             if (app.elements.impersonateRole) {
                 app.elements.impersonateRole.addEventListener("change", async (e) => {
@@ -426,12 +469,16 @@
                     try {
                         await DayPilot.Http.post("/api/currentuser/impersonate", { role });
                         console.log(`Impersonating ${role}, reloading user...`);
-                        
+
                         // Reload current user and refresh data
                         await app.loadCurrentUser();
+                        
+                        // Reinitialize checkboxes for new role
+                        app.initializeCheckboxes();
+                        
                         app.loadCalendarData();
                         app.loadDatePickerData();
-                        
+
                         // Show notification
                         const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
                     } catch (error) {
