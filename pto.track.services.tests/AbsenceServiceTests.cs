@@ -703,4 +703,282 @@ public class AbsenceServiceTests : TestBase
         Assert.NotNull(result.ApprovedDate);
         Assert.Equal("Approved", result.Status);
     }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithStatusFilter_ReturnsOnlyMatchingStatus()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var requests = new[]
+        {
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 10),
+                End = new DateTime(2025, 1, 12),
+                Reason = "Pending request",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Pending,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 15),
+                End = new DateTime(2025, 1, 17),
+                Reason = "Approved request",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 20),
+                End = new DateTime(2025, 1, 22),
+                Reason = "Another approved",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 25),
+                End = new DateTime(2025, 1, 27),
+                Reason = "Rejected request",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Rejected,
+                RequestedDate = DateTime.UtcNow
+            }
+        };
+        context.AbsenceRequests.AddRange(requests);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetAbsenceRequestsAsync(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 1, 31),
+            AbsenceStatus.Approved);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Equal(2, list.Count);
+        Assert.All(list, a => Assert.Equal("Approved", a.Status));
+        Assert.Contains(list, a => a.Reason == "Approved request");
+        Assert.Contains(list, a => a.Reason == "Another approved");
+    }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithPendingStatusFilter_ReturnsOnlyPending()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var requests = new[]
+        {
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 10),
+                End = new DateTime(2025, 1, 12),
+                Reason = "Pending 1",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Pending,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 15),
+                End = new DateTime(2025, 1, 17),
+                Reason = "Approved",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            }
+        };
+        context.AbsenceRequests.AddRange(requests);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetAbsenceRequestsAsync(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 1, 31),
+            AbsenceStatus.Pending);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Single(list);
+        Assert.Equal("Pending", list[0].Status);
+        Assert.Equal("Pending 1", list[0].Reason);
+    }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithNullStatus_ReturnsAllStatuses()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var requests = new[]
+        {
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 10),
+                End = new DateTime(2025, 1, 12),
+                Reason = "Pending",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Pending,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 15),
+                End = new DateTime(2025, 1, 17),
+                Reason = "Approved",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 20),
+                End = new DateTime(2025, 1, 22),
+                Reason = "Rejected",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Rejected,
+                RequestedDate = DateTime.UtcNow
+            }
+        };
+        context.AbsenceRequests.AddRange(requests);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetAbsenceRequestsAsync(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 1, 31),
+            null);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Equal(3, list.Count);
+        Assert.Contains(list, a => a.Status == "Pending");
+        Assert.Contains(list, a => a.Status == "Approved");
+        Assert.Contains(list, a => a.Status == "Rejected");
+    }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithCancelledStatusFilter_ReturnsCancelled()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var requests = new[]
+        {
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 10),
+                End = new DateTime(2025, 1, 12),
+                Reason = "Cancelled request",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Cancelled,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 15),
+                End = new DateTime(2025, 1, 17),
+                Reason = "Approved request",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            }
+        };
+        context.AbsenceRequests.AddRange(requests);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetAbsenceRequestsAsync(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 1, 31),
+            AbsenceStatus.Cancelled);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Single(list);
+        Assert.Equal("Cancelled", list[0].Status);
+        Assert.Equal("Cancelled request", list[0].Reason);
+    }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithStatusAndDateRange_AppliesBothFilters()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var requests = new[]
+        {
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 10),
+                End = new DateTime(2025, 1, 12),
+                Reason = "January Approved",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 2, 15),
+                End = new DateTime(2025, 2, 17),
+                Reason = "February Approved",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Approved,
+                RequestedDate = DateTime.UtcNow
+            },
+            new AbsenceRequest
+            {
+                Start = new DateTime(2025, 1, 20),
+                End = new DateTime(2025, 1, 22),
+                Reason = "January Pending",
+                EmployeeId = 1,
+                Status = AbsenceStatus.Pending,
+                RequestedDate = DateTime.UtcNow
+            }
+        };
+        context.AbsenceRequests.AddRange(requests);
+        await context.SaveChangesAsync();
+
+        // Act - Get approved requests in January only
+        var result = await service.GetAbsenceRequestsAsync(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 1, 31),
+            AbsenceStatus.Approved);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Single(list);
+        Assert.Equal("January Approved", list[0].Reason);
+        Assert.Equal("Approved", list[0].Status);
+    }
 }
