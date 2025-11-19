@@ -30,7 +30,7 @@
             <button id="previous">Previous</button>
             <button id="today">Today</button>
             <button id="next">Next</button>
-            <button id="pending" style="margin-left: 20px; background: #2e78d6;">View Pending</button>
+            <button id="pending" style="margin-left: 20px;">View Pending</button>
         </div>
         <div id="calendar"></div>
     </div>
@@ -244,11 +244,25 @@
             next: document.getElementById("next"),
             pending: document.getElementById("pending")
         },
+        state: {
+            showPending: false,
+            currentEmployeeId: 1  // TODO: Get from current user
+        },
         async loadCalendarData() {
             const start = calendar.visibleStart();
             const end = calendar.visibleEnd();
 
-            const promiseAbsences = DayPilot.Http.get(`/api/absences?start=${start}&end=${end}`);
+            let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+
+            if (app.state.showPending) {
+                // Show only current employee's pending requests
+                absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+            } else {
+                // Show all approved requests
+                absencesUrl += `&status=Approved`;
+            }
+
+            const promiseAbsences = DayPilot.Http.get(absencesUrl);
             const promiseResources = DayPilot.Http.get("/api/resources");
 
             const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
@@ -273,7 +287,15 @@
             const start = datepicker.visibleStart();
             const end = datepicker.visibleEnd();
 
-            const { data } = await DayPilot.Http.get(`/api/absences?start=${start}&end=${end}`);
+            let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+
+            if (app.state.showPending) {
+                absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+            } else {
+                absencesUrl += `&status=Approved`;
+            }
+
+            const { data } = await DayPilot.Http.get(absencesUrl);
 
             const events = data.map(a => ({
                 start: a.start,
@@ -284,24 +306,21 @@
 
             datepicker.update({ events });
         },
-        async showPendingRequests() {
-            const { data } = await DayPilot.Http.get(`/api/absences/pending`);
+        togglePendingView() {
+            app.state.showPending = !app.state.showPending;
 
-            if (data.length === 0) {
-                await DayPilot.Modal.alert("No pending absence requests.");
-                return;
+            // Update button appearance
+            if (app.state.showPending) {
+                app.elements.pending.style.background = "#2e78d6";
+                app.elements.pending.textContent = "View Approved";
+            } else {
+                app.elements.pending.style.background = "";
+                app.elements.pending.textContent = "View Pending";
             }
 
-            // Create a simple list view
-            let html = "<div style='padding: 20px;'><h3>Pending Absence Requests</h3><ul>";
-            data.forEach(a => {
-                const startDate = new Date(a.start).toLocaleDateString();
-                const endDate = new Date(a.end).toLocaleDateString();
-                html += `<li><strong>${a.employeeName}</strong>: ${startDate} - ${endDate}<br>${a.reason}</li>`;
-            });
-            html += "</ul></div>";
-
-            await DayPilot.Modal.alert(html);
+            // Reload data with new filter
+            app.loadCalendarData();
+            app.loadDatePickerData();
         },
         addHandlers() {
             app.elements.previous.addEventListener("click", () => {
@@ -316,7 +335,7 @@
                 datepicker.select(DayPilot.Date.today());
             });
             app.elements.pending.addEventListener("click", () => {
-                app.showPendingRequests();
+                app.togglePendingView();
             });
         },
         init() {

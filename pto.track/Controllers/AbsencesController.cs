@@ -17,27 +17,32 @@ public class AbsencesController : ControllerBase
         _logger = logger;
     }
 
+    public ILogger Get_logger()
+    {
+        return _logger;
+    }
+
     // GET: api/Absences
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetAbsenceRequests(
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end,
-        [FromQuery] int? employeeId)
+        [FromQuery] int? employeeId, ILogger _logger)
     {
         _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}", start, end, employeeId);
         if (employeeId.HasValue)
         {
             var empStart = start ?? DateTime.UtcNow.AddMonths(-3);
             var empEnd = end ?? DateTime.UtcNow.AddMonths(3);
-            var absences = await _absenceService.GetAbsenceRequestsByEmployeeAsync(employeeId.Value, empStart, empEnd);
-            _logger.LogDebug("Returning {Count} absences for employee {EmployeeId}", absences.Count(), employeeId);
+            var absences = (await _absenceService.GetAbsenceRequestsByEmployeeAsync(employeeId.Value, empStart, empEnd)).ToList();
+            _logger.LogDebug("Returning {Count} absences for employee {EmployeeId}", absences.Count, employeeId);
             return Ok(absences);
         }
 
         if (start.HasValue && end.HasValue)
         {
-            var absences = await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value);
-            _logger.LogDebug("Returning {Count} absences for date range", absences.Count());
+            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value)).ToList();
+            _logger.LogDebug("Returning {Count} absences for date range", absences.Count);
             return Ok(absences);
         }
 
@@ -50,8 +55,8 @@ public class AbsencesController : ControllerBase
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetPendingAbsenceRequests()
     {
         _logger.LogDebug("GetPendingAbsenceRequests called");
-        var absences = await _absenceService.GetPendingAbsenceRequestsAsync();
-        _logger.LogDebug("Returning {Count} pending absences", absences.Count());
+        var absences = (await _absenceService.GetPendingAbsenceRequestsAsync()).ToList();
+        _logger.LogDebug("Returning {Count} pending absences", absences.Count);
         return Ok(absences);
     }
 

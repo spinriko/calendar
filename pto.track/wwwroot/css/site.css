@@ -1,45 +1,60 @@
-p, body, td, input, select, button {
-  font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-  font-size: 14px;
+p,
+body,
+td,
+input,
+select,
+button {
+    font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
 }
 
 body {
-  padding: 0px;
-  margin: 0px;
-  background-color: #ffffff;
+    padding: 0px;
+    margin: 0px;
+    background-color: #ffffff;
+    color: #2a2a2a;
 }
 
 a {
-  color: #1155a3;
+    color: #0C7379;
+}
+
+a:hover {
+    color: #2D5A5C;
 }
 
 .space {
-  margin: 10px 0px 10px 0px;
+    margin: 10px 0px 10px 0px;
 }
 
 .header {
-  background: #003267;
-  background: linear-gradient(to right, #011329 0%,#00639e 44%,#011329 100%);
-  padding: 20px 10px;
-  color: white;
-  box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.75);
+    background: #0D426A;
+    background: linear-gradient(to right, #0D426A 0%, #0C7379 50%, #0D426A 100%);
+    padding: 20px 10px;
+    color: white;
+    box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.25);
 }
 
 .header a {
-  color: white;
+    color: white;
+}
+
+.header a:hover {
+    color: #ffffff;
+    text-decoration: underline;
 }
 
 .header h1 a {
-  text-decoration: none;
+    text-decoration: none;
 }
 
 .header h1 {
-  padding: 0px;
-  margin: 0px;
+    padding: 0px;
+    margin: 0px;
 }
 
 .main {
-  padding: 10px
+    padding: 10px
 }
 
 
@@ -52,8 +67,8 @@ a {
 
 .buttons button {
     background-color: #f3f3f3;
-    color: #333333;
-    border: 1px solid #c0c0c0;
+    color: #2a2a2a;
+    border: 2px solid #0C7379;
     padding: .5rem 1rem;
     width: 80px;
     font-size: 14px;
@@ -64,8 +79,10 @@ a {
 }
 
 .buttons button.selected {
-    background-color: #e3e3e3;
-    box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+    background-color: #0C7379;
+    color: #ffffff;
+    border: 2px solid #0C7379;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
 }
 
 .buttons button:first-child {
@@ -79,19 +96,23 @@ a {
 }
 
 .buttons button:hover {
-    background-color: #e0e0e0;
+    background-color: #2D5A5C;
+    color: #ffffff;
+    border-color: #2D5A5C;
 }
 
 .buttons button:active {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .main {
     display: flex;
 }
+
 .left {
     margin-right: 10px;
 }
+
 .right {
     flex-grow: 1;
 }
@@ -99,7 +120,7 @@ a {
 /* date picker */
 body .navigator_default_busy.navigator_default_cell .navigator_default_cell_text {
     box-sizing: border-box;
-    background-color: #aaaaaa;
+    background-color: #0C7379;
     color: #ffffff;
     border-radius: 50%;
 }
@@ -108,8 +129,9 @@ body .navigator_default_select .navigator_default_cell_box {
     background-color: transparent;
     opacity: 1;
 }
+
 body .navigator_default_cell.navigator_default_select .navigator_default_cell_text {
-    background-color: #666666;
+    background-color: #0D426A;
     color: #ffffff;
     border-radius: 50%;
     opacity: 1;
@@ -118,15 +140,19 @@ body .navigator_default_cell.navigator_default_select .navigator_default_cell_te
 body .navigator_default_todaybox {
     border: none;
 }
+
 body .navigator_default_today .navigator_default_cell_text {
     text-decoration: underline;
+    color: #0C7379;
+    font-weight: bold;
 }
 
 /* calendar events */
 body .calendar_default_event_inner {
     border-radius: 15px;
-    background: #999999;
-    border: 1px solid #666666;
+    background: #0C7379;
+    border: 1px solid #2D5A5C;
+    color: #ffffff;
 }
 
 body .calendar_default_shadow,
@@ -136,15 +162,21 @@ body .calendar_default_shadow_inner {
 
 /* calendar header active areas */
 .calendar_default_main .area_action {
-    background-color: #ffffff;
-    color: #666666;
+    background-color: #0C7379;
+    color: #ffffff;
     border-radius: 50%;
-    border: 1px solid #666666;
+    border: 1px solid #2D5A5C;
     padding: 5px;
     cursor: pointer;
     box-sizing: border-box;
     opacity: 0.8;
 }
+
+.calendar_default_main .area_action:hover {
+    background-color: #2D5A5C;
+    opacity: 1;
+}
+
 .calendar_default_main .area_action:hover {
     opacity: 1;
 }
