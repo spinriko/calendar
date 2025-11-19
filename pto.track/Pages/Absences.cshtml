@@ -26,12 +26,24 @@
         </div>
     </div>
     <div class="right">
-        <div class="buttons">
-            <button id="previous">Previous</button>
-            <button id="today">Today</button>
-            <button id="next">Next</button>
-            <button id="pending" style="margin-left: 20px;">View Pending</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="buttons">
+                <button id="previous">Previous</button>
+                <button id="today">Today</button>
+                <button id="next">Next</button>
+                <button id="pending" style="margin-left: 20px; width: 130px; font-size: 13px;">View Pending</button>
+            </div>
+            <div id="impersonationPanel" style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
+                <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
+                <select id="impersonateRole" style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
+                    <option value="Admin">Admin (All Roles)</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Approver">Approver</option>
+                    <option value="Employee">Employee</option>
+                </select>
+            </div>
         </div>
+        <h3 id="viewIndicator" style="margin: 10px 0; color: #0C7379; font-weight: 600;">Viewing: Approved Requests</h3>
         <div id="calendar"></div>
     </div>
 </div>
@@ -74,7 +86,7 @@
 
         },
         onEventClick: async (args) => {
-            const absence = args.e.data;
+            const absence = args.e.data.data || args.e.data;
 
             const form = [
                 { name: "Employee", id: "employeeName", disabled: true },
@@ -92,7 +104,19 @@
                 form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
             }
 
-            const modal = await DayPilot.Modal.form(form, absence);
+            // Prepare data for the form with proper field values
+            // Format dates to remove excess precision that DayPilot can't parse
+            const formData = {
+                employeeName: absence.employeeName,
+                reason: absence.reason,
+                status: absence.status,
+                requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
+                approverName: absence.approverName,
+                approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
+                approvalComments: absence.approvalComments
+            };
+
+            const modal = await DayPilot.Modal.form(form, formData);
             if (modal.canceled) {
                 return;
             }
@@ -140,9 +164,8 @@
                             return true;
                         }
 
-                        // In production, you'd get the approverId from the logged-in user
                         const approvalData = {
-                            approverId: 1,  // TODO: Get from current user
+                            approverId: app.state.currentEmployeeId,
                             comments: modal.result
                         };
 
@@ -169,7 +192,7 @@
                         }
 
                         const rejectionData = {
-                            approverId: 1,  // TODO: Get from current user
+                            approverId: app.state.currentEmployeeId,
                             reason: modal.result
                         };
 
@@ -242,12 +265,58 @@
             previous: document.getElementById("previous"),
             today: document.getElementById("today"),
             next: document.getElementById("next"),
-            pending: document.getElementById("pending")
+            pending: document.getElementById("pending"),
+            viewIndicator: document.getElementById("viewIndicator"),
+            impersonationPanel: document.getElementById("impersonationPanel"),
+            impersonateRole: document.getElementById("impersonateRole")
         },
         state: {
             showPending: false,
-            currentEmployeeId: 1,  // TODO: Get from authenticated user
-            isManager: false        // TODO: Get from authenticated user's role
+            currentEmployeeId: null,
+            isManager: false,
+            currentUser: null,
+            isMockMode: false
+        },
+        async init() {
+            // Load current user information
+            await this.loadCurrentUser();
+
+            this.loadCalendarData();
+            this.loadDatePickerData();
+            this.initEventHandlers();
+        },
+        async loadCurrentUser() {
+            try {
+                const response = await DayPilot.Http.get("/api/currentuser");
+                if (response.data) {
+                    this.state.currentUser = response.data;
+                    this.state.currentEmployeeId = response.data.id;
+                    this.state.isMockMode = response.data.isMockMode || false;
+                    this.state.isManager = response.data.isApprover ||
+                        response.data.roles?.some(r =>
+                            r.toLowerCase() === 'manager' ||
+                            r.toLowerCase() === 'approver'
+                        );
+                    
+                    // Show impersonation panel in mock mode
+                    if (this.state.isMockMode) {
+                        this.elements.impersonationPanel.style.display = "block";
+                        // Set current role in dropdown
+                        const currentRole = response.data.roles?.includes("Admin") ? "Admin" :
+                                          response.data.roles?.includes("Manager") ? "Manager" :
+                                          response.data.roles?.includes("Approver") ? "Approver" : "Employee";
+                        this.elements.impersonateRole.value = currentRole;
+                    }
+                    
+                    console.log("Current user:", this.state.currentUser);
+                    console.log("Is manager/approver:", this.state.isManager);
+                    console.log("Mock mode:", this.state.isMockMode);
+                }
+            } catch (error) {
+                console.warn("Could not load current user, using defaults:", error);
+                // Fallback for development without authentication
+                this.state.currentEmployeeId = 1;
+            }
         },
         async loadCalendarData() {
             const start = calendar.visibleStart();
@@ -323,9 +392,11 @@
             if (app.state.showPending) {
                 app.elements.pending.classList.add("selected");
                 app.elements.pending.textContent = "View Approved";
+                app.elements.viewIndicator.textContent = "Viewing: Pending Requests";
             } else {
                 app.elements.pending.classList.remove("selected");
                 app.elements.pending.textContent = "View Pending";
+                app.elements.viewIndicator.textContent = "Viewing: Approved Requests";
             }
 
             // Reload data with new filter
@@ -347,11 +418,31 @@
             app.elements.pending.addEventListener("click", () => {
                 app.togglePendingView();
             });
+            
+            // Impersonation handler
+            if (app.elements.impersonateRole) {
+                app.elements.impersonateRole.addEventListener("change", async (e) => {
+                    const role = e.target.value;
+                    try {
+                        await DayPilot.Http.post("/api/currentuser/impersonate", { role });
+                        console.log(`Impersonating ${role}, reloading user...`);
+                        
+                        // Reload current user and refresh data
+                        await app.loadCurrentUser();
+                        app.loadCalendarData();
+                        app.loadDatePickerData();
+                        
+                        // Show notification
+                        const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
+                    } catch (error) {
+                        console.error("Error setting impersonation:", error);
+                        await DayPilot.Modal.alert("Failed to change impersonation");
+                    }
+                });
+            }
         },
-        init() {
-            app.addHandlers();
-            app.loadCalendarData();
-            app.loadDatePickerData();
+        initEventHandlers() {
+            this.addHandlers();
         }
     };
 

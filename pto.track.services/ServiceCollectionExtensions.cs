@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
+using pto.track.services.Authentication;
 
 namespace pto.track.services;
 
@@ -26,6 +27,24 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();
+        services.AddScoped<IUserSyncService, UserSyncService>();
+
+        // Register authentication based on configuration
+        var authMode = configuration["Authentication:Mode"] ?? "Mock";
+
+        if (authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IUserClaimsProvider, MockUserClaimsProvider>();
+        }
+        else if (authMode.Equals("ActiveDirectory", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IUserClaimsProvider, ActiveDirectoryClaimsProvider>();
+        }
+        else
+        {
+            // Default to mock in development
+            services.AddScoped<IUserClaimsProvider, MockUserClaimsProvider>();
+        }
 
         return services;
     }

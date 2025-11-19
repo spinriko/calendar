@@ -5,17 +5,17 @@ This solution includes comprehensive test coverage across multiple test projects
 ## Test Projects Overview
 
 ### Summary Statistics
-- **Total Tests**: 90 (all passing ✓)
+- **Total Tests**: 119 (all passing ✓)
 - **Test Projects**: 3
-- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation
+- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation, User management, Status filtering, Authorization & Role-based access control
 
 ## Test Projects
 
 ### 1. pto.track.tests (Integration Tests)
-**Total Tests**: 16  
-**Technology**: xUnit 2.9.3, Microsoft.AspNetCore.Mvc.Testing, EF Core In-Memory Database
+**Total Tests**: 34  
+**Technology**: xUnit 2.9.3, Microsoft.AspNetCore.Mvc.Testing, EF Core In-Memory Database, Moq 4.20.72
 
-Integration tests that verify the entire application stack works together correctly, from HTTP requests through controllers and services to the database layer.
+Integration tests that verify the entire application stack works together correctly, from HTTP requests through controllers and services to the database layer. Includes comprehensive authorization and role-based access control tests.
 
 #### EventsControllerTests.cs (8 tests)
 Tests the `/api/events` API endpoints:
@@ -74,16 +74,49 @@ End-to-end integration tests:
 5. **PutSchedulerEvent_InvalidDates_ReturnsBadRequest**  
    Ensures updates with invalid date ranges are rejected
 
+#### AbsencesAuthorizationTests.cs (18 tests)
+Tests role-based access control and authorization in the AbsencesController:
+
+**Approve Authorization Tests (6 tests)**:
+1. **ApproveAbsenceRequest_WithManagerRole_Succeeds** - Manager can approve
+2. **ApproveAbsenceRequest_WithApproverRole_Succeeds** - Approver can approve
+3. **ApproveAbsenceRequest_WithAdminRole_Succeeds** - Admin can approve
+4. **ApproveAbsenceRequest_WithEmployeeRole_ReturnsForbid** - Employee cannot approve
+5. **ApproveAbsenceRequest_WithMismatchedApproverId_ReturnsBadRequest** - Approver ID must match current user
+6. **ApproveAbsenceRequest_WithoutRole_LogsWarning** - Logs security warning
+
+**Reject Authorization Tests (3 tests)**:
+1. **RejectAbsenceRequest_WithManagerRole_Succeeds** - Manager can reject
+2. **RejectAbsenceRequest_WithEmployeeRole_ReturnsForbid** - Employee cannot reject
+3. **RejectAbsenceRequest_WithMismatchedApproverId_ReturnsBadRequest** - Approver ID must match current user
+
+**Update Authorization Tests (4 tests)**:
+1. **PutAbsenceRequest_UserUpdatesOwnRequest_Succeeds** - User can update own pending request
+2. **PutAbsenceRequest_UserUpdatesOthersRequest_ReturnsForbid** - User cannot update others' requests
+3. **PutAbsenceRequest_UnauthenticatedUser_ReturnsUnauthorized** - Unauthenticated access denied
+4. **PutAbsenceRequest_NonexistentRequest_ReturnsNotFound** - 404 for non-existent requests
+
+**Cancel Authorization Tests (3 tests)**:
+1. **CancelAbsenceRequest_UserCancelsOwnRequest_Succeeds** - User can cancel own request
+2. **CancelAbsenceRequest_UserCancelsOthersRequest_ReturnsForbid** - User cannot cancel others' requests
+3. **CancelAbsenceRequest_UnauthenticatedUser_ReturnsUnauthorized** - Unauthenticated access denied
+
+**Logging Verification Tests (2 tests)**:
+1. **PutAbsenceRequest_WrongUser_LogsWarning** - Security violations are logged
+2. **CancelAbsenceRequest_WrongUser_LogsWarning** - Unauthorized attempts are logged
+
 **Key Testing Features**:
 - Uses `WebApplicationFactory<Program>` for in-memory test server
 - Fresh database per test via in-memory provider
 - Tests actual HTTP responses and status codes
 - Validates both happy path and error scenarios
+- Mock-based unit tests for authorization logic
+- Verifies security logging for audit trails
 
 ---
 
 ### 2. pto.track.services.tests (Service Layer Unit Tests)
-**Total Tests**: 50  
+**Total Tests**: 61  
 **Technology**: xUnit 3.1.4, EF Core In-Memory Database
 
 Unit tests for the business logic layer, ensuring services work correctly in isolation.
@@ -154,7 +187,28 @@ Tests the `ResourceService` business logic:
 7. **GetResourcesAsync_UsesNoTracking**  
    Ensures queries use AsNoTracking for performance
 
-#### AbsenceServiceTests.cs (21 tests)
+8. **GetActiveResourcesAsync_FiltersInactiveResources**  
+   Tests filtering to return only active resources (IsActive=true)
+
+9. **GetActiveResourcesAsync_WithAllInactive_ReturnsEmpty**  
+   Validates empty results when all resources are inactive
+
+10. **GetApproversAsync_ReturnsOnlyActiveApprovers**  
+    Tests filtering to return only active approvers (IsApprover=true AND IsActive=true)
+
+11. **GetApproversAsync_WithNoApprovers_ReturnsEmpty**  
+    Confirms empty results when no resources are marked as approvers
+
+12. **GetResourceByIdAsync_WithValidId_ReturnsResource**  
+    Tests single resource retrieval by ID with all DTO properties
+
+13. **GetResourceByIdAsync_WithInvalidId_ReturnsNull**  
+    Validates null is returned for non-existent resource IDs
+
+14. **GetResourcesAsync_IncludesAllNewProperties**  
+    Verifies all new DTO fields (Email, EmployeeNumber, Role, IsApprover, IsActive, Department) are correctly mapped
+
+#### AbsenceServiceTests.cs (26 tests)
 Tests the `AbsenceService` approval workflow business logic:
 
 1. **GetAbsencesAsync_WithAbsencesInDateRange_ReturnsMatchingAbsences**  
@@ -219,6 +273,21 @@ Tests the `AbsenceService` approval workflow business logic:
 
 21. **DeleteAbsenceAsync_WithInvalidId_ReturnsFalse**  
     Validates false is returned when deleting non-existent absences
+
+22. **GetAbsenceRequestsAsync_WithStatusFilter_ReturnsOnlyMatchingStatus**  
+    Tests filtering by AbsenceStatus (e.g., Approved) returns only matching absences
+
+23. **GetAbsenceRequestsAsync_WithPendingStatusFilter_ReturnsOnlyPending**  
+    Validates filtering specifically for Pending status absences
+
+24. **GetAbsenceRequestsAsync_WithNullStatus_ReturnsAllStatuses**  
+    Confirms that when status parameter is null, all absences are returned
+
+25. **GetAbsenceRequestsAsync_WithCancelledStatusFilter_ReturnsCancelled**  
+    Tests filtering for Cancelled status absences
+
+26. **GetAbsenceRequestsAsync_WithStatusAndDateRange_AppliesBothFilters**  
+    Validates that status filtering works correctly in combination with date range filtering
 
 #### DtoSerializationTests.cs (8 tests)
 Tests JSON serialization of DTOs:
@@ -423,10 +492,12 @@ var options = new DbContextOptionsBuilder<SchedulerDbContext>()
 |-------|---------|-------|--------|
 | **Controllers** | pto.track.tests | 11 | ✓ All Passing |
 | **Integration** | pto.track.tests | 5 | ✓ All Passing |
-| **Services** | pto.track.services.tests | 21 | ✓ All Passing |
+| **Authorization** | pto.track.tests | 18 | ✓ All Passing |
+| **Services** | pto.track.services.tests | 37 | ✓ All Passing |
 | **Serialization** | pto.track.services.tests | 8 | ✓ All Passing |
-| **Data Layer** | pto.track.data.tests | 1 | ✓ Placeholder |
-| **Total** | | **45** | **✓ All Passing** |
+| **Entity Validation** | pto.track.data.tests | 24 | ✓ All Passing |
+| **Data Layer** | pto.track.data.tests | 16 | ✓ All Passing |
+| **Total** | | **119** | **✓ All Passing** |
 
 ---
 

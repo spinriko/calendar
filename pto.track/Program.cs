@@ -5,6 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// Add HttpContextAccessor for claims access
+builder.Services.AddHttpContextAccessor();
+
 // Configure database and register application services
 builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment);
 
@@ -22,6 +25,7 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

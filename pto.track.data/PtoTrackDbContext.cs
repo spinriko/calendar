@@ -14,6 +14,11 @@ namespace pto.track.data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configure SchedulerResource primary key as identity
+            modelBuilder.Entity<SchedulerResource>()
+                .Property(r => r.Id)
+                .ValueGeneratedOnAdd();
+
             // Configure default values for Resource timestamps
             modelBuilder.Entity<SchedulerResource>()
                 .Property(r => r.CreatedDate)

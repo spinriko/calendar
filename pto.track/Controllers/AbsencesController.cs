@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using pto.track.data;
 using pto.track.services;
+using pto.track.services.Authentication;
 using pto.track.services.DTOs;
 
 namespace pto.track.Controllers;
@@ -11,11 +12,19 @@ public class AbsencesController : ControllerBase
 {
     private readonly IAbsenceService _absenceService;
     private readonly ILogger<AbsencesController> _logger;
+    private readonly IUserClaimsProvider _claimsProvider;
+    private readonly IUserSyncService _userSync;
 
-    public AbsencesController(IAbsenceService absenceService, ILogger<AbsencesController> logger)
+    public AbsencesController(
+        IAbsenceService absenceService,
+        ILogger<AbsencesController> logger,
+        IUserClaimsProvider claimsProvider,
+        IUserSyncService userSync)
     {
         _absenceService = absenceService;
         _logger = logger;
+        _claimsProvider = claimsProvider;
+        _userSync = userSync;
     }
 
     // GET: api/Absences
@@ -106,11 +115,33 @@ public class AbsencesController : ControllerBase
             return BadRequest(ModelState);
         }
 
+        // Authorization: User can only update their own pending requests
+        var currentUserId = await _userSync.GetCurrentUserResourceIdAsync();
+        if (!currentUserId.HasValue)
+        {
+            _logger.LogWarning("Unauthorized update attempt - no authenticated user");
+            return Unauthorized("User is not authenticated");
+        }
+
+        var existingRequest = await _absenceService.GetAbsenceRequestByIdAsync(id);
+        if (existingRequest == null)
+        {
+            _logger.LogDebug("Absence {Id} not found", id);
+            return NotFound("Absence request not found");
+        }
+
+        if (existingRequest.EmployeeId != currentUserId.Value)
+        {
+            _logger.LogWarning("User {UserId} attempted to update absence {AbsenceId} belonging to employee {EmployeeId}",
+                currentUserId, id, existingRequest.EmployeeId);
+            return Forbid();
+        }
+
         var success = await _absenceService.UpdateAbsenceRequestAsync(id, dto);
         if (!success)
         {
-            _logger.LogDebug("Absence {Id} not found or update failed", id);
-            return NotFound("Absence request not found or cannot be updated (only pending requests can be modified)");
+            _logger.LogDebug("Absence {Id} update failed (only pending requests can be modified)", id);
+            return BadRequest("Only pending requests can be modified");
         }
 
         return NoContent();
@@ -125,6 +156,22 @@ public class AbsencesController : ControllerBase
         {
             _logger.LogDebug("Invalid ModelState for ApproveAbsenceRequest");
             return BadRequest(ModelState);
+        }
+
+        // Authorization: Only managers/approvers can approve requests
+        if (!_claimsProvider.IsInRole("Manager") && !_claimsProvider.IsInRole("Approver") && !_claimsProvider.IsInRole("Admin"))
+        {
+            _logger.LogWarning("Unauthorized approval attempt by user without Manager/Approver role");
+            return Forbid();
+        }
+
+        // Verify the approver ID matches the current user
+        var currentUserId = await _userSync.GetCurrentUserResourceIdAsync();
+        if (!currentUserId.HasValue || currentUserId.Value != dto.ApproverId)
+        {
+            _logger.LogWarning("ApproverId mismatch: current user {CurrentUserId}, provided {ProvidedId}",
+                currentUserId, dto.ApproverId);
+            return BadRequest("Approver ID must match the authenticated user");
         }
 
         var success = await _absenceService.ApproveAbsenceRequestAsync(id, dto);
@@ -148,6 +195,22 @@ public class AbsencesController : ControllerBase
             return BadRequest(ModelState);
         }
 
+        // Authorization: Only managers/approvers can reject requests
+        if (!_claimsProvider.IsInRole("Manager") && !_claimsProvider.IsInRole("Approver") && !_claimsProvider.IsInRole("Admin"))
+        {
+            _logger.LogWarning("Unauthorized rejection attempt by user without Manager/Approver role");
+            return Forbid();
+        }
+
+        // Verify the approver ID matches the current user
+        var currentUserId = await _userSync.GetCurrentUserResourceIdAsync();
+        if (!currentUserId.HasValue || currentUserId.Value != dto.ApproverId)
+        {
+            _logger.LogWarning("ApproverId mismatch: current user {CurrentUserId}, provided {ProvidedId}",
+                currentUserId, dto.ApproverId);
+            return BadRequest("Approver ID must match the authenticated user");
+        }
+
         var success = await _absenceService.RejectAbsenceRequestAsync(id, dto);
         if (!success)
         {
@@ -163,6 +226,22 @@ public class AbsencesController : ControllerBase
     public async Task<IActionResult> CancelAbsenceRequest(Guid id, [FromQuery] int employeeId)
     {
         _logger.LogDebug("CancelAbsenceRequest called with id={Id}, employeeId={EmployeeId}", id, employeeId);
+
+        // Authorization: User can only cancel their own requests
+        var currentUserId = await _userSync.GetCurrentUserResourceIdAsync();
+        if (!currentUserId.HasValue)
+        {
+            _logger.LogWarning("Unauthorized cancel attempt - no authenticated user");
+            return Unauthorized("User is not authenticated");
+        }
+
+        if (currentUserId.Value != employeeId)
+        {
+            _logger.LogWarning("User {UserId} attempted to cancel request belonging to employee {EmployeeId}",
+                currentUserId, employeeId);
+            return Forbid();
+        }
+
         var success = await _absenceService.CancelAbsenceRequestAsync(id, employeeId);
         if (!success)
         {
