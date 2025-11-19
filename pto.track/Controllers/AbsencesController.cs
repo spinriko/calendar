@@ -6,11 +6,11 @@ namespace pto.track.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AbsenceController : ControllerBase
+public class AbsencesController : ControllerBase
 {
     private readonly IAbsenceService _absenceService;
 
-    public AbsenceController(IAbsenceService absenceService)
+    public AbsencesController(IAbsenceService absenceService)
     {
         _absenceService = absenceService;
     }
@@ -39,7 +39,7 @@ public class AbsenceController : ControllerBase
         return BadRequest("Either provide start and end dates, or provide employeeId");
     }
 
-    // GET: api/Absence/pending
+    // GET: api/Absences/pending
     [HttpGet("pending")]
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetPendingAbsenceRequests()
     {
@@ -47,7 +47,7 @@ public class AbsenceController : ControllerBase
         return Ok(absences);
     }
 
-    // GET: api/Absence/5
+    // GET: api/Absences/5
     [HttpGet("{id}")]
     public async Task<ActionResult<AbsenceRequestDto>> GetAbsenceRequest(Guid id)
     {
@@ -60,7 +60,7 @@ public class AbsenceController : ControllerBase
         return Ok(absence);
     }
 
-    // POST: api/Absence
+    // POST: api/Absences
     [HttpPost]
     public async Task<ActionResult<AbsenceRequestDto>> PostAbsenceRequest(CreateAbsenceRequestDto dto)
     {
@@ -73,7 +73,7 @@ public class AbsenceController : ControllerBase
         return CreatedAtAction(nameof(GetAbsenceRequest), new { id = created.Id }, created);
     }
 
-    // PUT: api/Absence/5
+    // PUT: api/Absences/5
     [HttpPut("{id}")]
     public async Task<IActionResult> PutAbsenceRequest(Guid id, UpdateAbsenceRequestDto dto)
     {
@@ -91,7 +91,7 @@ public class AbsenceController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Absence/5/approve
+    // POST: api/Absences/5/approve
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveAbsenceRequest(Guid id, ApproveAbsenceRequestDto dto)
     {
@@ -109,7 +109,7 @@ public class AbsenceController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Absence/5/reject
+    // POST: api/Absences/5/reject
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectAbsenceRequest(Guid id, RejectAbsenceRequestDto dto)
     {
@@ -127,7 +127,7 @@ public class AbsenceController : ControllerBase
         return NoContent();
     }
 
-    // POST: api/Absence/5/cancel
+    // POST: api/Absences/5/cancel
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelAbsenceRequest(Guid id, [FromQuery] int employeeId)
     {
@@ -140,7 +140,7 @@ public class AbsenceController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/Absence/5
+    // DELETE: api/Absences/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAbsenceRequest(Guid id)
     {

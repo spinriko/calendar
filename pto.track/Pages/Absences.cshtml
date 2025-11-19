@@ -60,7 +60,7 @@
                 reason: modal.result.reason
             };
 
-            const { data } = await DayPilot.Http.post(`/api/absence`, absence);
+            const { data } = await DayPilot.Http.post(`/api/absences`, absence);
 
             calendar.events.add({
                 start: data.start,
@@ -105,7 +105,7 @@
                     reason: modal.result.reason
                 };
 
-                await DayPilot.Http.put(`/api/absence/${absence.id}`, updateData);
+                await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
 
                 calendar.events.update({
                     ...args.e.data,
@@ -146,7 +146,7 @@
                             comments: modal.result
                         };
 
-                        await DayPilot.Http.post(`/api/absence/${e.id()}/approve`, approvalData);
+                        await DayPilot.Http.post(`/api/absences/${e.id()}/approve`, approvalData);
                         app.loadCalendarData();
                         console.log("Approved.");
                     }
@@ -173,7 +173,7 @@
                             reason: modal.result
                         };
 
-                        await DayPilot.Http.post(`/api/absence/${e.id()}/reject`, rejectionData);
+                        await DayPilot.Http.post(`/api/absences/${e.id()}/reject`, rejectionData);
                         app.loadCalendarData();
                         console.log("Rejected.");
                     }
@@ -197,7 +197,7 @@
                         if (modal.canceled) {
                             return true;
                         }
-                        await DayPilot.Http.delete(`/api/absence/${e.id()}`);
+                        await DayPilot.Http.delete(`/api/absences/${e.id()}`);
                         calendar.events.remove(e);
                         console.log("Deleted.");
                     }
@@ -248,7 +248,7 @@
             const start = calendar.visibleStart();
             const end = calendar.visibleEnd();
 
-            const promiseAbsences = DayPilot.Http.get(`/api/absence?start=${start}&end=${end}`);
+            const promiseAbsences = DayPilot.Http.get(`/api/absences?start=${start}&end=${end}`);
             const promiseResources = DayPilot.Http.get("/api/resources");
 
             const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
@@ -273,7 +273,7 @@
             const start = datepicker.visibleStart();
             const end = datepicker.visibleEnd();
 
-            const { data } = await DayPilot.Http.get(`/api/absence?start=${start}&end=${end}`);
+            const { data } = await DayPilot.Http.get(`/api/absences?start=${start}&end=${end}`);
 
             const events = data.map(a => ({
                 start: a.start,
@@ -285,7 +285,7 @@
             datepicker.update({ events });
         },
         async showPendingRequests() {
-            const { data } = await DayPilot.Http.get(`/api/absence/pending`);
+            const { data } = await DayPilot.Http.get(`/api/absences/pending`);
 
             if (data.length === 0) {
                 await DayPilot.Modal.alert("No pending absence requests.");
