@@ -16,15 +16,24 @@ public class AbsenceService : IAbsenceService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end)
+    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null)
     {
-        _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}", start, end);
-        var absences = await _context.AbsenceRequests
+        _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}, status={Status}", start, end, status);
+
+        var query = _context.AbsenceRequests
             .Include(a => a.Employee)
             .Include(a => a.Approver)
-            .Where(a => a.Start < end && a.End > start)
+            .Where(a => a.Start < end && a.End > start);
+
+        if (status.HasValue)
+        {
+            query = query.Where(a => a.Status == status.Value);
+        }
+
+        var absences = await query
             .AsNoTracking()
             .ToListAsync();
+
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: Found {Count} absences", absences.Count);
 
         return absences.Select(MapToDto);

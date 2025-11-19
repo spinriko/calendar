@@ -6,5 +6,17 @@ public record ResourceDto(
     [property: JsonPropertyName("id")]
     int Id,
     [property: JsonPropertyName("name")]
-    string Name
+    string Name,
+    [property: JsonPropertyName("email")]
+    string? Email,
+    [property: JsonPropertyName("employeeNumber")]
+    string? EmployeeNumber,
+    [property: JsonPropertyName("role")]
+    string Role,
+    [property: JsonPropertyName("isApprover")]
+    bool IsApprover,
+    [property: JsonPropertyName("isActive")]
+    bool IsActive,
+    [property: JsonPropertyName("department")]
+    string? Department
 );

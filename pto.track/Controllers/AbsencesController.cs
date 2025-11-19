@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using pto.track.data;
 using pto.track.services;
 using pto.track.services.DTOs;
 
@@ -17,19 +18,23 @@ public class AbsencesController : ControllerBase
         _logger = logger;
     }
 
-    public ILogger Get_logger()
-    {
-        return _logger;
-    }
-
     // GET: api/Absences
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetAbsenceRequests(
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end,
-        [FromQuery] int? employeeId, ILogger _logger)
+        [FromQuery] int? employeeId,
+        [FromQuery] string? status)
     {
-        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}", start, end, employeeId);
+        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}, status={Status}", start, end, employeeId, status);
+
+        // Parse status parameter
+        AbsenceStatus? absenceStatus = null;
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<AbsenceStatus>(status, true, out var parsedStatus))
+        {
+            absenceStatus = parsedStatus;
+        }
+
         if (employeeId.HasValue)
         {
             var empStart = start ?? DateTime.UtcNow.AddMonths(-3);
@@ -41,7 +46,7 @@ public class AbsencesController : ControllerBase
 
         if (start.HasValue && end.HasValue)
         {
-            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value)).ToList();
+            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value, absenceStatus)).ToList();
             _logger.LogDebug("Returning {Count} absences for date range", absences.Count);
             return Ok(absences);
         }

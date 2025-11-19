@@ -246,7 +246,8 @@
         },
         state: {
             showPending: false,
-            currentEmployeeId: 1  // TODO: Get from current user
+            currentEmployeeId: 1,  // TODO: Get from authenticated user
+            isManager: false        // TODO: Get from authenticated user's role
         },
         async loadCalendarData() {
             const start = calendar.visibleStart();
@@ -255,10 +256,15 @@
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
             if (app.state.showPending) {
-                // Show only current employee's pending requests
-                absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+                if (app.state.isManager) {
+                    // Manager: Show all pending requests from all employees
+                    absencesUrl += `&status=Pending`;
+                } else {
+                    // Employee: Show only their own pending requests
+                    absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+                }
             } else {
-                // Show all approved requests
+                // Show all approved requests (organization-wide)
                 absencesUrl += `&status=Approved`;
             }
 
@@ -290,7 +296,11 @@
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
             if (app.state.showPending) {
-                absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+                if (app.state.isManager) {
+                    absencesUrl += `&status=Pending`;
+                } else {
+                    absencesUrl += `&employeeId=${app.state.currentEmployeeId}&status=Pending`;
+                }
             } else {
                 absencesUrl += `&status=Approved`;
             }
@@ -309,12 +319,12 @@
         togglePendingView() {
             app.state.showPending = !app.state.showPending;
 
-            // Update button appearance
+            // Update button appearance and text
             if (app.state.showPending) {
-                app.elements.pending.style.background = "#2e78d6";
+                app.elements.pending.classList.add("selected");
                 app.elements.pending.textContent = "View Approved";
             } else {
-                app.elements.pending.style.background = "";
+                app.elements.pending.classList.remove("selected");
                 app.elements.pending.textContent = "View Pending";
             }
 

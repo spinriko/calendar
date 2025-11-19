@@ -1,10 +1,11 @@
+using pto.track.data;
 using pto.track.services.DTOs;
 
 namespace pto.track.services;
 
 public interface IAbsenceService
 {
-    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end);
+    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null);
     Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end);
     Task<IEnumerable<AbsenceRequestDto>> GetPendingAbsenceRequestsAsync();
     Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id);

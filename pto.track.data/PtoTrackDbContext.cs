@@ -14,6 +14,15 @@ namespace pto.track.data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configure default values for Resource timestamps
+            modelBuilder.Entity<SchedulerResource>()
+                .Property(r => r.CreatedDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<SchedulerResource>()
+                .Property(r => r.ModifiedDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
             // Skip model-level seeding when running tests so tests can control DB contents.
             var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             if (string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase))
@@ -21,16 +30,108 @@ namespace pto.track.data
                 return;
             }
 
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 1, Name = "Resource A" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 2, Name = "Resource B" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 3, Name = "Resource C" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 4, Name = "Resource D" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 5, Name = "Resource E" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 6, Name = "Resource F" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 7, Name = "Resource G" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 8, Name = "Resource H" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 9, Name = "Resource I" });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource { Id = 10, Name = "Resource J" });
+            var seedDate = new DateTime(2025, 11, 19, 0, 0, 0, DateTimeKind.Utc);
+
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 1,
+                Name = "Resource A",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 2,
+                Name = "Resource B",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 3,
+                Name = "Resource C",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 4,
+                Name = "Resource D",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 5,
+                Name = "Resource E",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 6,
+                Name = "Resource F",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 7,
+                Name = "Resource G",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 8,
+                Name = "Resource H",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 9,
+                Name = "Resource I",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
+            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            {
+                Id = 10,
+                Name = "Resource J",
+                Role = "Employee",
+                IsActive = true,
+                IsApprover = false,
+                CreatedDate = seedDate,
+                ModifiedDate = seedDate
+            });
 
         }
     }

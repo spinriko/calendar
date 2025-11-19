@@ -136,7 +136,15 @@ public class DtoSerializationTests
     public void ResourceDto_SerializesToCamelCase()
     {
         // Arrange
-        var dto = new ResourceDto(Id: 10, Name: "Conference Room A");
+        var dto = new ResourceDto(
+            Id: 10,
+            Name: "Conference Room A",
+            Email: "room-a@test.com",
+            EmployeeNumber: "EMP-001",
+            Role: "Employee",
+            IsApprover: false,
+            IsActive: true,
+            Department: "Facilities");
 
         // Act
         var json = JsonSerializer.Serialize(dto, _jsonOptions);
@@ -155,7 +163,15 @@ public class DtoSerializationTests
     public void ResourceDto_DoesNotSerializeWithPascalCase()
     {
         // Arrange
-        var dto = new ResourceDto(Id: 1, Name: "Test Resource");
+        var dto = new ResourceDto(
+            Id: 1,
+            Name: "Test Resource",
+            Email: null,
+            EmployeeNumber: null,
+            Role: "Employee",
+            IsApprover: false,
+            IsActive: true,
+            Department: null);
 
         // Act
         var json = JsonSerializer.Serialize(dto, _jsonOptions);
