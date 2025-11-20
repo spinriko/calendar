@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace pto.track.services.DTOs;
 
+/// <summary>
+/// Data transfer object representing an absence request.
+/// </summary>
 public record AbsenceRequestDto(
     [property: JsonPropertyName("id")]
     Guid Id,

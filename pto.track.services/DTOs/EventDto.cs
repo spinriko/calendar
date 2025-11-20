@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace pto.track.services.DTOs;
 
+/// <summary>
+/// Data transfer object representing a calendar event.
+/// </summary>
 public record EventDto(
     [property: JsonPropertyName("id")]
     Guid Id,

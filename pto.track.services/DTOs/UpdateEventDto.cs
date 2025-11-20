@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace pto.track.services.DTOs;
 
+/// <summary>
+/// Data transfer object for updating an existing calendar event.
+/// </summary>
 public record UpdateEventDto(
     [Required]
     [property: JsonPropertyName("start")]

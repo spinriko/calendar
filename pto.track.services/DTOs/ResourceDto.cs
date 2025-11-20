@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace pto.track.services.DTOs;
 
+/// <summary>
+/// Data transfer object representing a resource (employee/user).
+/// </summary>
 public record ResourceDto(
     [property: JsonPropertyName("id")]
     int Id,

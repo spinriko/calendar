@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace pto.track.services.DTOs;
 
+/// <summary>
+/// Data transfer object for creating a new absence request.
+/// </summary>
 public record CreateAbsenceRequestDto(
     [Required]
     [property: JsonPropertyName("start")]
