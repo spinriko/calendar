@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 
 namespace pto.track.services;
 
@@ -37,7 +38,7 @@ public class EventService : IEventService
         if (evt == null)
         {
             _logger.LogDebug("EventService.GetEventByIdAsync: Event {Id} not found", id);
-            return null;
+            throw new EventNotFoundException(id);
         }
         return new EventDto(evt.Id, evt.Start, evt.End, evt.Text, evt.Color, evt.ResourceId);
     }
@@ -70,7 +71,7 @@ public class EventService : IEventService
         if (existing == null)
         {
             _logger.LogDebug("EventService.UpdateEventAsync: Event {Id} not found", id);
-            return false;
+            throw new EventNotFoundException(id);
         }
 
         existing.Start = dto.Start;
@@ -90,7 +91,7 @@ public class EventService : IEventService
             if (!await _context.Events.AnyAsync(e => e.Id == id))
             {
                 _logger.LogDebug("EventService.UpdateEventAsync: Concurrency - Event {Id} not found", id);
-                return false;
+                throw new EventNotFoundException(id);
             }
             throw;
         }
@@ -104,7 +105,7 @@ public class EventService : IEventService
         if (entity == null)
         {
             _logger.LogDebug("EventService.DeleteEventAsync: Event {Id} not found", id);
-            return false;
+            throw new EventNotFoundException(id);
         }
 
         _context.Events.Remove(entity);

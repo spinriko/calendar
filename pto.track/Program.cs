@@ -1,3 +1,4 @@
+using pto.track.Middleware;
 using pto.track.services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,15 +9,20 @@ builder.Services.AddRazorPages();
 // Add HttpContextAccessor for claims access
 builder.Services.AddHttpContextAccessor();
 
+// Add global exception handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 // Configure database and register application services
 builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }

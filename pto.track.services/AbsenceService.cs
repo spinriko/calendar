@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 
 namespace pto.track.services;
 
@@ -84,8 +85,9 @@ public class AbsenceService : IAbsenceService
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.GetAbsenceRequestByIdAsync: Absence {Id} not found", id);
+            throw new AbsenceNotFoundException(id);
         }
-        return absence == null ? null : MapToDto(absence);
+        return MapToDto(absence);
     }
 
     /// <inheritdoc />
@@ -119,10 +121,16 @@ public class AbsenceService : IAbsenceService
     {
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: id={Id}", id);
         var absence = await _context.AbsenceRequests.FindAsync(id);
-        if (absence == null || absence.Status != AbsenceStatus.Pending)
+        if (absence == null)
         {
-            _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} not found or not pending", id);
-            return false;
+            _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} not found", id);
+            throw new AbsenceNotFoundException(id);
+        }
+
+        if (absence.Status != AbsenceStatus.Pending)
+        {
+            _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} not pending", id);
+            throw new InvalidAbsenceOperationException("Only pending absence requests can be updated.", id);
         }
 
         absence.Start = dto.Start;
@@ -139,10 +147,16 @@ public class AbsenceService : IAbsenceService
     {
         _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
         var absence = await _context.AbsenceRequests.FindAsync(id);
-        if (absence == null || absence.Status != AbsenceStatus.Pending)
+        if (absence == null)
         {
-            _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} not found or not pending", id);
-            return false;
+            _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} not found", id);
+            throw new AbsenceNotFoundException(id);
+        }
+
+        if (absence.Status != AbsenceStatus.Pending)
+        {
+            _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} not pending", id);
+            throw new InvalidAbsenceOperationException("Only pending absence requests can be approved.", id);
         }
 
         absence.Status = AbsenceStatus.Approved;
@@ -160,10 +174,16 @@ public class AbsenceService : IAbsenceService
     {
         _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
         var absence = await _context.AbsenceRequests.FindAsync(id);
-        if (absence == null || absence.Status != AbsenceStatus.Pending)
+        if (absence == null)
         {
-            _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} not found or not pending", id);
-            return false;
+            _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} not found", id);
+            throw new AbsenceNotFoundException(id);
+        }
+
+        if (absence.Status != AbsenceStatus.Pending)
+        {
+            _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} not pending", id);
+            throw new InvalidAbsenceOperationException("Only pending absence requests can be rejected.", id);
         }
 
         absence.Status = AbsenceStatus.Rejected;
@@ -181,10 +201,22 @@ public class AbsenceService : IAbsenceService
     {
         _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: id={Id}, employeeId={EmployeeId}", id, employeeId);
         var absence = await _context.AbsenceRequests.FindAsync(id);
-        if (absence == null || absence.EmployeeId != employeeId || absence.Status == AbsenceStatus.Cancelled)
+        if (absence == null)
         {
-            _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} not found, wrong employee, or already cancelled", id);
-            return false;
+            _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} not found", id);
+            throw new AbsenceNotFoundException(id);
+        }
+
+        if (absence.EmployeeId != employeeId)
+        {
+            _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Employee {EmployeeId} not authorized for absence {Id}", employeeId, id);
+            throw new UnauthorizedAbsenceAccessException("Only the employee who created the absence request can cancel it.", id, employeeId);
+        }
+
+        if (absence.Status == AbsenceStatus.Cancelled)
+        {
+            _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} already cancelled", id);
+            throw new InvalidAbsenceOperationException("Absence request is already cancelled.", id);
         }
 
         absence.Status = AbsenceStatus.Cancelled;
@@ -201,7 +233,7 @@ public class AbsenceService : IAbsenceService
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: Absence {Id} not found", id);
-            return false;
+            throw new AbsenceNotFoundException(id);
         }
 
         _context.AbsenceRequests.Remove(absence);

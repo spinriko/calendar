@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 
 namespace pto.track.services;
 
@@ -99,6 +100,7 @@ public class ResourceService : IResourceService
         if (resource == null)
         {
             _logger.LogDebug("ResourceService.GetResourceByIdAsync: Resource {Id} not found", id);
+            throw new ResourceNotFoundException(id);
         }
 
         return resource;
