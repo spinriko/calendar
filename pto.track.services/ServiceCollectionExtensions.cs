@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
@@ -26,8 +27,13 @@ public static class ServiceCollectionExtensions
 
         // Register AutoMapper
         services.AddAutoMapper(typeof(ServiceCollectionExtensions).Assembly);
-
-        // Register application services
+        
+        // Add health checks (always register, but only add DbContext check when not testing)
+        var healthChecksBuilder = services.AddHealthChecks();
+        if (!environment.IsEnvironment("Testing"))
+        {
+            healthChecksBuilder.AddDbContextCheck<PtoTrackDbContext>("database", tags: new[] { "db", "ready" });
+        }        // Register application services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();
