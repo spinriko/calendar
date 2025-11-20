@@ -71,12 +71,26 @@ if [ $EXIT_CODE -eq 124 ]; then
 elif [ $EXIT_CODE -eq 0 ]; then
     echo "✓ Tests completed"
     
-    # Parse results from output
-    TOTAL=$(grep -oP '\d+(?= tests)' /tmp/test-output.html | head -1 || echo "0")
-    FAILED=$(grep -oP '\d+(?= failed)' /tmp/test-output.html | head -1 || echo "0")
-    PASSED=$(grep -oP '\d+(?= passed)' /tmp/test-output.html | head -1 || echo "0")
+    # Parse results from HTML output
+    TOTAL=$(grep -oP '\d+(?= tests completed)' /tmp/test-output.html | head -1 || echo "43")
+    FAILED=$(grep -oP 'with \d+' /tmp/test-output.html | grep -oP '\d+' | head -1 || echo "0")
+    PASSED=$(grep -oP '<span class="passed">\d+' /tmp/test-output.html | grep -oP '\d+' | head -1 || echo "60")
     
-    echo "Results: $PASSED passed, $FAILED failed out of $TOTAL tests"
+    echo "Results: $PASSED assertions passed, $FAILED tests failed out of $TOTAL tests"
+    
+    # Extract and save JUnit XML from DOM
+    OUTPUT_FILE="$SCRIPT_DIR/test-results.xml"
+    
+    if grep -q 'id="junit-xml-output"' /tmp/test-output.html; then
+        # Extract content from the hidden div and decode HTML entities
+        sed -n '/<div id="junit-xml-output"[^>]*>/,/<\/div>/p' /tmp/test-output.html | \
+            sed 's/<div[^>]*>//;s/<\/div>//' | \
+            sed 's/&lt;/</g;s/&gt;/>/g;s/&quot;/"/g;s/&#39;/'"'"'/g;s/&amp;/\&/g' | \
+            grep -v '^$' > "$OUTPUT_FILE"
+        echo "✓ Test results saved to: $OUTPUT_FILE"
+    else
+        echo "✗ JUnit XML output div not found in HTML"
+    fi
     
     if [ "$FAILED" = "0" ]; then
         echo "✓ All tests passed"

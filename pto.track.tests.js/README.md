@@ -30,22 +30,15 @@ start test-runner.html
 
 **Windows (PowerShell):**
 ```powershell
-# Start web server
-python -m http.server 9999
-
-# In another terminal, run Edge headless
-$edgePath = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-if (-not (Test-Path $edgePath)) {
-    $edgePath = "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-}
-
-& $edgePath --headless=new --disable-gpu --dump-dom http://localhost:9999/test-runner.html > test-output.html
-
-# Parse results from test-output.html
-Select-String -Path test-output.html -Pattern "(\d+) tests.*?(\d+) passed.*?(\d+) failed"
+.\run-headless.ps1
 ```
 
-For Windows CI/CD, consider using PowerShell scripts or GitHub Actions with Windows runners.
+Both scripts:
+- Start a temporary web server on port 9999
+- Run tests in headless Microsoft Edge
+- Display test results in the terminal
+- **Save JUnit XML results to `test-results.xml`** for CI/CD integration
+- Exit with code 0 (success) or 1 (failure)
 
 ## Test Structure
 
@@ -146,6 +139,8 @@ cd pto.track.tests.js
 ```
 
 **WSL Support**: Automatically detects WSL and uses Windows Edge.
+
+**Output**: Generates `test-results.xml` in the same directory.
 
 The `test-results.xml` file is in JUnit format, compatible with:
 - Azure DevOps

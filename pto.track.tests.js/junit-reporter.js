@@ -35,13 +35,22 @@
 
         const xml = generateJUnitXML(testResults);
 
-        // Display download button
-        displayDownloadButton(xml);
-
-        // Auto-download in headless mode
         if (isHeadless()) {
-            downloadXML(xml);
+            // For headless mode: inject XML into DOM for extraction
+            const outputDiv = document.createElement('div');
+            outputDiv.id = 'junit-xml-output';
+            outputDiv.style.display = 'none';
+            outputDiv.textContent = xml;
+            document.body.appendChild(outputDiv);
+        } else {
+            // For browser mode: display download button
+            displayDownloadButton(xml);
         }
+
+        // Expose for programmatic access
+        window.getTestResultsXML = function () {
+            return xml;
+        };
     });
 
     function generateJUnitXML(results) {
@@ -139,4 +148,9 @@
         return /HeadlessChrome/.test(navigator.userAgent) ||
             /PhantomJS/.test(navigator.userAgent);
     }
+
+    // Expose for headless environments to access results
+    window.getTestResultsXML = function () {
+        return generateJUnitXML(testResults);
+    };
 })();
