@@ -52,8 +52,8 @@ public class AbsencesAuthorizationTests
         _mockClaimsProvider.Setup(x => x.IsInRole("Manager")).Returns(true);
         _mockClaimsProvider.Setup(x => x.IsInRole("Approver")).Returns(false);
         _mockClaimsProvider.Setup(x => x.IsInRole("Admin")).Returns(false);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(approverId);
-        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto)).ReturnsAsync(true);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(approverId);
+        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.ApproveAbsenceRequest(absenceId, dto);
@@ -75,8 +75,8 @@ public class AbsencesAuthorizationTests
         _mockClaimsProvider.Setup(x => x.IsInRole("Manager")).Returns(false);
         _mockClaimsProvider.Setup(x => x.IsInRole("Approver")).Returns(true);
         _mockClaimsProvider.Setup(x => x.IsInRole("Admin")).Returns(false);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(approverId);
-        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto)).ReturnsAsync(true);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(approverId);
+        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.ApproveAbsenceRequest(absenceId, dto);
@@ -97,8 +97,8 @@ public class AbsencesAuthorizationTests
         _mockClaimsProvider.Setup(x => x.IsInRole("Manager")).Returns(false);
         _mockClaimsProvider.Setup(x => x.IsInRole("Approver")).Returns(false);
         _mockClaimsProvider.Setup(x => x.IsInRole("Admin")).Returns(true);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(approverId);
-        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto)).ReturnsAsync(true);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(approverId);
+        _mockAbsenceService.Setup(x => x.ApproveAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.ApproveAbsenceRequest(absenceId, dto);
@@ -138,7 +138,7 @@ public class AbsencesAuthorizationTests
         var dto = new ApproveAbsenceRequestDto(providedApproverId, null);
 
         _mockClaimsProvider.Setup(x => x.IsInRole("Manager")).Returns(true);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
 
         // Act
         var result = await controller.ApproveAbsenceRequest(absenceId, dto);
@@ -165,15 +165,15 @@ public class AbsencesAuthorizationTests
         _mockClaimsProvider.Setup(x => x.IsInRole("Manager")).Returns(true);
         _mockClaimsProvider.Setup(x => x.IsInRole("Approver")).Returns(false);
         _mockClaimsProvider.Setup(x => x.IsInRole("Admin")).Returns(false);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(approverId);
-        _mockAbsenceService.Setup(x => x.RejectAbsenceRequestAsync(absenceId, dto)).ReturnsAsync(true);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(approverId);
+        _mockAbsenceService.Setup(x => x.RejectAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.RejectAbsenceRequest(absenceId, dto);
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockAbsenceService.Verify(x => x.RejectAbsenceRequestAsync(absenceId, dto), Times.Once);
+        _mockAbsenceService.Verify(x => x.RejectAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class AbsencesAuthorizationTests
         var dto = new RejectAbsenceRequestDto(providedApproverId, "No");
 
         _mockClaimsProvider.Setup(x => x.IsInRole("Approver")).Returns(true);
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
 
         // Act
         var result = await controller.RejectAbsenceRequest(absenceId, dto);
@@ -246,9 +246,9 @@ public class AbsencesAuthorizationTests
             null
         );
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(employeeId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
-        _mockAbsenceService.Setup(x => x.UpdateAbsenceRequestAsync(absenceId, dto)).ReturnsAsync(true);
+        _mockAbsenceService.Setup(x => x.UpdateAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.PutAbsenceRequest(absenceId, dto);
@@ -284,7 +284,7 @@ public class AbsencesAuthorizationTests
             null
         );
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
         _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
 
         // Act
@@ -304,7 +304,7 @@ public class AbsencesAuthorizationTests
         var startDate = DateTime.UtcNow.AddDays(5);
         var dto = new UpdateAbsenceRequestDto(startDate, startDate.AddDays(2), "Test");
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync((int?)null);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync((int?)null);
 
         // Act
         var result = await controller.PutAbsenceRequest(absenceId, dto);
@@ -323,7 +323,7 @@ public class AbsencesAuthorizationTests
         var startDate = DateTime.UtcNow.AddDays(5);
         var dto = new UpdateAbsenceRequestDto(startDate, startDate.AddDays(2), "Test");
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(5);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(5);
         _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync((AbsenceRequestDto?)null);
 
         // Act
@@ -346,8 +346,8 @@ public class AbsencesAuthorizationTests
         var absenceId = Guid.NewGuid();
         var employeeId = 12;
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(employeeId);
-        _mockAbsenceService.Setup(x => x.CancelAbsenceRequestAsync(absenceId, employeeId)).ReturnsAsync(true);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
+        _mockAbsenceService.Setup(x => x.CancelAbsenceRequestAsync(absenceId, employeeId, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
         var result = await controller.CancelAbsenceRequest(absenceId, employeeId);
@@ -366,7 +366,7 @@ public class AbsencesAuthorizationTests
         var currentUserId = 5;
         var targetEmployeeId = 15;
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
 
         // Act
         var result = await controller.CancelAbsenceRequest(absenceId, targetEmployeeId);
@@ -384,7 +384,7 @@ public class AbsencesAuthorizationTests
         var absenceId = Guid.NewGuid();
         var employeeId = 10;
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync((int?)null);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync((int?)null);
 
         // Act
         var result = await controller.CancelAbsenceRequest(absenceId, employeeId);
@@ -448,7 +448,7 @@ public class AbsencesAuthorizationTests
             null
         );
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
         _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
 
         // Act
@@ -474,7 +474,7 @@ public class AbsencesAuthorizationTests
         var currentUserId = 3;
         var targetEmployeeId = 8;
 
-        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync()).ReturnsAsync(currentUserId);
+        _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
 
         // Act
         await controller.CancelAbsenceRequest(absenceId, targetEmployeeId);

@@ -68,8 +68,8 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
             return BadRequest(ModelState);
         }
 
-        var success = await _eventService.UpdateEventAsync(id, dto);
-        if (!success)
+        var result = await _eventService.UpdateEventAsync(id, dto);
+        if (!result.Success)
         {
             _logger.LogDebug("Event {Id} not found or update failed", id);
             return NotFound();
@@ -110,8 +110,8 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
     public async Task<IActionResult> DeleteSchedulerEvent(Guid id)
     {
         _logger.LogDebug("DeleteSchedulerEvent called with id={Id}", id);
-        var success = await _eventService.DeleteEventAsync(id);
-        if (!success)
+        var result = await _eventService.DeleteEventAsync(id);
+        if (!result.Success)
         {
             _logger.LogDebug("Event {Id} not found or delete failed", id);
             return NotFound();

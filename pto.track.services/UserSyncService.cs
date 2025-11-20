@@ -16,7 +16,7 @@ public class UserSyncService : IUserSyncService
     }
 
     /// <inheritdoc />
-    public async Task<SchedulerResource?> EnsureCurrentUserExistsAsync()
+    public async Task<SchedulerResource?> EnsureCurrentUserExistsAsync(CancellationToken cancellationToken = default)
     {
         if (!_claimsProvider.IsAuthenticated())
         {
@@ -37,17 +37,17 @@ public class UserSyncService : IUserSyncService
 
         if (!string.IsNullOrEmpty(email))
         {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.Email == email);
+            resource = await _context.Resources.FirstOrDefaultAsync(r => r.Email == email, cancellationToken);
         }
 
         if (resource == null && !string.IsNullOrEmpty(adId))
         {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.ActiveDirectoryId == adId);
+            resource = await _context.Resources.FirstOrDefaultAsync(r => r.ActiveDirectoryId == adId, cancellationToken);
         }
 
         if (resource == null && !string.IsNullOrEmpty(employeeNumber))
         {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.EmployeeNumber == employeeNumber);
+            resource = await _context.Resources.FirstOrDefaultAsync(r => r.EmployeeNumber == employeeNumber, cancellationToken);
         }
 
         var displayName = _claimsProvider.GetDisplayName() ?? email ?? "Unknown User";
@@ -85,14 +85,14 @@ public class UserSyncService : IUserSyncService
             resource.ModifiedDate = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return resource;
     }
 
     /// <inheritdoc />
-    public async Task<int?> GetCurrentUserResourceIdAsync()
+    public async Task<int?> GetCurrentUserResourceIdAsync(CancellationToken cancellationToken = default)
     {
-        var resource = await EnsureCurrentUserExistsAsync();
+        var resource = await EnsureCurrentUserExistsAsync(cancellationToken);
         return resource?.Id;
     }
 

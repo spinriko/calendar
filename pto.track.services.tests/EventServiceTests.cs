@@ -1,6 +1,7 @@
 using pto.track.data;
 using pto.track.services;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 using Xunit;
 
 namespace pto.track.services.tests;
@@ -111,17 +112,15 @@ public class EventServiceTests : TestBase
     }
 
     [Fact]
-    public async Task GetEventByIdAsync_WithInvalidId_ReturnsNull()
+    public async Task GetEventByIdAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
         var service = new EventService(context, CreateLogger<EventService>());
 
-        // Act
-        var result = await service.GetEventByIdAsync(Guid.NewGuid());
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<EventNotFoundException>(
+            () => service.GetEventByIdAsync(Guid.NewGuid()));
     }
 
     [Fact]
@@ -207,7 +206,7 @@ public class EventServiceTests : TestBase
         var result = await service.UpdateEventAsync(event1.Id, updateDto);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var updated = await context.Events.FindAsync(event1.Id);
         Assert.NotNull(updated);
@@ -218,7 +217,7 @@ public class EventServiceTests : TestBase
     }
 
     [Fact]
-    public async Task UpdateEventAsync_WithInvalidId_ReturnsFalse()
+    public async Task UpdateEventAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
@@ -232,11 +231,9 @@ public class EventServiceTests : TestBase
             ResourceId: 1
         );
 
-        // Act
-        var result = await service.UpdateEventAsync(Guid.NewGuid(), updateDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<EventNotFoundException>(
+            () => service.UpdateEventAsync(Guid.NewGuid(), updateDto));
     }
 
     [Fact]
@@ -261,24 +258,22 @@ public class EventServiceTests : TestBase
         var result = await service.DeleteEventAsync(event1.Id);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var deleted = await context.Events.FindAsync(event1.Id);
         Assert.Null(deleted);
     }
 
     [Fact]
-    public async Task DeleteEventAsync_WithInvalidId_ReturnsFalse()
+    public async Task DeleteEventAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
         var service = new EventService(context, CreateLogger<EventService>());
 
-        // Act
-        var result = await service.DeleteEventAsync(Guid.NewGuid());
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<EventNotFoundException>(
+            () => service.DeleteEventAsync(Guid.NewGuid()));
     }
 
     [Fact]

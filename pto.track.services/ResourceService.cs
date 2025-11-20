@@ -18,7 +18,7 @@ public class ResourceService : IResourceService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<ResourceDto>> GetResourcesAsync()
+    public async Task<IEnumerable<ResourceDto>> GetResourcesAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("ResourceService.GetResourcesAsync: Fetching all resources");
         var resources = await _context.Resources
@@ -32,13 +32,13 @@ public class ResourceService : IResourceService
                 r.IsApprover,
                 r.IsActive,
                 r.Department))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetResourcesAsync: Found {Count} resources", resources.Count);
         return resources;
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<ResourceDto>> GetActiveResourcesAsync()
+    public async Task<IEnumerable<ResourceDto>> GetActiveResourcesAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("ResourceService.GetActiveResourcesAsync: Fetching active resources");
         var resources = await _context.Resources
@@ -53,13 +53,13 @@ public class ResourceService : IResourceService
                 r.IsApprover,
                 r.IsActive,
                 r.Department))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetActiveResourcesAsync: Found {Count} active resources", resources.Count);
         return resources;
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<ResourceDto>> GetApproversAsync()
+    public async Task<IEnumerable<ResourceDto>> GetApproversAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("ResourceService.GetApproversAsync: Fetching approvers");
         var approvers = await _context.Resources
@@ -74,13 +74,13 @@ public class ResourceService : IResourceService
                 r.IsApprover,
                 r.IsActive,
                 r.Department))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetApproversAsync: Found {Count} approvers", approvers.Count);
         return approvers;
     }
 
     /// <inheritdoc />
-    public async Task<ResourceDto?> GetResourceByIdAsync(int id)
+    public async Task<ResourceDto?> GetResourceByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("ResourceService.GetResourceByIdAsync: Fetching resource {Id}", id);
         var resource = await _context.Resources
@@ -95,7 +95,7 @@ public class ResourceService : IResourceService
                 r.IsApprover,
                 r.IsActive,
                 r.Department))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (resource == null)
         {

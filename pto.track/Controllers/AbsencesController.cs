@@ -175,8 +175,8 @@ public class AbsencesController : ControllerBase
             return Forbid();
         }
 
-        var success = await _absenceService.UpdateAbsenceRequestAsync(id, dto);
-        if (!success)
+        var result = await _absenceService.UpdateAbsenceRequestAsync(id, dto);
+        if (!result.Success)
         {
             _logger.LogDebug("Absence {Id} update failed (only pending requests can be modified)", id);
             return BadRequest("Only pending requests can be modified");
@@ -218,8 +218,8 @@ public class AbsencesController : ControllerBase
             return BadRequest("Approver ID must match the authenticated user");
         }
 
-        var success = await _absenceService.ApproveAbsenceRequestAsync(id, dto);
-        if (!success)
+        var result = await _absenceService.ApproveAbsenceRequestAsync(id, dto);
+        if (!result.Success)
         {
             _logger.LogDebug("Absence {Id} not found or approval failed", id);
             return NotFound("Absence request not found or already processed");
@@ -261,8 +261,8 @@ public class AbsencesController : ControllerBase
             return BadRequest("Approver ID must match the authenticated user");
         }
 
-        var success = await _absenceService.RejectAbsenceRequestAsync(id, dto);
-        if (!success)
+        var result = await _absenceService.RejectAbsenceRequestAsync(id, dto);
+        if (!result.Success)
         {
             _logger.LogDebug("Absence {Id} not found or rejection failed", id);
             return NotFound("Absence request not found or already processed");
@@ -298,8 +298,8 @@ public class AbsencesController : ControllerBase
             return Forbid();
         }
 
-        var success = await _absenceService.CancelAbsenceRequestAsync(id, employeeId);
-        if (!success)
+        var result = await _absenceService.CancelAbsenceRequestAsync(id, employeeId);
+        if (!result.Success)
         {
             _logger.LogDebug("Absence {Id} not found or cancel failed", id);
             return NotFound("Absence request not found or cannot be cancelled");
@@ -318,8 +318,8 @@ public class AbsencesController : ControllerBase
     public async Task<IActionResult> DeleteAbsenceRequest(Guid id)
     {
         _logger.LogDebug("DeleteAbsenceRequest called with id={Id}", id);
-        var success = await _absenceService.DeleteAbsenceRequestAsync(id);
-        if (!success)
+        var result = await _absenceService.DeleteAbsenceRequestAsync(id);
+        if (!result.Success)
         {
             _logger.LogDebug("Absence {Id} not found or delete failed", id);
             return NotFound();

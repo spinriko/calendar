@@ -18,7 +18,7 @@ public class AbsenceService : IAbsenceService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null)
+    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}, status={Status}", start, end, status);
 
@@ -34,7 +34,7 @@ public class AbsenceService : IAbsenceService
 
         var absences = await query
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: Found {Count} absences", absences.Count);
 
@@ -42,7 +42,7 @@ public class AbsenceService : IAbsenceService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end)
+    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: employeeId={EmployeeId}, start={Start}, end={End}", employeeId, start, end);
         var absences = await _context.AbsenceRequests
@@ -50,14 +50,14 @@ public class AbsenceService : IAbsenceService
             .Include(a => a.Approver)
             .Where(a => a.EmployeeId == employeeId && a.Start < end && a.End > start)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: Found {Count} absences for employee {EmployeeId}", absences.Count, employeeId);
 
         return absences.Select(MapToDto);
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<AbsenceRequestDto>> GetPendingAbsenceRequestsAsync()
+    public async Task<IEnumerable<AbsenceRequestDto>> GetPendingAbsenceRequestsAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Fetching pending absences");
         var absences = await _context.AbsenceRequests
@@ -66,21 +66,21 @@ public class AbsenceService : IAbsenceService
             .Where(a => a.Status == AbsenceStatus.Pending)
             .OrderBy(a => a.RequestedDate)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Found {Count} pending absences", absences.Count);
 
         return absences.Select(MapToDto);
     }
 
     /// <inheritdoc />
-    public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id)
+    public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestByIdAsync: id={Id}", id);
         var absence = await _context.AbsenceRequests
             .Include(a => a.Employee)
             .Include(a => a.Approver)
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
         if (absence == null)
         {
@@ -91,7 +91,7 @@ public class AbsenceService : IAbsenceService
     }
 
     /// <inheritdoc />
-    public async Task<AbsenceRequestDto> CreateAbsenceRequestAsync(CreateAbsenceRequestDto dto)
+    public async Task<AbsenceRequestDto> CreateAbsenceRequestAsync(CreateAbsenceRequestDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.CreateAbsenceRequestAsync: Creating absence for employee {EmployeeId}", dto.EmployeeId);
         var absence = new AbsenceRequest
@@ -105,22 +105,22 @@ public class AbsenceService : IAbsenceService
         };
 
         _context.AbsenceRequests.Add(absence);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.CreateAbsenceRequestAsync: Created absence with id={Id}", absence.Id);
 
         // Reload with navigation properties
         await _context.Entry(absence)
             .Reference(a => a.Employee)
-            .LoadAsync();
+            .LoadAsync(cancellationToken);
 
         return MapToDto(absence);
     }
 
     /// <inheritdoc />
-    public async Task<bool> UpdateAbsenceRequestAsync(Guid id, UpdateAbsenceRequestDto dto)
+    public async Task<Result> UpdateAbsenceRequestAsync(Guid id, UpdateAbsenceRequestDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: id={Id}", id);
-        var absence = await _context.AbsenceRequests.FindAsync(id);
+        var absence = await _context.AbsenceRequests.FindAsync(new object[] { id }, cancellationToken);
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} not found", id);
@@ -137,16 +137,16 @@ public class AbsenceService : IAbsenceService
         absence.End = dto.End;
         absence.Reason = dto.Reason;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} updated successfully", id);
-        return true;
+        return Result.SuccessResult();
     }
 
     /// <inheritdoc />
-    public async Task<bool> ApproveAbsenceRequestAsync(Guid id, ApproveAbsenceRequestDto dto)
+    public async Task<Result> ApproveAbsenceRequestAsync(Guid id, ApproveAbsenceRequestDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
-        var absence = await _context.AbsenceRequests.FindAsync(id);
+        var absence = await _context.AbsenceRequests.FindAsync(new object[] { id }, cancellationToken);
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} not found", id);
@@ -164,16 +164,16 @@ public class AbsenceService : IAbsenceService
         absence.ApprovedDate = DateTime.UtcNow;
         absence.ApprovalComments = dto.Comments;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} approved successfully", id);
-        return true;
+        return Result.SuccessResult();
     }
 
     /// <inheritdoc />
-    public async Task<bool> RejectAbsenceRequestAsync(Guid id, RejectAbsenceRequestDto dto)
+    public async Task<Result> RejectAbsenceRequestAsync(Guid id, RejectAbsenceRequestDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
-        var absence = await _context.AbsenceRequests.FindAsync(id);
+        var absence = await _context.AbsenceRequests.FindAsync(new object[] { id }, cancellationToken);
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} not found", id);
@@ -191,16 +191,16 @@ public class AbsenceService : IAbsenceService
         absence.ApprovedDate = DateTime.UtcNow;
         absence.ApprovalComments = dto.Reason;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} rejected successfully", id);
-        return true;
+        return Result.SuccessResult();
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelAbsenceRequestAsync(Guid id, int employeeId)
+    public async Task<Result> CancelAbsenceRequestAsync(Guid id, int employeeId, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: id={Id}, employeeId={EmployeeId}", id, employeeId);
-        var absence = await _context.AbsenceRequests.FindAsync(id);
+        var absence = await _context.AbsenceRequests.FindAsync(new object[] { id }, cancellationToken);
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} not found", id);
@@ -220,16 +220,16 @@ public class AbsenceService : IAbsenceService
         }
 
         absence.Status = AbsenceStatus.Cancelled;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} cancelled successfully", id);
-        return true;
+        return Result.SuccessResult();
     }
 
     /// <inheritdoc />
-    public async Task<bool> DeleteAbsenceRequestAsync(Guid id)
+    public async Task<Result> DeleteAbsenceRequestAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: id={Id}", id);
-        var absence = await _context.AbsenceRequests.FindAsync(id);
+        var absence = await _context.AbsenceRequests.FindAsync(new object[] { id }, cancellationToken);
         if (absence == null)
         {
             _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: Absence {Id} not found", id);
@@ -237,9 +237,9 @@ public class AbsenceService : IAbsenceService
         }
 
         _context.AbsenceRequests.Remove(absence);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: Absence {Id} deleted successfully", id);
-        return true;
+        return Result.SuccessResult();
     }
 
     private static AbsenceRequestDto MapToDto(AbsenceRequest absence)

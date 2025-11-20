@@ -11,10 +11,12 @@ public interface IUserSyncService
     /// Ensures the current authenticated user exists in the Resources table.
     /// Creates or updates the user record based on claims.
     /// </summary>
-    Task<SchedulerResource?> EnsureCurrentUserExistsAsync();
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<SchedulerResource?> EnsureCurrentUserExistsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the current user's resource ID from the database.
     /// </summary>
-    Task<int?> GetCurrentUserResourceIdAsync();
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<int?> GetCurrentUserResourceIdAsync(CancellationToken cancellationToken = default);
 }

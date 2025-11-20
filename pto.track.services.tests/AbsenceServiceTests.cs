@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using pto.track.data;
 using pto.track.services;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 
 namespace pto.track.services.tests;
 
@@ -217,17 +218,15 @@ public class AbsenceServiceTests : TestBase
     }
 
     [Fact]
-    public async Task GetAbsenceRequestByIdAsync_WithInvalidId_ReturnsNull()
+    public async Task GetAbsenceRequestByIdAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
-        // Act
-        var result = await service.GetAbsenceRequestByIdAsync(Guid.NewGuid());
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<AbsenceNotFoundException>(
+            () => service.GetAbsenceRequestByIdAsync(Guid.NewGuid()));
     }
 
     [Fact]
@@ -298,7 +297,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.UpdateAbsenceRequestAsync(absence.Id, updateDto);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var updated = await context.AbsenceRequests.FindAsync(absence.Id);
         Assert.NotNull(updated);
@@ -308,7 +307,7 @@ public class AbsenceServiceTests : TestBase
     }
 
     [Fact]
-    public async Task UpdateAbsenceRequestAsync_WithInvalidId_ReturnsFalse()
+    public async Task UpdateAbsenceRequestAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
@@ -320,11 +319,9 @@ public class AbsenceServiceTests : TestBase
             Reason: "Updated reason"
         );
 
-        // Act
-        var result = await service.UpdateAbsenceRequestAsync(Guid.NewGuid(), updateDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<AbsenceNotFoundException>(
+            () => service.UpdateAbsenceRequestAsync(Guid.NewGuid(), updateDto));
     }
 
     [Fact]
@@ -358,11 +355,9 @@ public class AbsenceServiceTests : TestBase
             Reason: "Try to update"
         );
 
-        // Act
-        var result = await service.UpdateAbsenceRequestAsync(absence.Id, updateDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidAbsenceOperationException>(
+            () => service.UpdateAbsenceRequestAsync(absence.Id, updateDto));
     }
 
     [Fact]
@@ -398,7 +393,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.ApproveAbsenceRequestAsync(absence.Id, approveDto);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var approved = await context.AbsenceRequests.FindAsync(absence.Id);
         Assert.NotNull(approved);
@@ -409,7 +404,7 @@ public class AbsenceServiceTests : TestBase
     }
 
     [Fact]
-    public async Task ApproveAbsenceRequestAsync_WithInvalidId_ReturnsFalse()
+    public async Task ApproveAbsenceRequestAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
@@ -420,11 +415,9 @@ public class AbsenceServiceTests : TestBase
             Comments: "Approved"
         );
 
-        // Act
-        var result = await service.ApproveAbsenceRequestAsync(Guid.NewGuid(), approveDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<AbsenceNotFoundException>(
+            () => service.ApproveAbsenceRequestAsync(Guid.NewGuid(), approveDto));
     }
 
     [Fact]
@@ -457,11 +450,9 @@ public class AbsenceServiceTests : TestBase
             Comments: "Try again"
         );
 
-        // Act
-        var result = await service.ApproveAbsenceRequestAsync(absence.Id, approveDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidAbsenceOperationException>(
+            () => service.ApproveAbsenceRequestAsync(absence.Id, approveDto));
     }
 
     [Fact]
@@ -497,7 +488,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.RejectAbsenceRequestAsync(absence.Id, rejectDto);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var rejected = await context.AbsenceRequests.FindAsync(absence.Id);
         Assert.NotNull(rejected);
@@ -508,7 +499,7 @@ public class AbsenceServiceTests : TestBase
     }
 
     [Fact]
-    public async Task RejectAbsenceRequestAsync_WithInvalidId_ReturnsFalse()
+    public async Task RejectAbsenceRequestAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
@@ -519,11 +510,9 @@ public class AbsenceServiceTests : TestBase
             Reason: "Rejected"
         );
 
-        // Act
-        var result = await service.RejectAbsenceRequestAsync(Guid.NewGuid(), rejectDto);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<AbsenceNotFoundException>(
+            () => service.RejectAbsenceRequestAsync(Guid.NewGuid(), rejectDto));
     }
 
     [Fact]
@@ -553,7 +542,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.CancelAbsenceRequestAsync(absence.Id, 1);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var cancelled = await context.AbsenceRequests.FindAsync(absence.Id);
         Assert.NotNull(cancelled);
@@ -583,11 +572,9 @@ public class AbsenceServiceTests : TestBase
         context.AbsenceRequests.Add(absence);
         await context.SaveChangesAsync();
 
-        // Act
-        var result = await service.CancelAbsenceRequestAsync(absence.Id, 2);
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAbsenceAccessException>(
+            () => service.CancelAbsenceRequestAsync(absence.Id, 999));
     }
 
     [Fact]
@@ -618,24 +605,22 @@ public class AbsenceServiceTests : TestBase
         var result = await service.DeleteAbsenceRequestAsync(absenceId);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.Success);
 
         var deleted = await context.AbsenceRequests.FindAsync(absenceId);
         Assert.Null(deleted);
     }
 
     [Fact]
-    public async Task DeleteAbsenceRequestAsync_WithInvalidId_ReturnsFalse()
+    public async Task DeleteAbsenceRequestAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>());
 
-        // Act
-        var result = await service.DeleteAbsenceRequestAsync(Guid.NewGuid());
-
-        // Assert
-        Assert.False(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<AbsenceNotFoundException>(
+            () => service.DeleteAbsenceRequestAsync(Guid.NewGuid()));
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using pto.track.Controllers;
 using pto.track.data;
 using pto.track.services;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 using Xunit;
 
 namespace pto.track.tests
@@ -73,18 +74,16 @@ namespace pto.track.tests
         }
 
         [Fact]
-        public async Task GetSchedulerEvent_WithInvalidId_ReturnsNotFound()
+        public async Task GetSchedulerEvent_WithInvalidId_ThrowsException()
         {
             // Arrange
             var context = CreateInMemoryContext();
             var service = new EventService(context, CreateLogger<EventService>());
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
-            // Act
-            var result = await controller.GetSchedulerEvent(Guid.NewGuid());
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result.Result);
+            // Act & Assert
+            await Assert.ThrowsAsync<EventNotFoundException>(
+                () => controller.GetSchedulerEvent(Guid.NewGuid()));
         }
 
         [Fact]
@@ -168,11 +167,9 @@ namespace pto.track.tests
             var service = new EventService(context, CreateLogger<EventService>());
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
-            // Act - passing non-existent id
-            var result = await controller.PutSchedulerEvent(Guid.NewGuid(), updateDto);
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result);
+            // Act & Assert - passing non-existent id
+            await Assert.ThrowsAsync<EventNotFoundException>(
+                () => controller.PutSchedulerEvent(Guid.NewGuid(), updateDto));
         }
 
         [Fact]
@@ -207,18 +204,16 @@ namespace pto.track.tests
         }
 
         [Fact]
-        public async Task DeleteSchedulerEvent_WithInvalidId_ReturnsNotFound()
+        public async Task DeleteSchedulerEvent_WithInvalidId_ThrowsException()
         {
             // Arrange
             var context = CreateInMemoryContext();
             var service = new EventService(context, CreateLogger<EventService>());
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
-            // Act
-            var result = await controller.DeleteSchedulerEvent(Guid.NewGuid());
-
-            // Assert
-            Assert.IsType<NotFoundResult>(result);
+            // Act & Assert
+            await Assert.ThrowsAsync<EventNotFoundException>(
+                () => controller.DeleteSchedulerEvent(Guid.NewGuid()));
         }
     }
 }

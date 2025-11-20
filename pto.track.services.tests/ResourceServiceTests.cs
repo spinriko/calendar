@@ -30,17 +30,15 @@ public class ResourceServiceTests : TestBase
     }
 
     [Fact]
-    public async Task GetResourcesAsync_WithNoResources_ReturnsEmpty()
+    public async Task GetResourceByIdAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>());
 
-        // Act
-        var result = await service.GetResourcesAsync();
-
-        // Assert
-        Assert.Empty(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<ResourceNotFoundException>(
+            () => service.GetResourceByIdAsync(999));
     }
 
     [Fact]
