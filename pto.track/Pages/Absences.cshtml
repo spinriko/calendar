@@ -69,6 +69,17 @@
         scrollDelayEvents: 0,
         scrollX: "Enabled", // Enable horizontal scrolling
         onTimeRangeSelected: async (args) => {
+            // Check if employee can create absence for this resource
+            const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
+            const isManager = app.state.isManager || false;
+            const isApprover = app.state.currentUser?.isApprover || false;
+            
+            if (!canCreateAbsenceForResource(app.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover)) {
+                calendar.clearSelection();
+                await DayPilot.Modal.alert("You can only create absence requests for yourself. Please select your own row in the calendar.");
+                return;
+            }
+
             const form = [
                 { name: "Reason", id: "reason", type: "textarea" },
             ];
@@ -277,7 +288,7 @@
             impersonateRole: document.getElementById("impersonateRole")
         },
         state: {
-            selectedStatuses: ["Pending", "Approved"],
+            selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
             currentEmployeeId: null,
             isManager: false,
             currentUser: null,
@@ -324,6 +335,7 @@
                 this.elements.filterRejected.checked = true;
                 this.elements.filterCancelled.checked = true;
                 this.state.selectedStatuses = ["Pending", "Approved", "Rejected", "Cancelled"];
+                console.log("initializeCheckboxes - Admin mode, selectedStatuses:", this.state.selectedStatuses);
             }
         },
         async loadCurrentUser() {
@@ -363,12 +375,15 @@
             const start = calendar.visibleStart();
             const end = calendar.visibleEnd();
 
+            console.log("loadCalendarData - selectedStatuses:", this.state.selectedStatuses);
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
-            // Add all selected statuses to the query
+            // Add all selected statuses to the query (using array notation for ASP.NET Core)
             this.state.selectedStatuses.forEach(status => {
-                absencesUrl += `&status=${status}`;
+                absencesUrl += `&status[]=${status}`;
             });
+            console.log("loadCalendarData - URL:", absencesUrl);
+            
 
             // For employees, only show their own requests
             if (!this.state.isManager && !this.state.currentUser?.roles?.includes("Admin")) {
@@ -379,6 +394,9 @@
             const promiseResources = DayPilot.Http.get("/api/resources");
 
             const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
+
+            console.log("loadCalendarData - API returned", absences.length, "absences");
+            console.log("loadCalendarData - Absence statuses:", absences.map(a => a.status));
 
             // Map absences to calendar events
             const events = absences.map(a => ({
@@ -391,6 +409,8 @@
                 data: a
             }));
 
+            console.log("loadCalendarData - Updating calendar with", events.length, "events");
+
             calendar.update({
                 columns,
                 events
@@ -402,9 +422,9 @@
 
             let absencesUrl = `/api/absences?start=${start}&end=${end}`;
 
-            // Add all selected statuses to the query
+            // Add all selected statuses to the query (using array notation for ASP.NET Core)
             this.state.selectedStatuses.forEach(status => {
-                absencesUrl += `&status=${status}`;
+                absencesUrl += `&status[]=${status}`;
             });
 
             // For employees, only show their own requests
@@ -438,11 +458,18 @@
 
             // Checkbox filter handlers
             const updateFilters = () => {
+                console.log("[updateFilters] Checkbox states:", {
+                    pending: app.elements.filterPending.checked,
+                    approved: app.elements.filterApproved.checked,
+                    rejected: app.elements.filterRejected.checked,
+                    cancelled: app.elements.filterCancelled.checked
+                });
                 app.state.selectedStatuses = [];
                 if (app.elements.filterPending.checked) app.state.selectedStatuses.push("Pending");
                 if (app.elements.filterApproved.checked) app.state.selectedStatuses.push("Approved");
                 if (app.elements.filterRejected.checked) app.state.selectedStatuses.push("Rejected");
                 if (app.elements.filterCancelled.checked) app.state.selectedStatuses.push("Cancelled");
+                console.log("[updateFilters] selectedStatuses:", app.state.selectedStatuses);
 
                 app.loadCalendarData();
                 app.loadDatePickerData();
@@ -483,6 +510,17 @@
             this.addHandlers();
         }
     };
+
+    // Helper function to check if user can create absence for a resource
+    function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
+        // Admins, Managers, and Approvers can create absences for anyone
+        if (isAdmin || isManager || isApprover) {
+            return true;
+        }
+        
+        // Regular employees can only create absences for themselves
+        return currentEmployeeId === targetResourceId;
+    }
 
     app.init();
 

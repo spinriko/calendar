@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.DTOs;
 using pto.track.services.Exceptions;
+using pto.track.services.Specifications;
 
 namespace pto.track.services;
 
@@ -23,39 +24,30 @@ public class AbsenceService : IAbsenceService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, List<AbsenceStatus>? statuses = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}, status={Status}", start, end, status);
+        _logger.LogInformation("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}, statuses={Statuses}, statusCount={StatusCount}", start, end, statuses != null ? string.Join(",", statuses) : "null", statuses?.Count ?? 0);
 
-        var query = _context.AbsenceRequests
-            .Include(a => a.Employee)
-            .Include(a => a.Approver)
-            .Where(a => a.Start < end && a.End > start);
-
-        if (status.HasValue)
-        {
-            query = query.Where(a => a.Status == status.Value);
-        }
-
-        var absences = await query
-            .AsNoTracking()
+        var spec = new AbsencesFilteredSpec(start, end, statuses);
+        var absences = await _context.AbsenceRequests
+            .ApplySpecification(spec)
             .ToListAsync(cancellationToken);
 
-        _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: Found {Count} absences", absences.Count);
+        _logger.LogInformation("AbsenceService.GetAbsenceRequestsAsync: Found {Count} absences with statuses: [{Statuses}]", absences.Count, string.Join(", ", absences.Select(a => a.Status)));
 
         return _mapper.Map<IEnumerable<AbsenceRequestDto>>(absences);
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end, List<AbsenceStatus>? statuses = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: employeeId={EmployeeId}, start={Start}, end={End}", employeeId, start, end);
+        _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: employeeId={EmployeeId}, start={Start}, end={End}, statuses={Statuses}", employeeId, start, end, statuses != null ? string.Join(",", statuses) : "null");
+
+        var spec = new AbsencesFilteredSpec(start, end, statuses, employeeId);
         var absences = await _context.AbsenceRequests
-            .Include(a => a.Employee)
-            .Include(a => a.Approver)
-            .Where(a => a.EmployeeId == employeeId && a.Start < end && a.End > start)
-            .AsNoTracking()
+            .ApplySpecification(spec)
             .ToListAsync(cancellationToken);
+
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: Found {Count} absences for employee {EmployeeId}", absences.Count, employeeId);
 
         return _mapper.Map<IEnumerable<AbsenceRequestDto>>(absences);
@@ -65,12 +57,9 @@ public class AbsenceService : IAbsenceService
     public async Task<IEnumerable<AbsenceRequestDto>> GetPendingAbsenceRequestsAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Fetching pending absences");
+        var spec = new PendingAbsencesSpec();
         var absences = await _context.AbsenceRequests
-            .Include(a => a.Employee)
-            .Include(a => a.Approver)
-            .Where(a => a.Status == AbsenceStatus.Pending)
-            .OrderBy(a => a.RequestedDate)
-            .AsNoTracking()
+            .ApplySpecification(spec)
             .ToListAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Found {Count} pending absences", absences.Count);
 
@@ -81,11 +70,10 @@ public class AbsenceService : IAbsenceService
     public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestByIdAsync: id={Id}", id);
+        var spec = new AbsenceByIdSpec(id);
         var absence = await _context.AbsenceRequests
-            .Include(a => a.Employee)
-            .Include(a => a.Approver)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+            .ApplySpecification(spec)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (absence == null)
         {

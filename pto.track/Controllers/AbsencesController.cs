@@ -43,7 +43,7 @@ public class AbsencesController : ControllerBase
     /// <param name="start">Optional start date for filtering.</param>
     /// <param name="end">Optional end date for filtering.</param>
     /// <param name="employeeId">Optional employee ID for filtering.</param>
-    /// <param name="status">Optional status for filtering (Pending, Approved, Rejected, Cancelled).</param>
+    /// <param name="status">Optional status values for filtering (can specify multiple using status[]=value notation).</param>
     /// <returns>A collection of absence requests matching the criteria.</returns>
     // GET: api/Absences
     [HttpGet]
@@ -51,29 +51,51 @@ public class AbsencesController : ControllerBase
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end,
         [FromQuery] int? employeeId,
-        [FromQuery] string? status)
+        [FromQuery(Name = "status[]")] List<string>? status)
     {
-        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}, status={Status}", start, end, employeeId, status);
+        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}, status={Status}", start, end, employeeId, status != null ? string.Join(",", status) : "null");
 
-        // Parse status parameter
-        AbsenceStatus? absenceStatus = null;
-        if (!string.IsNullOrEmpty(status) && Enum.TryParse<AbsenceStatus>(status, true, out var parsedStatus))
+        // Parse status parameters (can be multiple)
+        List<AbsenceStatus>? absenceStatuses = null;
+        if (status != null && status.Any())
         {
-            absenceStatus = parsedStatus;
+            _logger.LogInformation("Parsing {Count} status values: [{Statuses}]", status.Count, string.Join(", ", status));
+            absenceStatuses = new List<AbsenceStatus>();
+            foreach (var s in status)
+            {
+                if (Enum.TryParse<AbsenceStatus>(s, true, out var parsedStatus))
+                {
+                    absenceStatuses.Add(parsedStatus);
+                    _logger.LogInformation("Parsed status: {Status} -> {ParsedStatus}", s, parsedStatus);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to parse status: {Status}", s);
+                }
+            }
+            if (absenceStatuses.Count == 0)
+            {
+                absenceStatuses = null; // No valid statuses parsed
+            }
+            _logger.LogInformation("Total parsed statuses: {Count} - [{Statuses}]", absenceStatuses?.Count ?? 0, absenceStatuses != null ? string.Join(", ", absenceStatuses) : "null");
+        }
+        else
+        {
+            _logger.LogInformation("No status filters provided, will return all statuses");
         }
 
         if (employeeId.HasValue)
         {
             var empStart = start ?? DateTime.UtcNow.AddMonths(-3);
             var empEnd = end ?? DateTime.UtcNow.AddMonths(3);
-            var absences = (await _absenceService.GetAbsenceRequestsByEmployeeAsync(employeeId.Value, empStart, empEnd)).ToList();
+            var absences = (await _absenceService.GetAbsenceRequestsByEmployeeAsync(employeeId.Value, empStart, empEnd, absenceStatuses)).ToList();
             _logger.LogDebug("Returning {Count} absences for employee {EmployeeId}", absences.Count, employeeId);
             return Ok(absences);
         }
 
         if (start.HasValue && end.HasValue)
         {
-            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value, absenceStatus)).ToList();
+            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value, absenceStatuses)).ToList();
             _logger.LogDebug("Returning {Count} absences for date range", absences.Count);
             return Ok(absences);
         }

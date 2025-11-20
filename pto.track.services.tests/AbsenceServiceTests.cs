@@ -746,7 +746,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.GetAbsenceRequestsAsync(
             new DateTime(2025, 1, 1),
             new DateTime(2025, 1, 31),
-            AbsenceStatus.Approved);
+            new List<AbsenceStatus> { AbsenceStatus.Approved });
 
         // Assert
         var list = result.ToList();
@@ -795,7 +795,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.GetAbsenceRequestsAsync(
             new DateTime(2025, 1, 1),
             new DateTime(2025, 1, 31),
-            AbsenceStatus.Pending);
+            new List<AbsenceStatus> { AbsenceStatus.Pending });
 
         // Assert
         var list = result.ToList();
@@ -901,7 +901,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.GetAbsenceRequestsAsync(
             new DateTime(2025, 1, 1),
             new DateTime(2025, 1, 31),
-            AbsenceStatus.Cancelled);
+            new List<AbsenceStatus> { AbsenceStatus.Cancelled });
 
         // Assert
         var list = result.ToList();
@@ -958,7 +958,7 @@ public class AbsenceServiceTests : TestBase
         var result = await service.GetAbsenceRequestsAsync(
             new DateTime(2025, 1, 1),
             new DateTime(2025, 1, 31),
-            AbsenceStatus.Approved);
+            new List<AbsenceStatus> { AbsenceStatus.Approved });
 
         // Assert
         var list = result.ToList();

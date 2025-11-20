@@ -9,8 +9,8 @@ QUnit.module('URL Builder', function () {
             1
         );
 
-        assert.ok(url.includes("&status=Pending"), "URL should include Pending status");
-        assert.ok(url.includes("&status=Approved"), "URL should include Approved status");
+        assert.ok(url.includes("&status[]=Pending"), "URL should include Pending status with array notation");
+        assert.ok(url.includes("&status[]=Approved"), "URL should include Approved status with array notation");
     });
 
     QUnit.test('buildAbsencesUrl adds employeeId for regular employees', function (assert) {
@@ -58,10 +58,10 @@ QUnit.module('URL Builder', function () {
             1
         );
 
-        assert.ok(url.includes("&status=Pending"), "URL should include Pending");
-        assert.ok(url.includes("&status=Approved"), "URL should include Approved");
-        assert.ok(url.includes("&status=Rejected"), "URL should include Rejected");
-        assert.ok(url.includes("&status=Cancelled"), "URL should include Cancelled");
+        assert.ok(url.includes("&status[]=Pending"), "URL should include Pending with array notation");
+        assert.ok(url.includes("&status[]=Approved"), "URL should include Approved with array notation");
+        assert.ok(url.includes("&status[]=Rejected"), "URL should include Rejected with array notation");
+        assert.ok(url.includes("&status[]=Cancelled"), "URL should include Cancelled with array notation");
     });
 
     QUnit.test('buildAbsencesUrl handles empty status array', function (assert) {
@@ -73,6 +73,6 @@ QUnit.module('URL Builder', function () {
             1
         );
 
-        assert.notOk(url.includes("status="), "URL should not include any status parameters");
+        assert.notOk(url.includes("status"), "URL should not include any status parameters");
     });
 });

@@ -13,10 +13,10 @@ public interface IAbsenceService
     /// </summary>
     /// <param name="start">Start date of the range.</param>
     /// <param name="end">End date of the range.</param>
-    /// <param name="status">Optional status filter (Pending, Approved, Rejected, Cancelled).</param>
+    /// <param name="statuses">Optional status filters (Pending, Approved, Rejected, Cancelled). If null or empty, returns all statuses.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A collection of absence requests.</returns>
-    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null, CancellationToken cancellationToken = default);
+    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, List<AbsenceStatus>? statuses = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all absence requests for a specific employee within a date range.
@@ -24,9 +24,10 @@ public interface IAbsenceService
     /// <param name="employeeId">The employee's resource ID.</param>
     /// <param name="start">Start date of the range.</param>
     /// <param name="end">End date of the range.</param>
+    /// <param name="statuses">Optional status filters. If null or empty, returns all statuses.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A collection of absence requests for the specified employee.</returns>
-    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end, CancellationToken cancellationToken = default);
+    Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end, List<AbsenceStatus>? statuses = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all absence requests with Pending status.
