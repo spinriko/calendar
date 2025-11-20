@@ -27,13 +27,18 @@ public static class ServiceCollectionExtensions
 
         // Register AutoMapper
         services.AddAutoMapper(typeof(ServiceCollectionExtensions).Assembly);
-        
+
         // Add health checks (always register, but only add DbContext check when not testing)
         var healthChecksBuilder = services.AddHealthChecks();
         if (!environment.IsEnvironment("Testing"))
         {
             healthChecksBuilder.AddDbContextCheck<PtoTrackDbContext>("database", tags: new[] { "db", "ready" });
-        }        // Register application services
+        }
+
+        // Register Unit of Work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Register application services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();

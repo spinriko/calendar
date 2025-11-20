@@ -13,12 +13,14 @@ public class EventService : IEventService
     private readonly PtoTrackDbContext _context;
     private readonly ILogger<EventService> _logger;
     private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public EventService(PtoTrackDbContext context, ILogger<EventService> logger, IMapper mapper)
+    public EventService(PtoTrackDbContext context, ILogger<EventService> logger, IMapper mapper, IUnitOfWork unitOfWork)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     /// <inheritdoc />
@@ -54,7 +56,7 @@ public class EventService : IEventService
         var entity = _mapper.Map<SchedulerEvent>(dto);
 
         _context.Events.Add(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("EventService.CreateEventAsync: Created event with id={Id}", entity.Id);
 
         return _mapper.Map<EventDto>(entity);
@@ -75,7 +77,7 @@ public class EventService : IEventService
 
         try
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogDebug("EventService.UpdateEventAsync: Event {Id} updated successfully", id);
             return Result.SuccessResult();
         }
@@ -102,7 +104,7 @@ public class EventService : IEventService
         }
 
         _context.Events.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("EventService.DeleteEventAsync: Event {Id} deleted successfully", id);
         return Result.SuccessResult();
     }

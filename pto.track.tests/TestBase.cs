@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using pto.track.data;
+using pto.track.services;
 using pto.track.services.Mapping;
 
 namespace pto.track.tests
@@ -33,6 +34,11 @@ namespace pto.track.tests
                 cfg.AddProfile<ResourceMappingProfile>();
             });
             return config.CreateMapper();
+        }
+
+        protected IUnitOfWork CreateUnitOfWork(PtoTrackDbContext context)
+        {
+            return new UnitOfWork(context, CreateLogger<UnitOfWork>());
         }
     }
 }

@@ -13,7 +13,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var events = new[]
         {
@@ -40,7 +40,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var event1 = new SchedulerEvent { Id = Guid.NewGuid(), Start = new DateTime(2025, 11, 10, 10, 0, 0), End = new DateTime(2025, 11, 10, 11, 0, 0), Text = "Event 1", ResourceId = 1 };
         context.Events.Add(event1);
@@ -61,7 +61,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var events = new[]
         {
@@ -87,7 +87,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var event1 = new SchedulerEvent
         {
@@ -116,7 +116,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         // Act & Assert
         await Assert.ThrowsAsync<EventNotFoundException>(
@@ -128,7 +128,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 0, 0),
@@ -157,7 +157,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 0, 0),
@@ -181,7 +181,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var event1 = new SchedulerEvent
         {
@@ -221,7 +221,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var updateDto = new UpdateEventDto(
             Start: new DateTime(2025, 11, 13, 14, 0, 0),
@@ -241,7 +241,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var event1 = new SchedulerEvent
         {
@@ -269,7 +269,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         // Act & Assert
         await Assert.ThrowsAsync<EventNotFoundException>(
@@ -281,7 +281,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var createDto = new CreateEventDto(
             Start: new DateTime(2025, 11, 13, 10, 30, 45),
@@ -307,7 +307,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var events = new[]
         {
@@ -336,7 +336,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -353,7 +353,7 @@ public class EventServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+        var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
 
         var evt = new SchedulerEvent
         {

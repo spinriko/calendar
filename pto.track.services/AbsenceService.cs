@@ -12,12 +12,14 @@ public class AbsenceService : IAbsenceService
     private readonly PtoTrackDbContext _context;
     private readonly ILogger<AbsenceService> _logger;
     private readonly IMapper _mapper;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public AbsenceService(PtoTrackDbContext context, ILogger<AbsenceService> logger, IMapper mapper)
+    public AbsenceService(PtoTrackDbContext context, ILogger<AbsenceService> logger, IMapper mapper, IUnitOfWork unitOfWork)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
+        _unitOfWork = unitOfWork;
     }
 
     /// <inheritdoc />
@@ -100,7 +102,7 @@ public class AbsenceService : IAbsenceService
         var absence = _mapper.Map<AbsenceRequest>(dto);
 
         _context.AbsenceRequests.Add(absence);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.CreateAbsenceRequestAsync: Created absence with id={Id}", absence.Id);
 
         // Reload with navigation properties
@@ -130,7 +132,7 @@ public class AbsenceService : IAbsenceService
 
         _mapper.Map(dto, absence);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} updated successfully", id);
         return Result.SuccessResult();
     }
@@ -157,7 +159,7 @@ public class AbsenceService : IAbsenceService
         absence.ApprovedDate = DateTime.UtcNow;
         absence.ApprovalComments = dto.Comments;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: Absence {Id} approved successfully", id);
         return Result.SuccessResult();
     }
@@ -184,7 +186,7 @@ public class AbsenceService : IAbsenceService
         absence.ApprovedDate = DateTime.UtcNow;
         absence.ApprovalComments = dto.Reason;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: Absence {Id} rejected successfully", id);
         return Result.SuccessResult();
     }
@@ -213,7 +215,7 @@ public class AbsenceService : IAbsenceService
         }
 
         absence.Status = AbsenceStatus.Cancelled;
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: Absence {Id} cancelled successfully", id);
         return Result.SuccessResult();
     }
@@ -230,7 +232,7 @@ public class AbsenceService : IAbsenceService
         }
 
         _context.AbsenceRequests.Remove(absence);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: Absence {Id} deleted successfully", id);
         return Result.SuccessResult();
     }

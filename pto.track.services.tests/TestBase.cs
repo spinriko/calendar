@@ -33,4 +33,9 @@ public class TestBase
         });
         return config.CreateMapper();
     }
+
+    protected IUnitOfWork CreateUnitOfWork(PtoTrackDbContext context)
+    {
+        return new UnitOfWork(context, CreateLogger<UnitOfWork>());
+    }
 }

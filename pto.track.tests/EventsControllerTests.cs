@@ -31,7 +31,7 @@ namespace pto.track.tests
             context.Events.AddRange(events);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
@@ -60,7 +60,7 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
@@ -78,7 +78,7 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act & Assert
@@ -99,7 +99,7 @@ namespace pto.track.tests
                 ResourceId: 1
             );
 
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
@@ -137,7 +137,7 @@ namespace pto.track.tests
                 ResourceId: 1
             );
 
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
@@ -164,7 +164,7 @@ namespace pto.track.tests
                 Color: null,
                 ResourceId: 1
             );
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act & Assert - passing non-existent id
@@ -189,7 +189,7 @@ namespace pto.track.tests
             context.Events.Add(testEvent);
             await context.SaveChangesAsync();
 
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act
@@ -208,7 +208,7 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper());
+            var service = new EventService(context, CreateLogger<EventService>(), CreateMapper(), CreateUnitOfWork(context));
             var controller = new EventsController(service, CreateLogger<EventsController>());
 
             // Act & Assert

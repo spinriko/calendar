@@ -8,11 +8,13 @@ public class UserSyncService : IUserSyncService
 {
     private readonly PtoTrackDbContext _context;
     private readonly IUserClaimsProvider _claimsProvider;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UserSyncService(PtoTrackDbContext context, IUserClaimsProvider claimsProvider)
+    public UserSyncService(PtoTrackDbContext context, IUserClaimsProvider claimsProvider, IUnitOfWork unitOfWork)
     {
         _context = context;
         _claimsProvider = claimsProvider;
+        _unitOfWork = unitOfWork;
     }
 
     /// <inheritdoc />
@@ -85,7 +87,7 @@ public class UserSyncService : IUserSyncService
             resource.ModifiedDate = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         return resource;
     }
 
