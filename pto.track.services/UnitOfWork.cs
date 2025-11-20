@@ -46,8 +46,8 @@ public class UnitOfWork : IUnitOfWork
     {
         if (_currentTransaction != null)
         {
-            _logger.LogWarning("Transaction already in progress");
-            throw new InvalidOperationException("A transaction is already in progress");
+            _logger.LogDebug("Transaction already in progress, returning existing transaction");
+            return _currentTransaction;
         }
 
         _logger.LogDebug("Beginning new transaction");
@@ -60,8 +60,8 @@ public class UnitOfWork : IUnitOfWork
     {
         if (_currentTransaction == null)
         {
-            _logger.LogWarning("Attempted to commit but no transaction is active");
-            throw new InvalidOperationException("No transaction is currently active");
+            _logger.LogDebug("No active transaction to commit");
+            return;
         }
 
         try
