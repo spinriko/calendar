@@ -63,16 +63,22 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Technology**: .NET 10.0 Class Library
 - **Purpose**: Decouples business logic from web and data layers
 - **Key Components**:
-  - `IEventService.cs` / `EventService.cs` - Event business logic
+  - `IEventService.cs` / `EventService.cs` - Event business logic with Result pattern
   - `IResourceService.cs` / `ResourceService.cs` - Resource business logic
   - `IAbsenceService.cs` / `AbsenceService.cs` - Absence request approval workflow business logic
-  - `DTOs/EventDto.cs` - Data transfer objects with JSON serialization attributes
+  - `IUnitOfWork.cs` / `UnitOfWork.cs` - Centralized transaction management
+  - `DTOs/EventDto.cs` - Data transfer objects with AutoMapper profiles
   - `DTOs/ResourceDto.cs` - Resource data transfer objects
   - `DTOs/AbsenceRequestDto.cs` - Absence request DTOs (Create/Update/Approve/Reject variants)
+  - `Exceptions/` - Custom exception hierarchy (NotFoundException, InvalidOperationException, ValidationException)
   - `ServiceCollectionExtensions.cs` - Dependency injection configuration
 - **Features**:
+  - Result pattern for consistent error handling
+  - AutoMapper v13.0.1 for DTO mapping (eliminates manual mapping boilerplate)
+  - Unit of Work pattern for transaction management
   - DTO-based API contracts (camelCase JSON serialization for JavaScript compatibility)
   - Validation logic (IValidatableObject implementation)
+  - CancellationToken support in all async operations
   - Database migration management
   - Clean separation from data entities
   - Approval workflow state management
@@ -96,19 +102,22 @@ pto.track.data         → Data access layer (EF Core + Entities)
 ### Test Projects
 
 #### **pto.track.tests** (Integration Tests)
-- **Tests**: 16 integration tests
+- **Tests**: 50 integration tests
 - **Coverage**:
-  - Controller endpoint testing (8 tests)
-  - End-to-end CRUD workflows (5 tests)
-  - Resource retrieval (3 tests)
+  - Controller endpoint testing (including absences API)
+  - End-to-end CRUD workflows
+  - Resource and event retrieval
+  - Absence request approval workflows
 - **Dependencies**: xUnit, Microsoft.AspNetCore.Mvc.Testing, In-Memory Database
 
 #### **pto.track.services.tests** (Service Layer Tests)
-- **Tests**: 50 unit tests
+- **Tests**: 83 unit tests
 - **Coverage**:
   - EventService business logic (14 tests)
   - ResourceService operations (7 tests)
   - AbsenceService workflow logic (21 tests)
+  - UnitOfWork transaction management (11 tests - 8 passing, 3 skipped due to InMemory limitations)
+  - UserSyncService operations (22 tests)
   - DTO JSON serialization (8 tests)
 - **Dependencies**: xUnit, Entity Framework In-Memory Database
 
@@ -131,7 +140,13 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Technology**: QUnit, pure JavaScript (no build tools)
 - **Runs**: Browser-based or headless (CI/CD ready)
 
-**Total Test Coverage**: 131 passing tests (90 C# + 41 JavaScript)
+**Total Test Coverage**: 157 tests (154 passing, 3 skipped)
+- **C# Tests**: 116 tests
+  - Integration Tests: 50 tests (pto.track.tests)
+  - Service Layer Tests: 83 tests (pto.track.services.tests) including UnitOfWork tests
+  - Data Layer Tests: 24 tests (pto.track.data.tests)
+- **JavaScript Tests**: 41 tests (pto.track.tests.js)
+- **Code Coverage**: 67.9% overall (coverage.xml available)
 
 See [TESTING.md](TESTING.md) for C# test documentation and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
 
@@ -193,13 +208,22 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 ### Technical Highlights
 - **Clean Architecture**: Clear separation between presentation, business logic, and data layers
 - **API-First Design**: RESTful API endpoints that support both UI and external integrations
-- **DTO Pattern**: Decoupled data contracts with validation
+- **Result Pattern**: Consistent error handling with `Result<T>` for all service operations
+- **Unit of Work Pattern**: Centralized transaction management across service operations
+- **DTO Pattern**: AutoMapper-powered mapping with decoupled data contracts and validation
 - **Dependency Injection**: Constructor-based DI throughout the application
+- **Health Checks**: Built-in endpoints for monitoring application health (`/health`, `/health/ready`, `/health/live`)
+- **Custom Exception Handling**: Comprehensive exception hierarchy with global exception middleware
 - **JSON Compatibility**: Proper camelCase serialization for JavaScript frontend
-- **Async/Await**: Non-blocking operations for better performance
-- **Comprehensive Testing**: 90 automated tests covering critical functionality
+- **Async/Await**: Non-blocking operations with CancellationToken support for better performance and cancellation
+- **Comprehensive Testing**: 154 automated tests covering critical functionality (67.9% code coverage)
 
 ## API Endpoints
+
+### Health Check API (`/health`)
+- `GET /health` - Overall application health status
+- `GET /health/ready` - Readiness probe (checks if app is ready to serve requests)
+- `GET /health/live` - Liveness probe (checks if app is running)
 
 ### Events API (`/api/events`)
 - `GET /api/events?start={date}&end={date}` - Get events in date range
@@ -227,9 +251,11 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 
 - **Framework**: ASP.NET Core 10.0
 - **Database**: Entity Framework Core 10.0 + SQL Server
+- **Object Mapping**: AutoMapper 13.0.1 (MIT License)
 - **Testing**: xUnit 2.9.3+ with In-Memory Database
 - **Frontend**: DayPilot Lite for JavaScript (Apache License 2.0)
 - **UI**: Razor Pages with interactive JavaScript components
+- **Monitoring**: ASP.NET Core Health Checks
 
 ## Development
 
