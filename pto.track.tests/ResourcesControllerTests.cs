@@ -26,7 +26,7 @@ namespace pto.track.tests
             context.Resources.AddRange(resources);
             await context.SaveChangesAsync();
 
-            var service = new ResourceService(context, CreateLogger<ResourceService>());
+            var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
             var controller = new ResourcesController(service, CreateLogger<ResourcesController>());
 
             // Act
@@ -43,7 +43,7 @@ namespace pto.track.tests
         {
             // Arrange
             var context = CreateInMemoryContext();
-            var service = new ResourceService(context, CreateLogger<ResourceService>());
+            var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
             var controller = new ResourcesController(service, CreateLogger<ResourcesController>());
 
             // Act
@@ -69,7 +69,7 @@ namespace pto.track.tests
             context.Resources.AddRange(resources);
             await context.SaveChangesAsync();
 
-            var service = new ResourceService(context, CreateLogger<ResourceService>());
+            var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
             var controller = new ResourcesController(service, CreateLogger<ResourcesController>());
 
             // Act

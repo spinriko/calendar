@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
@@ -10,11 +11,13 @@ public class AbsenceService : IAbsenceService
 {
     private readonly PtoTrackDbContext _context;
     private readonly ILogger<AbsenceService> _logger;
+    private readonly IMapper _mapper;
 
-    public AbsenceService(PtoTrackDbContext context, ILogger<AbsenceService> logger)
+    public AbsenceService(PtoTrackDbContext context, ILogger<AbsenceService> logger, IMapper mapper)
     {
         _context = context;
         _logger = logger;
+        _mapper = mapper;
     }
 
     /// <inheritdoc />
@@ -38,7 +41,7 @@ public class AbsenceService : IAbsenceService
 
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: Found {Count} absences", absences.Count);
 
-        return absences.Select(MapToDto);
+        return _mapper.Map<IEnumerable<AbsenceRequestDto>>(absences);
     }
 
     /// <inheritdoc />
@@ -53,7 +56,7 @@ public class AbsenceService : IAbsenceService
             .ToListAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: Found {Count} absences for employee {EmployeeId}", absences.Count, employeeId);
 
-        return absences.Select(MapToDto);
+        return _mapper.Map<IEnumerable<AbsenceRequestDto>>(absences);
     }
 
     /// <inheritdoc />
@@ -69,7 +72,7 @@ public class AbsenceService : IAbsenceService
             .ToListAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Found {Count} pending absences", absences.Count);
 
-        return absences.Select(MapToDto);
+        return _mapper.Map<IEnumerable<AbsenceRequestDto>>(absences);
     }
 
     /// <inheritdoc />
@@ -87,22 +90,14 @@ public class AbsenceService : IAbsenceService
             _logger.LogDebug("AbsenceService.GetAbsenceRequestByIdAsync: Absence {Id} not found", id);
             throw new AbsenceNotFoundException(id);
         }
-        return MapToDto(absence);
+        return _mapper.Map<AbsenceRequestDto>(absence);
     }
 
     /// <inheritdoc />
     public async Task<AbsenceRequestDto> CreateAbsenceRequestAsync(CreateAbsenceRequestDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("AbsenceService.CreateAbsenceRequestAsync: Creating absence for employee {EmployeeId}", dto.EmployeeId);
-        var absence = new AbsenceRequest
-        {
-            Start = dto.Start,
-            End = dto.End,
-            Reason = dto.Reason,
-            EmployeeId = dto.EmployeeId,
-            Status = AbsenceStatus.Pending,
-            RequestedDate = DateTime.UtcNow
-        };
+        var absence = _mapper.Map<AbsenceRequest>(dto);
 
         _context.AbsenceRequests.Add(absence);
         await _context.SaveChangesAsync(cancellationToken);
@@ -113,7 +108,7 @@ public class AbsenceService : IAbsenceService
             .Reference(a => a.Employee)
             .LoadAsync(cancellationToken);
 
-        return MapToDto(absence);
+        return _mapper.Map<AbsenceRequestDto>(absence);
     }
 
     /// <inheritdoc />
@@ -133,9 +128,7 @@ public class AbsenceService : IAbsenceService
             throw new InvalidAbsenceOperationException("Only pending absence requests can be updated.", id);
         }
 
-        absence.Start = dto.Start;
-        absence.End = dto.End;
-        absence.Reason = dto.Reason;
+        _mapper.Map(dto, absence);
 
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: Absence {Id} updated successfully", id);
@@ -240,23 +233,5 @@ public class AbsenceService : IAbsenceService
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: Absence {Id} deleted successfully", id);
         return Result.SuccessResult();
-    }
-
-    private static AbsenceRequestDto MapToDto(AbsenceRequest absence)
-    {
-        return new AbsenceRequestDto(
-            Id: absence.Id,
-            Start: absence.Start,
-            End: absence.End,
-            Reason: absence.Reason,
-            EmployeeId: absence.EmployeeId,
-            EmployeeName: absence.Employee?.Name ?? "Unknown",
-            Status: absence.Status.ToString(),
-            RequestedDate: absence.RequestedDate,
-            ApproverId: absence.ApproverId,
-            ApproverName: absence.Approver?.Name,
-            ApprovedDate: absence.ApprovedDate,
-            ApprovalComments: absence.ApprovalComments
-        );
     }
 }

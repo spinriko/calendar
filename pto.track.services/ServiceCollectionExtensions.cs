@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.Authentication;
+using pto.track.services.Mapping;
 
 namespace pto.track.services;
 
@@ -22,6 +23,9 @@ public static class ServiceCollectionExtensions
         {
             services.AddDbContext<PtoTrackDbContext>(options => options.UseSqlServer(connStr));
         }
+
+        // Register AutoMapper
+        services.AddAutoMapper(typeof(ServiceCollectionExtensions).Assembly);
 
         // Register application services
         services.AddScoped<IEventService, EventService>();

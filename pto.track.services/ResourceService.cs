@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
@@ -10,11 +12,13 @@ public class ResourceService : IResourceService
 {
     private readonly PtoTrackDbContext _context;
     private readonly ILogger<ResourceService> _logger;
+    private readonly IMapper _mapper;
 
-    public ResourceService(PtoTrackDbContext context, ILogger<ResourceService> logger)
+    public ResourceService(PtoTrackDbContext context, ILogger<ResourceService> logger, IMapper mapper)
     {
         _context = context;
         _logger = logger;
+        _mapper = mapper;
     }
 
     /// <inheritdoc />
@@ -23,15 +27,7 @@ public class ResourceService : IResourceService
         _logger.LogDebug("ResourceService.GetResourcesAsync: Fetching all resources");
         var resources = await _context.Resources
             .AsNoTracking()
-            .Select(r => new ResourceDto(
-                r.Id,
-                r.Name,
-                r.Email,
-                r.EmployeeNumber,
-                r.Role,
-                r.IsApprover,
-                r.IsActive,
-                r.Department))
+            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetResourcesAsync: Found {Count} resources", resources.Count);
         return resources;
@@ -44,15 +40,7 @@ public class ResourceService : IResourceService
         var resources = await _context.Resources
             .AsNoTracking()
             .Where(r => r.IsActive)
-            .Select(r => new ResourceDto(
-                r.Id,
-                r.Name,
-                r.Email,
-                r.EmployeeNumber,
-                r.Role,
-                r.IsApprover,
-                r.IsActive,
-                r.Department))
+            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetActiveResourcesAsync: Found {Count} active resources", resources.Count);
         return resources;
@@ -65,15 +53,7 @@ public class ResourceService : IResourceService
         var approvers = await _context.Resources
             .AsNoTracking()
             .Where(r => r.IsApprover && r.IsActive)
-            .Select(r => new ResourceDto(
-                r.Id,
-                r.Name,
-                r.Email,
-                r.EmployeeNumber,
-                r.Role,
-                r.IsApprover,
-                r.IsActive,
-                r.Department))
+            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetApproversAsync: Found {Count} approvers", approvers.Count);
         return approvers;
@@ -86,15 +66,7 @@ public class ResourceService : IResourceService
         var resource = await _context.Resources
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new ResourceDto(
-                r.Id,
-                r.Name,
-                r.Email,
-                r.EmployeeNumber,
-                r.Role,
-                r.IsApprover,
-                r.IsActive,
-                r.Department))
+            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (resource == null)

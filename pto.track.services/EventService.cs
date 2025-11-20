@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
@@ -10,11 +12,13 @@ public class EventService : IEventService
 {
     private readonly PtoTrackDbContext _context;
     private readonly ILogger<EventService> _logger;
+    private readonly IMapper _mapper;
 
-    public EventService(PtoTrackDbContext context, ILogger<EventService> logger)
+    public EventService(PtoTrackDbContext context, ILogger<EventService> logger, IMapper mapper)
     {
         _context = context;
         _logger = logger;
+        _mapper = mapper;
     }
 
     /// <inheritdoc />
@@ -24,7 +28,7 @@ public class EventService : IEventService
         var events = await _context.Events
             .AsNoTracking()
             .Where(e => !((e.End <= start) || (e.Start >= end)))
-            .Select(e => new EventDto(e.Id, e.Start, e.End, e.Text, e.Color, e.ResourceId))
+            .ProjectTo<EventDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
         _logger.LogDebug("EventService.GetEventsAsync: Found {Count} events", events.Count);
         return events;
@@ -40,27 +44,20 @@ public class EventService : IEventService
             _logger.LogDebug("EventService.GetEventByIdAsync: Event {Id} not found", id);
             throw new EventNotFoundException(id);
         }
-        return new EventDto(evt.Id, evt.Start, evt.End, evt.Text, evt.Color, evt.ResourceId);
+        return _mapper.Map<EventDto>(evt);
     }
 
     /// <inheritdoc />
     public async Task<EventDto> CreateEventAsync(CreateEventDto dto, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("EventService.CreateEventAsync: Creating event");
-        var entity = new SchedulerEvent
-        {
-            Start = dto.Start,
-            End = dto.End,
-            Text = dto.Text,
-            Color = dto.Color,
-            ResourceId = dto.ResourceId
-        };
+        var entity = _mapper.Map<SchedulerEvent>(dto);
 
         _context.Events.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("EventService.CreateEventAsync: Created event with id={Id}", entity.Id);
 
-        return new EventDto(entity.Id, entity.Start, entity.End, entity.Text, entity.Color, entity.ResourceId);
+        return _mapper.Map<EventDto>(entity);
     }
 
     /// <inheritdoc />
@@ -74,11 +71,7 @@ public class EventService : IEventService
             throw new EventNotFoundException(id);
         }
 
-        existing.Start = dto.Start;
-        existing.End = dto.End;
-        existing.Text = dto.Text;
-        existing.Color = dto.Color;
-        existing.ResourceId = dto.ResourceId;
+        _mapper.Map(dto, existing);
 
         try
         {

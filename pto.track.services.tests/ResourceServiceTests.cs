@@ -13,7 +13,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -36,7 +36,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         // Act & Assert
         await Assert.ThrowsAsync<ResourceNotFoundException>(
@@ -48,7 +48,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -77,7 +77,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
         context.Resources.Add(resource);
@@ -97,7 +97,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -124,7 +124,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resource = new SchedulerResource { Id = 1, Name = "Only Resource" };
         context.Resources.Add(resource);
@@ -143,7 +143,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
         context.Resources.Add(resource);
@@ -170,7 +170,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -198,7 +198,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -220,7 +220,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -249,7 +249,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resources = new[]
         {
@@ -271,7 +271,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resource = new SchedulerResource
         {
@@ -307,7 +307,7 @@ public class ResourceServiceTests : TestBase
     {
         // Arrange
         var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
         var resource = new SchedulerResource
         {
