@@ -16,6 +16,7 @@ public class EventService : IEventService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<EventDto>> GetEventsAsync(DateTime start, DateTime end)
     {
         _logger.LogDebug("EventService.GetEventsAsync: start={Start}, end={End}", start, end);
@@ -28,6 +29,7 @@ public class EventService : IEventService
         return events;
     }
 
+    /// <inheritdoc />
     public async Task<EventDto?> GetEventByIdAsync(Guid id)
     {
         _logger.LogDebug("EventService.GetEventByIdAsync: id={Id}", id);
@@ -40,6 +42,7 @@ public class EventService : IEventService
         return new EventDto(evt.Id, evt.Start, evt.End, evt.Text, evt.Color, evt.ResourceId);
     }
 
+    /// <inheritdoc />
     public async Task<EventDto> CreateEventAsync(CreateEventDto dto)
     {
         _logger.LogDebug("EventService.CreateEventAsync: Creating event");
@@ -59,6 +62,7 @@ public class EventService : IEventService
         return new EventDto(entity.Id, entity.Start, entity.End, entity.Text, entity.Color, entity.ResourceId);
     }
 
+    /// <inheritdoc />
     public async Task<bool> UpdateEventAsync(Guid id, UpdateEventDto dto)
     {
         _logger.LogDebug("EventService.UpdateEventAsync: id={Id}", id);
@@ -92,6 +96,7 @@ public class EventService : IEventService
         }
     }
 
+    /// <inheritdoc />
     public async Task<bool> DeleteEventAsync(Guid id)
     {
         _logger.LogDebug("EventService.DeleteEventAsync: id={Id}", id);

@@ -16,6 +16,7 @@ public class AbsenceService : IAbsenceService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsAsync(DateTime start, DateTime end, AbsenceStatus? status = null)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsAsync: start={Start}, end={End}, status={Status}", start, end, status);
@@ -39,6 +40,7 @@ public class AbsenceService : IAbsenceService
         return absences.Select(MapToDto);
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<AbsenceRequestDto>> GetAbsenceRequestsByEmployeeAsync(int employeeId, DateTime start, DateTime end)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestsByEmployeeAsync: employeeId={EmployeeId}, start={Start}, end={End}", employeeId, start, end);
@@ -53,6 +55,7 @@ public class AbsenceService : IAbsenceService
         return absences.Select(MapToDto);
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<AbsenceRequestDto>> GetPendingAbsenceRequestsAsync()
     {
         _logger.LogDebug("AbsenceService.GetPendingAbsenceRequestsAsync: Fetching pending absences");
@@ -68,6 +71,7 @@ public class AbsenceService : IAbsenceService
         return absences.Select(MapToDto);
     }
 
+    /// <inheritdoc />
     public async Task<AbsenceRequestDto?> GetAbsenceRequestByIdAsync(Guid id)
     {
         _logger.LogDebug("AbsenceService.GetAbsenceRequestByIdAsync: id={Id}", id);
@@ -84,6 +88,7 @@ public class AbsenceService : IAbsenceService
         return absence == null ? null : MapToDto(absence);
     }
 
+    /// <inheritdoc />
     public async Task<AbsenceRequestDto> CreateAbsenceRequestAsync(CreateAbsenceRequestDto dto)
     {
         _logger.LogDebug("AbsenceService.CreateAbsenceRequestAsync: Creating absence for employee {EmployeeId}", dto.EmployeeId);
@@ -109,6 +114,7 @@ public class AbsenceService : IAbsenceService
         return MapToDto(absence);
     }
 
+    /// <inheritdoc />
     public async Task<bool> UpdateAbsenceRequestAsync(Guid id, UpdateAbsenceRequestDto dto)
     {
         _logger.LogDebug("AbsenceService.UpdateAbsenceRequestAsync: id={Id}", id);
@@ -128,6 +134,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<bool> ApproveAbsenceRequestAsync(Guid id, ApproveAbsenceRequestDto dto)
     {
         _logger.LogDebug("AbsenceService.ApproveAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
@@ -148,6 +155,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<bool> RejectAbsenceRequestAsync(Guid id, RejectAbsenceRequestDto dto)
     {
         _logger.LogDebug("AbsenceService.RejectAbsenceRequestAsync: id={Id}, approverId={ApproverId}", id, dto.ApproverId);
@@ -168,6 +176,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<bool> CancelAbsenceRequestAsync(Guid id, int employeeId)
     {
         _logger.LogDebug("AbsenceService.CancelAbsenceRequestAsync: id={Id}, employeeId={EmployeeId}", id, employeeId);
@@ -184,6 +193,7 @@ public class AbsenceService : IAbsenceService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<bool> DeleteAbsenceRequestAsync(Guid id)
     {
         _logger.LogDebug("AbsenceService.DeleteAbsenceRequestAsync: id={Id}", id);

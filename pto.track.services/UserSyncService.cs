@@ -15,6 +15,7 @@ public class UserSyncService : IUserSyncService
         _claimsProvider = claimsProvider;
     }
 
+    /// <inheritdoc />
     public async Task<SchedulerResource?> EnsureCurrentUserExistsAsync()
     {
         if (!_claimsProvider.IsAuthenticated())
@@ -88,6 +89,7 @@ public class UserSyncService : IUserSyncService
         return resource;
     }
 
+    /// <inheritdoc />
     public async Task<int?> GetCurrentUserResourceIdAsync()
     {
         var resource = await EnsureCurrentUserExistsAsync();

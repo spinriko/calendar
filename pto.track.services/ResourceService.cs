@@ -16,6 +16,7 @@ public class ResourceService : IResourceService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<ResourceDto>> GetResourcesAsync()
     {
         _logger.LogDebug("ResourceService.GetResourcesAsync: Fetching all resources");
@@ -35,6 +36,7 @@ public class ResourceService : IResourceService
         return resources;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<ResourceDto>> GetActiveResourcesAsync()
     {
         _logger.LogDebug("ResourceService.GetActiveResourcesAsync: Fetching active resources");
@@ -55,6 +57,7 @@ public class ResourceService : IResourceService
         return resources;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<ResourceDto>> GetApproversAsync()
     {
         _logger.LogDebug("ResourceService.GetApproversAsync: Fetching approvers");
@@ -75,6 +78,7 @@ public class ResourceService : IResourceService
         return approvers;
     }
 
+    /// <inheritdoc />
     public async Task<ResourceDto?> GetResourceByIdAsync(int id)
     {
         _logger.LogDebug("ResourceService.GetResourceByIdAsync: Fetching resource {Id}", id);
