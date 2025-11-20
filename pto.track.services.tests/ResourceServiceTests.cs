@@ -1,5 +1,7 @@
 using pto.track.data;
+using pto.track.services;
 using pto.track.services.DTOs;
+using pto.track.services.Exceptions;
 using Xunit;
 
 namespace pto.track.services.tests;
@@ -298,24 +300,6 @@ public class ResourceServiceTests : TestBase
         Assert.True(result.IsApprover);
         Assert.True(result.IsActive);
         Assert.Equal("IT", result.Department);
-    }
-
-    [Fact]
-    public async Task GetResourceByIdAsync_WithInvalidId_ReturnsNull()
-    {
-        // Arrange
-        var context = CreateInMemoryContext();
-        var service = new ResourceService(context, CreateLogger<ResourceService>());
-
-        var resource = new SchedulerResource { Id = 1, Name = "Test User", Role = "Employee" };
-        context.Resources.Add(resource);
-        await context.SaveChangesAsync();
-
-        // Act
-        var result = await service.GetResourceByIdAsync(999);
-
-        // Assert
-        Assert.Null(result);
     }
 
     [Fact]

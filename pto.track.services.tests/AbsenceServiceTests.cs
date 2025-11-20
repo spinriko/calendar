@@ -966,4 +966,81 @@ public class AbsenceServiceTests : TestBase
         Assert.Equal("January Approved", list[0].Reason);
         Assert.Equal("Approved", list[0].Status);
     }
+
+    [Fact]
+    public async Task GetAbsenceRequestsAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.GetAbsenceRequestsAsync(
+                DateTime.UtcNow.AddDays(-30),
+                DateTime.UtcNow.AddDays(30),
+                null,
+                cts.Token));
+    }
+
+    [Fact]
+    public async Task CreateAbsenceRequestAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test" };
+        context.Resources.Add(employee);
+        await context.SaveChangesAsync();
+
+        var dto = new CreateAbsenceRequestDto(
+            Start: DateTime.UtcNow.AddDays(10),
+            End: DateTime.UtcNow.AddDays(12),
+            Reason: "Test",
+            EmployeeId: 1
+        );
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.CreateAbsenceRequestAsync(dto, cts.Token));
+    }
+
+    [Fact]
+    public async Task ApproveAbsenceRequestAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new AbsenceService(context, CreateLogger<AbsenceService>());
+
+        var employee = new SchedulerResource { Id = 1, Name = "Test" };
+        var approver = new SchedulerResource { Id = 2, Name = "Manager" };
+        context.Resources.AddRange(employee, approver);
+        await context.SaveChangesAsync();
+
+        var absence = new AbsenceRequest
+        {
+            Start = DateTime.UtcNow.AddDays(10),
+            End = DateTime.UtcNow.AddDays(12),
+            Reason = "Test",
+            EmployeeId = 1,
+            Status = AbsenceStatus.Pending,
+            RequestedDate = DateTime.UtcNow
+        };
+        context.AbsenceRequests.Add(absence);
+        await context.SaveChangesAsync();
+
+        var dto = new ApproveAbsenceRequestDto(ApproverId: 2, Comments: "OK");
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.ApproveAbsenceRequestAsync(absence.Id, dto, cts.Token));
+    }
 }

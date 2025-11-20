@@ -55,3 +55,7 @@ Thumbs.db
 # Published output
 /publish
 /publish-standalone
+
+# Coverage reports
+coverage-report/
+coverage.xml

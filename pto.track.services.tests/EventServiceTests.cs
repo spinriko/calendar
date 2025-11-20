@@ -330,4 +330,54 @@ public class EventServiceTests : TestBase
         Assert.Contains(result, e => e.ResourceId == 2);
         Assert.Contains(result, e => e.ResourceId == 3);
     }
+
+    [Fact]
+    public async Task GetEventsAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new EventService(context, CreateLogger<EventService>());
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.GetEventsAsync(
+                DateTime.UtcNow.AddDays(-7),
+                DateTime.UtcNow.AddDays(7),
+                cts.Token));
+    }
+
+    [Fact]
+    public async Task UpdateEventAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new EventService(context, CreateLogger<EventService>());
+
+        var evt = new SchedulerEvent
+        {
+            Start = DateTime.UtcNow,
+            End = DateTime.UtcNow.AddHours(1),
+            Text = "Test",
+            ResourceId = 1
+        };
+        context.Events.Add(evt);
+        await context.SaveChangesAsync();
+
+        var dto = new UpdateEventDto(
+            Start: DateTime.UtcNow.AddHours(2),
+            End: DateTime.UtcNow.AddHours(3),
+            Text: "Updated",
+            Color: null,
+            ResourceId: 1
+        );
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.UpdateEventAsync(evt.Id, dto, cts.Token));
+    }
 }
