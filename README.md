@@ -120,9 +120,20 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - SchedulerResource validation (4 tests)
 - **Dependencies**: xUnit, System.ComponentModel.DataAnnotations
 
-**Total Test Coverage**: 90 passing tests
+#### **pto.track.tests.js** (JavaScript Tests)
+- **Tests**: 41 pure JavaScript tests using QUnit
+- **Coverage**:
+  - Status color mapping (8 tests)
+  - Checkbox filters (4 tests)
+  - URL builder (6 tests)
+  - Role detection (18 tests)
+  - Impersonation (5 tests)
+- **Technology**: QUnit, pure JavaScript (no build tools)
+- **Runs**: Browser-based or headless (CI/CD ready)
 
-See [TESTING.md](TESTING.md) for detailed test documentation.
+**Total Test Coverage**: 131 passing tests (90 C# + 41 JavaScript)
+
+See [TESTING.md](TESTING.md) for C# test documentation and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
 
 ## Getting Started
 

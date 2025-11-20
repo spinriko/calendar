@@ -58,6 +58,7 @@
     </div>
 </div>
 
+<script src="~/js/calendar-functions.js"></script>
 <script>
     const calendar = new DayPilot.Calendar("calendar", {
         viewType: "Resources",
@@ -263,16 +264,6 @@
     });
     datepicker.init();
 
-    function getStatusColor(status) {
-        switch (status) {
-            case "Pending": return "#ffa500cc";
-            case "Approved": return "#6aa84fcc";
-            case "Rejected": return "#cc4125cc";
-            case "Cancelled": return "#999999cc";
-            default: return "#2e78d6cc";
-        }
-    }
-
     const app = {
         elements: {
             previous: document.getElementById("previous"),
@@ -472,10 +463,10 @@
 
                         // Reload current user and refresh data
                         await app.loadCurrentUser();
-                        
+
                         // Reinitialize checkboxes for new role
                         app.initializeCheckboxes();
-                        
+
                         app.loadCalendarData();
                         app.loadDatePickerData();
 
