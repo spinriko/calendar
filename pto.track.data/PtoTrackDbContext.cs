@@ -4,12 +4,30 @@ using pto.track.data;
 
 namespace pto.track.data
 {
+    /// <summary>
+    /// Database context for the PTO tracking application.
+    /// </summary>
     public class PtoTrackDbContext : DbContext
     {
+        /// <summary>
+        /// Gets or sets the collection of scheduled events.
+        /// </summary>
         public DbSet<SchedulerEvent> Events { get; set; }
+
+        /// <summary>
+        /// Gets or sets the collection of resources (employees).
+        /// </summary>
         public DbSet<SchedulerResource> Resources { get; set; }
+
+        /// <summary>
+        /// Gets or sets the collection of absence requests.
+        /// </summary>
         public DbSet<AbsenceRequest> AbsenceRequests { get; set; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PtoTrackDbContext"/> class.
+        /// </summary>
+        /// <param name="options">The options for this context.</param>
         public PtoTrackDbContext(DbContextOptions<PtoTrackDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

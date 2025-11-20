@@ -67,8 +67,10 @@ public class CurrentUserController : ControllerBase
     }
 
     /// <summary>
-    /// Check if current user has a specific role
+    /// Checks if the current authenticated user has a specific role.
     /// </summary>
+    /// <param name="roleName">The name of the role to check.</param>
+    /// <returns>An object indicating whether the user has the specified role.</returns>
     [HttpGet("role/{roleName}")]
     public IActionResult CheckRole(string roleName)
     {
@@ -82,8 +84,10 @@ public class CurrentUserController : ControllerBase
     }
 
     /// <summary>
-    /// Set impersonation role (Mock mode only)
+    /// Sets impersonation role for the current session. Only available in Mock authentication mode for testing purposes.
     /// </summary>
+    /// <param name="request">The impersonation request containing the desired role.</param>
+    /// <returns>Success message if impersonation is set, or error if not in Mock mode.</returns>
     [HttpPost("impersonate")]
     public IActionResult SetImpersonation([FromBody] ImpersonationRequest request)
     {
@@ -111,8 +115,9 @@ public class CurrentUserController : ControllerBase
     }
 
     /// <summary>
-    /// Clear impersonation (Mock mode only)
+    /// Clears the current impersonation settings. Only available in Mock authentication mode.
     /// </summary>
+    /// <returns>Success message indicating impersonation has been cleared.</returns>
     [HttpPost("clearimpersonation")]
     public IActionResult ClearImpersonation()
     {
@@ -121,4 +126,8 @@ public class CurrentUserController : ControllerBase
     }
 }
 
+/// <summary>
+/// Request model for setting user impersonation in Mock authentication mode.
+/// </summary>
+/// <param name="Role">The role to impersonate (Admin, Manager, Approver, or Employee).</param>
 public record ImpersonationRequest(string Role);

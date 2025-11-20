@@ -6,6 +6,9 @@ using pto.track.services.DTOs;
 
 namespace pto.track.Controllers;
 
+/// <summary>
+/// API controller for managing employee absence requests.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 public class AbsencesController : ControllerBase
@@ -15,6 +18,13 @@ public class AbsencesController : ControllerBase
     private readonly IUserClaimsProvider _claimsProvider;
     private readonly IUserSyncService _userSync;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AbsencesController"/> class.
+    /// </summary>
+    /// <param name="absenceService">The absence service.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="claimsProvider">The user claims provider.</param>
+    /// <param name="userSync">The user synchronization service.</param>
     public AbsencesController(
         IAbsenceService absenceService,
         ILogger<AbsencesController> logger,
@@ -27,6 +37,14 @@ public class AbsencesController : ControllerBase
         _userSync = userSync;
     }
 
+    /// <summary>
+    /// Retrieves absence requests based on filter criteria.
+    /// </summary>
+    /// <param name="start">Optional start date for filtering.</param>
+    /// <param name="end">Optional end date for filtering.</param>
+    /// <param name="employeeId">Optional employee ID for filtering.</param>
+    /// <param name="status">Optional status for filtering (Pending, Approved, Rejected, Cancelled).</param>
+    /// <returns>A collection of absence requests matching the criteria.</returns>
     // GET: api/Absences
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetAbsenceRequests(
@@ -64,6 +82,10 @@ public class AbsencesController : ControllerBase
         return BadRequest("Either provide start and end dates, or provide employeeId");
     }
 
+    /// <summary>
+    /// Retrieves all pending absence requests.
+    /// </summary>
+    /// <returns>A collection of pending absence requests.</returns>
     // GET: api/Absences/pending
     [HttpGet("pending")]
     public async Task<ActionResult<IEnumerable<AbsenceRequestDto>>> GetPendingAbsenceRequests()
@@ -74,6 +96,11 @@ public class AbsencesController : ControllerBase
         return Ok(absences);
     }
 
+    /// <summary>
+    /// Retrieves a specific absence request by its ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request.</param>
+    /// <returns>The absence request with the specified ID, or NotFound if it doesn't exist.</returns>
     // GET: api/Absences/5
     [HttpGet("{id}")]
     public async Task<ActionResult<AbsenceRequestDto>> GetAbsenceRequest(Guid id)
@@ -89,6 +116,11 @@ public class AbsencesController : ControllerBase
         return Ok(absence);
     }
 
+    /// <summary>
+    /// Creates a new absence request.
+    /// </summary>
+    /// <param name="dto">The absence request data to create.</param>
+    /// <returns>The created absence request with a location header pointing to the new resource.</returns>
     // POST: api/Absences
     [HttpPost]
     public async Task<ActionResult<AbsenceRequestDto>> PostAbsenceRequest(CreateAbsenceRequestDto dto)
@@ -104,6 +136,12 @@ public class AbsencesController : ControllerBase
         return CreatedAtAction(nameof(GetAbsenceRequest), new { id = created.Id }, created);
     }
 
+    /// <summary>
+    /// Updates an existing absence request. Only the employee who created the request can update it, and only if it's still pending.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request to update.</param>
+    /// <param name="dto">The updated absence request data.</param>
+    /// <returns>NoContent if successful, NotFound if the request doesn't exist, Forbid if the user is not authorized.</returns>
     // PUT: api/Absences/5
     [HttpPut("{id}")]
     public async Task<IActionResult> PutAbsenceRequest(Guid id, UpdateAbsenceRequestDto dto)
@@ -147,6 +185,12 @@ public class AbsencesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Approves an absence request. Only users with Manager, Approver, or Admin roles can approve requests.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request to approve.</param>
+    /// <param name="dto">The approval data including approver ID and optional comments.</param>
+    /// <returns>NoContent if successful, NotFound if the request doesn't exist, Forbid if the user is not authorized.</returns>
     // POST: api/Absences/5/approve
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveAbsenceRequest(Guid id, ApproveAbsenceRequestDto dto)
@@ -184,6 +228,12 @@ public class AbsencesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Rejects an absence request. Only users with Manager, Approver, or Admin roles can reject requests.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request to reject.</param>
+    /// <param name="dto">The rejection data including approver ID and optional comments.</param>
+    /// <returns>NoContent if successful, NotFound if the request doesn't exist, Forbid if the user is not authorized.</returns>
     // POST: api/Absences/5/reject
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectAbsenceRequest(Guid id, RejectAbsenceRequestDto dto)
@@ -221,6 +271,12 @@ public class AbsencesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Cancels an absence request. Only the employee who created the request can cancel it.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request to cancel.</param>
+    /// <param name="employeeId">The ID of the employee cancelling the request.</param>
+    /// <returns>NoContent if successful, NotFound if the request doesn't exist, Forbid if the user is not authorized.</returns>
     // POST: api/Absences/5/cancel
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelAbsenceRequest(Guid id, [FromQuery] int employeeId)
@@ -252,6 +308,11 @@ public class AbsencesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Permanently deletes an absence request from the system.
+    /// </summary>
+    /// <param name="id">The unique identifier of the absence request to delete.</param>
+    /// <returns>NoContent if successful, NotFound if the request doesn't exist.</returns>
     // DELETE: api/Absences/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAbsenceRequest(Guid id)

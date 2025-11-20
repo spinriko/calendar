@@ -4,6 +4,9 @@ using pto.track.services.DTOs;
 
 namespace pto.track.Controllers;
 
+/// <summary>
+/// API controller for managing calendar events.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 public class EventsController(IEventService eventService, ILogger<EventsController> logger) : ControllerBase
@@ -11,6 +14,12 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
     private readonly IEventService _eventService = eventService;
     private readonly ILogger<EventsController> _logger = logger;
 
+    /// <summary>
+    /// Retrieves all events within a specified date range.
+    /// </summary>
+    /// <param name="start">The start date of the range.</param>
+    /// <param name="end">The end date of the range.</param>
+    /// <returns>A collection of events within the specified date range.</returns>
     // GET: api/Events
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EventDto>>> GetSchedulerEvents([FromQuery] DateTime start, [FromQuery] DateTime end)
@@ -21,6 +30,11 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
         return Ok(events);
     }
 
+    /// <summary>
+    /// Retrieves a specific event by its ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the event.</param>
+    /// <returns>The event with the specified ID, or NotFound if it doesn't exist.</returns>
     // GET: api/Events/5
     [HttpGet("{id}")]
     public async Task<ActionResult<EventDto>> GetSchedulerEvent(Guid id)
@@ -36,6 +50,12 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
         return Ok(evt);
     }
 
+    /// <summary>
+    /// Updates an existing event.
+    /// </summary>
+    /// <param name="id">The unique identifier of the event to update.</param>
+    /// <param name="dto">The updated event data.</param>
+    /// <returns>NoContent if successful, NotFound if the event doesn't exist.</returns>
     // PUT: api/Events/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
@@ -58,6 +78,11 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
         return NoContent();
     }
 
+    /// <summary>
+    /// Creates a new event.
+    /// </summary>
+    /// <param name="dto">The event data to create.</param>
+    /// <returns>The created event with a location header pointing to the new resource.</returns>
     // POST: api/Events
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
@@ -75,6 +100,11 @@ public class EventsController(IEventService eventService, ILogger<EventsControll
         return CreatedAtAction(nameof(GetSchedulerEvent), new { id = created.Id }, created);
     }
 
+    /// <summary>
+    /// Deletes an event.
+    /// </summary>
+    /// <param name="id">The unique identifier of the event to delete.</param>
+    /// <returns>NoContent if successful, NotFound if the event doesn't exist.</returns>
     // DELETE: api/Events/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteSchedulerEvent(Guid id)
