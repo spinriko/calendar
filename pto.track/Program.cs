@@ -33,6 +33,20 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Configure static files with no caching in development
+if (app.Environment.IsDevelopment())
+{
+    app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+    {
+        OnPrepareResponse = ctx =>
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
+            ctx.Context.Response.Headers["Pragma"] = "no-cache";
+            ctx.Context.Response.Headers["Expires"] = "-1";
+        }
+    });
+}
+
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

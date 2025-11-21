@@ -295,3 +295,129 @@ function getResourceSelectionMessage(currentEmployeeId, targetResourceId, isMana
 
     return "You can only create absence requests for yourself. Please select your own row in the calendar.";
 }
+
+/**
+ * Builds context menu items for an absence event based on its status and user permissions.
+ * 
+ * This function creates a dynamic menu with actions appropriate for the absence status
+ * and the current user's role:
+ * - All statuses: View Details
+ * - Pending (if owner or admin): Edit Reason, Delete
+ * - Pending (if approver/manager/admin): Approve, Reject
+ * - Cancelled (if owner or admin): Delete
+ * 
+ * Menu items are returned with onClick handlers that should be connected to the appropriate
+ * DayPilot Modal dialogs and HTTP requests in the calling context.
+ * 
+ * @param {Object} absence - The absence data object
+ * @param {string} absence.id - Unique identifier for the absence
+ * @param {string} absence.employeeId - ID of the employee who created the absence
+ * @param {string} absence.employeeName - Full name of the employee
+ * @param {string} absence.reason - Reason for the absence
+ * @param {string} absence.status - Current status (Pending, Approved, Rejected, Cancelled)
+ * @param {string} absence.requestedDate - Date when absence was requested
+ * @param {string} [absence.approverName] - Name of approver (if approved/rejected)
+ * @param {string} [absence.approvedDate] - Date of approval/rejection
+ * @param {string} [absence.approvalComments] - Approver's comments
+ * @param {Object} userContext - The current user's context
+ * @param {string} userContext.currentEmployeeId - ID of current user
+ * @param {boolean} userContext.isAdmin - Whether user is an admin
+ * @param {boolean} userContext.isManager - Whether user is a manager
+ * @param {boolean} userContext.isApprover - Whether user is an approver
+ * @param {Object} event - The DayPilot event object (used for updates)
+ * @returns {Array<Object>} Array of menu items with text and onClick properties
+ * 
+ * @example
+ * const items = buildContextMenuItems(absence, {
+ *     currentEmployeeId: '123',
+ *     isAdmin: false,
+ *     isManager: true,
+ *     isApprover: true
+ * }, event);
+ * const menu = new DayPilot.Menu({ items });
+ * menu.show(event);
+ */
+function buildContextMenuItems(absence, userContext, event) {
+    const items = [];
+    const status = absence.status;
+
+    // Default userContext if not provided (for backward compatibility)
+    const context = userContext || {
+        currentEmployeeId: null,
+        isAdmin: false,
+        isManager: false,
+        isApprover: false
+    };
+
+    // Get current user role information
+    const isAdmin = context.isAdmin;
+    const isManager = context.isManager;
+    const isApprover = context.isApprover;
+    const isOwner = absence.employeeId === context.currentEmployeeId;
+
+    // Managers and Approvers have approval rights
+    const canApprove = isAdmin || isManager || isApprover;
+
+    // Only the owner can edit/delete their own pending requests
+    // Admins can also edit/delete
+    const canEdit = isAdmin || isOwner;
+    const canDelete = isAdmin || isOwner;
+
+    // View Details - always available
+    items.push({
+        text: "View Details",
+        onClick: function () {
+            // This will be implemented in the page context where DayPilot.Modal is available
+            return { action: 'viewDetails', absence };
+        }
+    });
+
+    // Edit - only for pending status AND if user has permission
+    if (status === "Pending" && canEdit) {
+        items.push({
+            text: "Edit Reason",
+            onClick: function () {
+                return { action: 'editReason', absence };
+            }
+        });
+    }
+
+    // Approve/Reject - only for pending status AND if user can approve
+    if (status === "Pending" && canApprove) {
+        if (canEdit) {
+            items.push({ text: "-" }); // Separator only if Edit was shown
+        }
+
+        // Approve - only for pending
+        items.push({
+            text: "Approve",
+            onClick: function () {
+                return { action: 'approve', absence };
+            }
+        });
+
+        // Reject - only for pending
+        items.push({
+            text: "Reject",
+            onClick: function () {
+                return { action: 'reject', absence };
+            }
+        });
+    }
+
+    // Delete - for pending or cancelled AND if user has permission
+    if ((status === "Pending" || status === "Cancelled") && canDelete) {
+        if (canEdit || canApprove) {
+            items.push({ text: "-" }); // Separator only if other actions were shown
+        }
+
+        items.push({
+            text: "Delete",
+            onClick: function () {
+                return { action: 'delete', absence };
+            }
+        });
+    }
+
+    return items;
+}
