@@ -97,7 +97,7 @@ public class CurrentUserController : ControllerBase
             return BadRequest(new { message = "Impersonation is only available in Mock authentication mode" });
         }
 
-        var validRoles = new[] { "Admin", "Manager", "Approver", "Employee" };
+        var validRoles = new[] { "Admin", "Manager", "Approver", "Employee", "Employee2" };
         if (!validRoles.Contains(request.Role, StringComparer.OrdinalIgnoreCase))
         {
             return BadRequest(new { message = $"Invalid role. Must be one of: {string.Join(", ", validRoles)}" });
@@ -129,5 +129,5 @@ public class CurrentUserController : ControllerBase
 /// <summary>
 /// Request model for setting user impersonation in Mock authentication mode.
 /// </summary>
-/// <param name="Role">The role to impersonate (Admin, Manager, Approver, or Employee).</param>
+/// <param name="Role">The role to impersonate (Admin, Manager, Approver, Employee, or Employee2).</param>
 public record ImpersonationRequest(string Role);

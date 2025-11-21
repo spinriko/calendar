@@ -58,50 +58,65 @@ namespace pto.track.data
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
             {
                 Id = 1,
-                Name = "Resource A",
+                Name = "Test Employee",
                 Role = "Employee",
                 IsActive = true,
                 IsApprover = false,
+                EmployeeNumber = "EMP001",
+                Email = "employee@example.com",
+                ActiveDirectoryId = "mock-ad-guid-employee",
                 CreatedDate = seedDate,
                 ModifiedDate = seedDate
             });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
             {
                 Id = 2,
-                Name = "Resource B",
+                Name = "Test Employee 2",
                 Role = "Employee",
                 IsActive = true,
                 IsApprover = false,
+                EmployeeNumber = "EMP002",
+                Email = "employee2@example.com",
+                ActiveDirectoryId = "mock-ad-guid-employee2",
                 CreatedDate = seedDate,
                 ModifiedDate = seedDate
             });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
             {
                 Id = 3,
-                Name = "Resource C",
-                Role = "Employee",
+                Name = "Test Manager",
+                Role = "Manager",
                 IsActive = true,
-                IsApprover = false,
+                IsApprover = true,
+                EmployeeNumber = "MGR001",
+                Email = "manager@example.com",
+                ActiveDirectoryId = "mock-ad-guid-manager",
                 CreatedDate = seedDate,
                 ModifiedDate = seedDate
             });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
             {
                 Id = 4,
-                Name = "Resource D",
-                Role = "Employee",
+                Name = "Test Approver",
+                Role = "Approver",
                 IsActive = true,
-                IsApprover = false,
+                IsApprover = true,
+                EmployeeNumber = "APR001",
+                Email = "approver@example.com",
+                ActiveDirectoryId = "mock-ad-guid-approver",
                 CreatedDate = seedDate,
                 ModifiedDate = seedDate
             });
             modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
             {
                 Id = 5,
-                Name = "Resource E",
-                Role = "Employee",
+                Name = "Admin User",
+                Role = "Admin",
                 IsActive = true,
-                IsApprover = false,
+                IsApprover = true,
+                EmployeeNumber = "ADMIN001",
+                Email = "admin@example.com",
+                ActiveDirectoryId = "mock-ad-guid-admin",
                 CreatedDate = seedDate,
                 ModifiedDate = seedDate
             });

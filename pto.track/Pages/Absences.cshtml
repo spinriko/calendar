@@ -50,7 +50,8 @@
                     <option value="Admin">Admin (All Roles)</option>
                     <option value="Manager">Manager</option>
                     <option value="Approver">Approver</option>
-                    <option value="Employee">Employee</option>
+                    <option value="Employee">Employee 1 (EMP001)</option>
+                    <option value="Employee2">Employee 2 (EMP002)</option>
                 </select>
             </div>
         </div>
@@ -73,7 +74,7 @@
             const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
             const isManager = app.state.isManager || false;
             const isApprover = app.state.currentUser?.isApprover || false;
-            
+
             if (!canCreateAbsenceForResource(app.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover)) {
                 calendar.clearSelection();
                 await DayPilot.Modal.alert("You can only create absence requests for yourself. Please select your own row in the calendar.");
@@ -91,23 +92,32 @@
             }
 
             const absence = {
-                start: args.start,
-                end: args.end,
-                employeeId: args.resource,
+                start: args.start.toString(),
+                end: args.end.toString(),
+                employeeId: parseInt(args.resource, 10),
                 reason: modal.result.reason
             };
 
-            const { data } = await DayPilot.Http.post(`/api/absences`, absence);
+            console.log("Sending absence request:", absence);
 
-            calendar.events.add({
-                start: data.start,
-                end: data.end,
-                id: data.id,
-                text: data.reason,
-                resource: data.employeeId,
-                barColor: getStatusColor(data.status),
-                data: data
-            });
+            try {
+                const { data } = await DayPilot.Http.post(`/api/absences`, absence);
+
+                calendar.events.add({
+                    start: data.start,
+                    end: data.end,
+                    id: data.id,
+                    text: data.reason,
+                    resource: data.employeeId,
+                    barColor: getStatusColor(data.status),
+                    data: data
+                });
+            } catch (error) {
+                console.error("Error creating absence:", error);
+                const errorMsg = error.request?.responseText || error.message || "Unknown error";
+                console.error("Error details:", errorMsg);
+                await DayPilot.Modal.alert(`Failed to create absence: ${errorMsg}`);
+            }
 
         },
         onEventClick: async (args) => {
@@ -311,20 +321,27 @@
             const isManagerOrApprover = this.state.isManager;
             const isEmployee = !isAdmin && !isManagerOrApprover;
 
+            // First, ensure all checkboxes are visible (reset state)
+            this.elements.filterPending.parentElement.style.display = "flex";
+            this.elements.filterApproved.parentElement.style.display = "flex";
+            this.elements.filterRejected.parentElement.style.display = "flex";
+            this.elements.filterCancelled.parentElement.style.display = "flex";
+
             // Hide/show checkboxes based on role
             if (isEmployee) {
-                // Employees can only see their own requests in all states
-                this.elements.filterPending.checked = true;
-                this.elements.filterApproved.checked = false;
+                // Employees can see ALL approved absences, but only their own pending/rejected/cancelled
+                this.elements.filterPending.checked = false;
+                this.elements.filterApproved.checked = true;
                 this.elements.filterRejected.checked = false;
                 this.elements.filterCancelled.checked = false;
-                this.state.selectedStatuses = ["Pending"];
+                this.state.selectedStatuses = ["Approved"];
             } else if (isManagerOrApprover && !isAdmin) {
                 // Managers/Approvers mainly care about Pending (to approve) and Approved (to verify)
                 this.elements.filterPending.checked = true;
                 this.elements.filterApproved.checked = true;
                 this.elements.filterRejected.checked = false;
                 this.elements.filterCancelled.checked = false;
+                // Hide rejected and cancelled for managers/approvers
                 this.elements.filterRejected.parentElement.style.display = "none";
                 this.elements.filterCancelled.parentElement.style.display = "none";
                 this.state.selectedStatuses = ["Pending", "Approved"];
@@ -354,10 +371,17 @@
                     // Show impersonation panel in mock mode
                     if (this.state.isMockMode) {
                         this.elements.impersonationPanel.style.display = "block";
-                        // Set current role in dropdown
-                        const currentRole = response.data.roles?.includes("Admin") ? "Admin" :
-                            response.data.roles?.includes("Manager") ? "Manager" :
-                                response.data.roles?.includes("Approver") ? "Approver" : "Employee";
+                        // Set current role in dropdown - handle Employee2 specially
+                        let currentRole = "Employee";
+                        if (response.data.roles?.includes("Admin")) {
+                            currentRole = "Admin";
+                        } else if (response.data.roles?.includes("Manager")) {
+                            currentRole = "Manager";
+                        } else if (response.data.roles?.includes("Approver")) {
+                            currentRole = "Approver";
+                        } else if (response.data.employeeNumber === "EMP002") {
+                            currentRole = "Employee2";
+                        }
                         this.elements.impersonateRole.value = currentRole;
                     }
 
@@ -383,11 +407,19 @@
                 absencesUrl += `&status[]=${status}`;
             });
             console.log("loadCalendarData - URL:", absencesUrl);
-            
 
-            // For employees, only show their own requests
-            if (!this.state.isManager && !this.state.currentUser?.roles?.includes("Admin")) {
-                absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+            // For employees: Show ALL approved absences, but only their own pending/rejected/cancelled
+            const isEmployee = !this.state.isManager && !this.state.currentUser?.roles?.includes("Admin");
+            if (isEmployee) {
+                // Check if user is viewing ONLY approved absences
+                const onlyApproved = this.state.selectedStatuses.length === 1 && 
+                                    this.state.selectedStatuses[0] === "Approved";
+                
+                // If viewing any non-approved status, filter to employee's own requests
+                if (!onlyApproved) {
+                    absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+                }
+                // If viewing ONLY approved, don't add employeeId filter (show everyone's)
             }
 
             const promiseAbsences = DayPilot.Http.get(absencesUrl);
@@ -427,9 +459,18 @@
                 absencesUrl += `&status[]=${status}`;
             });
 
-            // For employees, only show their own requests
-            if (!this.state.isManager && !this.state.currentUser?.roles?.includes("Admin")) {
-                absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+            // For employees: Show ALL approved absences, but only their own pending/rejected/cancelled
+            const isEmployee = !this.state.isManager && !this.state.currentUser?.roles?.includes("Admin");
+            if (isEmployee) {
+                // Check if user is viewing ONLY approved absences
+                const onlyApproved = this.state.selectedStatuses.length === 1 && 
+                                    this.state.selectedStatuses[0] === "Approved";
+                
+                // If viewing any non-approved status, filter to employee's own requests
+                if (!onlyApproved) {
+                    absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+                }
+                // If viewing ONLY approved, don't add employeeId filter (show everyone's)
             }
 
             const { data } = await DayPilot.Http.get(absencesUrl);
@@ -517,7 +558,7 @@
         if (isAdmin || isManager || isApprover) {
             return true;
         }
-        
+
         // Regular employees can only create absences for themselves
         return currentEmployeeId === targetResourceId;
     }

@@ -40,6 +40,7 @@ public class MockUserClaimsProvider : IUserClaimsProvider
         return role switch
         {
             "Employee" => "EMP001",
+            "Employee2" => "EMP002",
             "Manager" => "MGR001",
             "Approver" => "APR001",
             _ => AdminEmployeeNumber
@@ -52,6 +53,7 @@ public class MockUserClaimsProvider : IUserClaimsProvider
         return role switch
         {
             "Employee" => "employee@example.com",
+            "Employee2" => "employee2@example.com",
             "Manager" => "manager@example.com",
             "Approver" => "approver@example.com",
             _ => AdminEmail
@@ -64,6 +66,7 @@ public class MockUserClaimsProvider : IUserClaimsProvider
         return role switch
         {
             "Employee" => "Test Employee",
+            "Employee2" => "Test Employee 2",
             "Manager" => "Test Manager",
             "Approver" => "Test Approver",
             _ => AdminDisplayName
@@ -76,6 +79,7 @@ public class MockUserClaimsProvider : IUserClaimsProvider
         return role switch
         {
             "Employee" => "mock-ad-guid-employee",
+            "Employee2" => "mock-ad-guid-employee2",
             "Manager" => "mock-ad-guid-manager",
             "Approver" => "mock-ad-guid-approver",
             _ => AdminAdId
@@ -90,6 +94,7 @@ public class MockUserClaimsProvider : IUserClaimsProvider
         return role switch
         {
             "Employee" => new[] { "Employee" },
+            "Employee2" => new[] { "Employee" },
             "Manager" => new[] { "Employee", "Manager" },
             "Approver" => new[] { "Employee", "Approver" },
             _ => new[] { "Employee", "Manager", "Approver", "Admin" } // Admin has all roles

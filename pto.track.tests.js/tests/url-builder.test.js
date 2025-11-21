@@ -13,7 +13,7 @@ QUnit.module('URL Builder', function () {
         assert.ok(url.includes("&status[]=Approved"), "URL should include Approved status with array notation");
     });
 
-    QUnit.test('buildAbsencesUrl adds employeeId for regular employees', function (assert) {
+    QUnit.test('buildAbsencesUrl adds employeeId for regular employees viewing non-approved', function (assert) {
         const url = buildAbsencesUrl(
             "/api/absences?start=2025-11-01&end=2025-11-30",
             ["Pending"],
@@ -22,7 +22,19 @@ QUnit.module('URL Builder', function () {
             5
         );
 
-        assert.ok(url.includes("&employeeId=5"), "URL should include employeeId for non-manager");
+        assert.ok(url.includes("&employeeId=5"), "URL should include employeeId for non-manager viewing Pending");
+    });
+
+    QUnit.test('buildAbsencesUrl does NOT add employeeId for employees viewing only Approved', function (assert) {
+        const url = buildAbsencesUrl(
+            "/api/absences?start=2025-11-01&end=2025-11-30",
+            ["Approved"],
+            false,
+            false,
+            5
+        );
+
+        assert.notOk(url.includes("employeeId"), "URL should NOT include employeeId for employee viewing only Approved");
     });
 
     QUnit.test('buildAbsencesUrl does not add employeeId for managers', function (assert) {

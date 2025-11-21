@@ -64,9 +64,18 @@ function buildAbsencesUrl(baseUrl, selectedStatuses, isManager, isAdmin, current
         url += `&status[]=${status}`;
     });
 
-    // For employees, only show their own requests
-    if (!isManager && !isAdmin) {
-        url += `&employeeId=${currentEmployeeId}`;
+    // Employees have conditional filtering based on status selection
+    const isEmployee = !isManager && !isAdmin;
+    if (isEmployee) {
+        // Check if viewing ONLY approved absences
+        const onlyApproved = selectedStatuses.length === 1 &&
+            selectedStatuses[0] === "Approved";
+
+        // Only filter by employeeId when viewing non-approved statuses
+        // This allows employees to see everyone's approved absences
+        if (!onlyApproved) {
+            url += `&employeeId=${currentEmployeeId}`;
+        }
     }
 
     return url;
