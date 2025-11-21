@@ -1,0 +1,35 @@
+{
+  "recommendations": [
+    // Core Development
+    "github.copilot",
+    "github.copilot-chat",
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-vscode.powershell",
+    // Azure Essentials
+    "ms-azuretools.vscode-azure-github-copilot",
+    "ms-azuretools.azure-dev",
+    "ms-azuretools.vscode-azure-mcp-server",
+    "ms-azuretools.vscode-azureresourcegroups",
+    // GitHub Integration
+    "github.vscode-github-actions"
+  ],
+  "unwantedRecommendations": [
+    // Azure Services (enable only when deploying)
+    "ms-azuretools.vscode-azureappservice",
+    "ms-azuretools.vscode-azurecontainerapps",
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-azuretools.vscode-azurestaticwebapps",
+    "ms-azuretools.vscode-azurestorage",
+    "ms-azuretools.vscode-azurevirtualmachines",
+    "ms-azuretools.vscode-cosmosdb",
+    "ms-vscode.vscode-node-azure-pack",
+    // AI/Testing Tools (enable when needed)
+    "ms-azure-load-testing.microsoft-testing",
+    "ms-windows-ai-studio.windows-ai-studio",
+    "teamsdevapp.vscode-ai-foundry",
+    "formulahendry.dotnet-test-explorer",
+    "hbenl.vscode-test-explorer",
+    "ms-vscode.test-adapter-converter"
+  ]
+}

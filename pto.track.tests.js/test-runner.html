@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>PTO Track - JavaScript Tests</title>
+    <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.20.0.css">
+</head>
+
+<body>
+    <div id="qunit"></div>
+    <div id="qunit-fixture"></div>
+
+    <!-- QUnit -->
+    <script src="https://code.jquery.com/qunit/qunit-2.20.0.js"></script>
+
+    <!-- JUnit XML Reporter -->
+    <script src="junit-reporter.js"></script>
+
+    <!-- Mock DayPilot for testing -->
+    <script src="mock-daypilot.js"></script>
+
+    <!-- Application code (symlinked from production) -->
+    <script src="calendar-functions.js"></script>
+
+    <!-- Test suites -->
+    <script src="tests/status-color.test.js"></script>
+    <script src="tests/checkbox-filters.test.js"></script>
+    <script src="tests/checkbox-visibility.test.js"></script>
+    <script src="tests/url-builder.test.js"></script>
+    <script src="tests/role-detection.test.js"></script>
+    <script src="tests/impersonation.test.js"></script>
+    <script src="tests/employee-restrictions.test.js"></script>
+    <script src="tests/event-presentation.test.js"></script>
+</body>
+
+</html>

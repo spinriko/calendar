@@ -1,0 +1,604 @@
+@page
+@model pto.track.Pages.AbsencesModel
+@{
+    ViewData["Title"] = "Absence Requests";
+}
+
+<script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
+
+<div class="main">
+    <div class="left">
+        <div id="datepicker"></div>
+    </div>
+    <div class="right">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
+            <div class="buttons">
+                <button id="previous">Previous</button>
+                <button id="today">Today</button>
+                <button id="next">Next</button>
+            </div>
+            <div id="statusFilters"
+                style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f5f5f5; border-radius: 4px;">
+                <span style="font-weight: 600; margin-right: 5px;">Show:</span>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterPending" value="Pending" checked
+                        style="width: 16px; height: 16px; accent-color: #ffa500;">
+                    <span>Pending</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterApproved" value="Approved" checked
+                        style="width: 16px; height: 16px; accent-color: #6aa84f;">
+                    <span>Approved</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterRejected" value="Rejected" checked
+                        style="width: 16px; height: 16px; accent-color: #cc4125;">
+                    <span>Rejected</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="filterCancelled" value="Cancelled" checked
+                        style="width: 16px; height: 16px; accent-color: #999999;">
+                    <span>Cancelled</span>
+                </label>
+            </div>
+            <div id="impersonationPanel"
+                style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
+                <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
+                <select id="impersonateRole"
+                    style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
+                    <option value="Admin">Admin (All Roles)</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Approver">Approver</option>
+                    <option value="Employee">Employee 1 (EMP001)</option>
+                    <option value="Employee2">Employee 2 (EMP002)</option>
+                </select>
+            </div>
+        </div>
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<script src="~/js/calendar-functions.js"></script>
+<script>
+    const calendar = new DayPilot.Calendar("calendar", {
+        viewType: "Resources",
+        durationBarVisible: false,
+        eventMoveHandling: "Disabled",
+        eventResizeHandling: "Disabled",
+        cellWidthMin: 50, // Minimum column width to keep readable
+        scrollDelayEvents: 0,
+        scrollX: "Enabled", // Enable horizontal scrolling
+        businessBeginsHour: 8,
+        businessEndsHour: 18,
+        heightSpec: "BusinessHoursNoScroll",
+        onTimeRangeSelected: async (args) => {
+            // Check if employee can create absence for this resource
+            const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
+            const isManager = app.state.isManager || false;
+            const isApprover = app.state.currentUser?.isApprover || false;
+
+            if (!canCreateAbsenceForResource(app.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover)) {
+                calendar.clearSelection();
+                await DayPilot.Modal.alert("You can only create absence requests for yourself. Please select your own row in the calendar.");
+                return;
+            }
+
+            const form = [
+                { name: "Reason", id: "reason", type: "textarea" },
+            ];
+
+            const modal = await DayPilot.Modal.form(form);
+            calendar.clearSelection();
+            if (modal.canceled) {
+                return;
+            }
+
+            const absence = {
+                start: args.start.toString(),
+                end: args.end.toString(),
+                employeeId: parseInt(args.resource, 10),
+                reason: modal.result.reason
+            };
+
+            console.log("Sending absence request:", absence);
+
+            try {
+                const { data } = await DayPilot.Http.post(`/api/absences`, absence);
+
+                calendar.events.add({
+                    start: data.start,
+                    end: data.end,
+                    id: data.id,
+                    text: data.employeeName || data.reason,
+                    resource: data.employeeId,
+                    barColor: getStatusColor(data.status),
+                    data: data
+                });
+            } catch (error) {
+                console.error("Error creating absence:", error);
+                const errorMsg = error.request?.responseText || error.message || "Unknown error";
+                console.error("Error details:", errorMsg);
+                await DayPilot.Modal.alert(`Failed to create absence: ${errorMsg}`);
+            }
+
+        },
+        onEventClick: async (args) => {
+            // Disabled - using context menu instead
+            return;
+        },
+        onBeforeEventRender: args => {
+            const status = args.data.status || args.data.data?.status;
+            args.data.backColor = getStatusColor(status);
+            args.data.borderColor = "darker";
+            args.data.fontColor = "#ffffff";
+
+            // Add ellipsis menu icon
+            args.data.areas = [];
+            args.data.areas.push({
+                right: 2,
+                top: 2,
+                width: 24,
+                height: 24,
+                html: "<div style='color: white; font-weight: bold; font-size: 18px; line-height: 24px; text-align: center; cursor: pointer; padding: 3px;'>⋯</div>",
+                toolTip: "Actions",
+                onClick: async args => {
+                    const e = args.source;
+                    const absence = e.data.data || e.data;
+                    const menu = new DayPilot.Menu({
+                        items: buildContextMenuItems(absence, e)
+                    });
+                    menu.show(e);
+                    args.preventDefault();
+                    args.stopPropagation();
+                    return false;
+                }
+            });
+        },
+        onBeforeHeaderRender: args => {
+            args.header.verticalAlignment = "top";
+        },
+        headerHeight: 60,
+    });
+    calendar.init();
+
+    const datepicker = new DayPilot.Navigator("datepicker", {
+        selectMode: "Day",
+        showMonths: 3,
+        skipMonths: 3,
+        onTimeRangeSelected: args => {
+            calendar.update({
+                startDate: args.start,
+            });
+            app.loadCalendarData();
+        },
+        onVisibleRangeChanged: args => {
+            app.loadDatePickerData();
+        }
+    });
+    datepicker.init();
+
+    const app = {
+        elements: {
+            previous: document.getElementById("previous"),
+            today: document.getElementById("today"),
+            next: document.getElementById("next"),
+            filterPending: document.getElementById("filterPending"),
+            filterApproved: document.getElementById("filterApproved"),
+            filterRejected: document.getElementById("filterRejected"),
+            filterCancelled: document.getElementById("filterCancelled"),
+            impersonationPanel: document.getElementById("impersonationPanel"),
+            impersonateRole: document.getElementById("impersonateRole")
+        },
+        state: {
+            selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
+            currentEmployeeId: null,
+            isManager: false,
+            currentUser: null,
+            isMockMode: false
+        },
+        async init() {
+            // Load current user information
+            await this.loadCurrentUser();
+
+            // Initialize checkboxes based on role
+            this.initializeCheckboxes();
+
+            this.loadCalendarData();
+            this.loadDatePickerData();
+            this.initEventHandlers();
+        },
+        initializeCheckboxes() {
+            // Determine which checkboxes should be available based on role
+            const isAdmin = this.state.currentUser?.roles?.includes("Admin");
+            const isManagerOrApprover = this.state.isManager;
+            const isEmployee = !isAdmin && !isManagerOrApprover;
+
+            // First, ensure all checkboxes are visible (reset state)
+            this.elements.filterPending.parentElement.style.display = "flex";
+            this.elements.filterApproved.parentElement.style.display = "flex";
+            this.elements.filterRejected.parentElement.style.display = "flex";
+            this.elements.filterCancelled.parentElement.style.display = "flex";
+
+            // Hide/show checkboxes based on role
+            if (isEmployee) {
+                // Employees can see ALL approved absences, but only their own pending/rejected/cancelled
+                this.elements.filterPending.checked = false;
+                this.elements.filterApproved.checked = true;
+                this.elements.filterRejected.checked = false;
+                this.elements.filterCancelled.checked = false;
+                this.state.selectedStatuses = ["Approved"];
+            } else if (isManagerOrApprover && !isAdmin) {
+                // Managers/Approvers mainly care about Pending (to approve) and Approved (to verify)
+                this.elements.filterPending.checked = true;
+                this.elements.filterApproved.checked = true;
+                this.elements.filterRejected.checked = false;
+                this.elements.filterCancelled.checked = false;
+                // Hide rejected and cancelled for managers/approvers
+                this.elements.filterRejected.parentElement.style.display = "none";
+                this.elements.filterCancelled.parentElement.style.display = "none";
+                this.state.selectedStatuses = ["Pending", "Approved"];
+            } else if (isAdmin) {
+                // Admins see everything by default
+                this.elements.filterPending.checked = true;
+                this.elements.filterApproved.checked = true;
+                this.elements.filterRejected.checked = true;
+                this.elements.filterCancelled.checked = true;
+                this.state.selectedStatuses = ["Pending", "Approved", "Rejected", "Cancelled"];
+                console.log("initializeCheckboxes - Admin mode, selectedStatuses:", this.state.selectedStatuses);
+            }
+        },
+        async loadCurrentUser() {
+            try {
+                const response = await DayPilot.Http.get("/api/currentuser");
+                if (response.data) {
+                    this.state.currentUser = response.data;
+                    this.state.currentEmployeeId = response.data.id;
+                    this.state.isMockMode = response.data.isMockMode || false;
+                    this.state.isManager = response.data.isApprover ||
+                        response.data.roles?.some(r =>
+                            r.toLowerCase() === 'manager' ||
+                            r.toLowerCase() === 'approver'
+                        );
+
+                    // Show impersonation panel in mock mode
+                    if (this.state.isMockMode) {
+                        this.elements.impersonationPanel.style.display = "block";
+                        // Set current role in dropdown - handle Employee2 specially
+                        let currentRole = "Employee";
+                        if (response.data.roles?.includes("Admin")) {
+                            currentRole = "Admin";
+                        } else if (response.data.roles?.includes("Manager")) {
+                            currentRole = "Manager";
+                        } else if (response.data.roles?.includes("Approver")) {
+                            currentRole = "Approver";
+                        } else if (response.data.employeeNumber === "EMP002") {
+                            currentRole = "Employee2";
+                        }
+                        this.elements.impersonateRole.value = currentRole;
+                    }
+
+                    console.log("Current user:", this.state.currentUser);
+                    console.log("Is manager/approver:", this.state.isManager);
+                    console.log("Mock mode:", this.state.isMockMode);
+                }
+            } catch (error) {
+                console.warn("Could not load current user, using defaults:", error);
+                // Fallback for development without authentication
+                this.state.currentEmployeeId = 1;
+            }
+        },
+        async loadCalendarData() {
+            const start = calendar.visibleStart();
+            const end = calendar.visibleEnd();
+
+            console.log("loadCalendarData - selectedStatuses:", this.state.selectedStatuses);
+            let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+
+            // Add all selected statuses to the query (using array notation for ASP.NET Core)
+            this.state.selectedStatuses.forEach(status => {
+                absencesUrl += `&status[]=${status}`;
+            });
+            console.log("loadCalendarData - URL:", absencesUrl);
+
+            // For employees: Show ALL approved absences, but only their own pending/rejected/cancelled
+            const isEmployee = !this.state.isManager && !this.state.currentUser?.roles?.includes("Admin");
+            if (isEmployee) {
+                // Check if user is viewing ONLY approved absences
+                const onlyApproved = this.state.selectedStatuses.length === 1 &&
+                    this.state.selectedStatuses[0] === "Approved";
+
+                // If viewing any non-approved status, filter to employee's own requests
+                if (!onlyApproved) {
+                    absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+                }
+                // If viewing ONLY approved, don't add employeeId filter (show everyone's)
+            }
+
+            const promiseAbsences = DayPilot.Http.get(absencesUrl);
+            const promiseResources = DayPilot.Http.get("/api/resources");
+
+            const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
+
+            console.log("loadCalendarData - API returned", absences.length, "absences");
+            console.log("loadCalendarData - Absence statuses:", absences.map(a => a.status));
+
+            // Map absences to calendar events
+            const events = absences.map(a => ({
+                id: a.id,
+                start: a.start,
+                end: a.end,
+                text: a.employeeName || a.reason,
+                resource: a.employeeId,
+                barColor: getStatusColor(a.status),
+                data: a
+            }));
+
+            console.log("loadCalendarData - Updating calendar with", events.length, "events");
+
+            calendar.update({
+                columns,
+                events
+            });
+        },
+        async loadDatePickerData() {
+            const start = datepicker.visibleStart();
+            const end = datepicker.visibleEnd();
+
+            let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+
+            // Add all selected statuses to the query (using array notation for ASP.NET Core)
+            this.state.selectedStatuses.forEach(status => {
+                absencesUrl += `&status[]=${status}`;
+            });
+
+            // For employees: Show ALL approved absences, but only their own pending/rejected/cancelled
+            const isEmployee = !this.state.isManager && !this.state.currentUser?.roles?.includes("Admin");
+            if (isEmployee) {
+                // Check if user is viewing ONLY approved absences
+                const onlyApproved = this.state.selectedStatuses.length === 1 &&
+                    this.state.selectedStatuses[0] === "Approved";
+
+                // If viewing any non-approved status, filter to employee's own requests
+                if (!onlyApproved) {
+                    absencesUrl += `&employeeId=${this.state.currentEmployeeId}`;
+                }
+                // If viewing ONLY approved, don't add employeeId filter (show everyone's)
+            }
+
+            const { data } = await DayPilot.Http.get(absencesUrl);
+
+            const events = data.map(a => ({
+                start: a.start,
+                end: a.end,
+                text: a.reason,
+                barColor: getStatusColor(a.status)
+            }));
+
+            datepicker.update({ events });
+        },
+        addHandlers() {
+            app.elements.previous.addEventListener("click", () => {
+                const current = datepicker.selectionDay;
+                datepicker.select(current.addDays(-1));
+            });
+            app.elements.next.addEventListener("click", () => {
+                const current = datepicker.selectionDay;
+                datepicker.select(current.addDays(1));
+            });
+            app.elements.today.addEventListener("click", () => {
+                datepicker.select(DayPilot.Date.today());
+            });
+
+            // Checkbox filter handlers
+            const updateFilters = () => {
+                console.log("[updateFilters] Checkbox states:", {
+                    pending: app.elements.filterPending.checked,
+                    approved: app.elements.filterApproved.checked,
+                    rejected: app.elements.filterRejected.checked,
+                    cancelled: app.elements.filterCancelled.checked
+                });
+                app.state.selectedStatuses = [];
+                if (app.elements.filterPending.checked) app.state.selectedStatuses.push("Pending");
+                if (app.elements.filterApproved.checked) app.state.selectedStatuses.push("Approved");
+                if (app.elements.filterRejected.checked) app.state.selectedStatuses.push("Rejected");
+                if (app.elements.filterCancelled.checked) app.state.selectedStatuses.push("Cancelled");
+                console.log("[updateFilters] selectedStatuses:", app.state.selectedStatuses);
+
+                app.loadCalendarData();
+                app.loadDatePickerData();
+            };
+
+            app.elements.filterPending.addEventListener("change", updateFilters);
+            app.elements.filterApproved.addEventListener("change", updateFilters);
+            app.elements.filterRejected.addEventListener("change", updateFilters);
+            app.elements.filterCancelled.addEventListener("change", updateFilters);
+
+            // Impersonation handler
+            if (app.elements.impersonateRole) {
+                app.elements.impersonateRole.addEventListener("change", async (e) => {
+                    const role = e.target.value;
+                    try {
+                        await DayPilot.Http.post("/api/currentuser/impersonate", { role });
+                        console.log(`Impersonating ${role}, reloading user...`);
+
+                        // Reload current user and refresh data
+                        await app.loadCurrentUser();
+
+                        // Reinitialize checkboxes for new role
+                        app.initializeCheckboxes();
+
+                        app.loadCalendarData();
+                        app.loadDatePickerData();
+
+                        // Show notification
+                        const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
+                    } catch (error) {
+                        console.error("Error setting impersonation:", error);
+                        await DayPilot.Modal.alert("Failed to change impersonation");
+                    }
+                });
+            }
+        },
+        initEventHandlers() {
+            this.addHandlers();
+        }
+    };
+
+    // Helper function to check if user can create absence for a resource
+    function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
+        // Admins, Managers, and Approvers can create absences for anyone
+        if (isAdmin || isManager || isApprover) {
+            return true;
+        }
+
+        // Regular employees can only create absences for themselves
+        return currentEmployeeId === targetResourceId;
+    }
+
+    // Helper function to build context menu items based on absence status
+    function buildContextMenuItems(absence, event) {
+        const items = [];
+        const status = absence.status;
+
+        // Get current user role information
+        const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
+        const isManager = app.state.isManager || false;
+        const isApprover = app.state.currentUser?.isApprover || false;
+        const isOwner = absence.employeeId === app.state.currentEmployeeId;
+
+        // Managers and Approvers have approval rights
+        const canApprove = isAdmin || isManager || isApprover;
+
+        // Only the owner can edit/delete their own pending requests
+        // Admins can also edit/delete
+        const canEdit = isAdmin || isOwner;
+        const canDelete = isAdmin || isOwner;
+
+        // View Details - always available
+        items.push({
+            text: "View Details",
+            onClick: async () => {
+                const form = [
+                    { name: "Employee", id: "employeeName", disabled: true },
+                    { name: "Reason", id: "reason", type: "textarea", disabled: true },
+                    { name: "Status", id: "status", disabled: true },
+                    { name: "Requested", id: "requestedDate", type: "date", disabled: true },
+                ];
+
+                if (absence.approverName) {
+                    form.push({ name: "Approver", id: "approverName", disabled: true });
+                    form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
+                }
+
+                if (absence.approvalComments) {
+                    form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
+                }
+
+                const formData = {
+                    employeeName: absence.employeeName,
+                    reason: absence.reason,
+                    status: absence.status,
+                    requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
+                    approverName: absence.approverName,
+                    approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
+                    approvalComments: absence.approvalComments
+                };
+
+                await DayPilot.Modal.form(form, formData);
+            }
+        });
+
+        // Edit - only for pending status AND if user has permission
+        if (status === "Pending" && canEdit) {
+            items.push({
+                text: "Edit Reason",
+                onClick: async () => {
+                    const form = [
+                        { name: "Reason", id: "reason", type: "textarea" },
+                    ];
+
+                    const formData = { reason: absence.reason };
+                    const modal = await DayPilot.Modal.form(form, formData);
+
+                    if (!modal.canceled) {
+                        const updateData = {
+                            start: absence.start,
+                            end: absence.end,
+                            reason: modal.result.reason
+                        };
+
+                        await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
+                        absence.reason = modal.result.reason;
+                        calendar.events.update(event);
+                        app.loadCalendarData();
+                    }
+                }
+            });
+        }
+
+        // Approve/Reject - only for pending status AND if user can approve
+        if (status === "Pending" && canApprove) {
+            if (canEdit) {
+                items.push({ text: "-" }); // Separator only if Edit was shown
+            }
+
+            // Approve - only for pending
+            items.push({
+                text: "Approve",
+                onClick: async () => {
+                    const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
+                    if (!modal.canceled) {
+                        const approvalData = {
+                            approverId: app.state.currentEmployeeId,
+                            comments: modal.result
+                        };
+
+                        await DayPilot.Http.post(`/api/absences/${absence.id}/approve`, approvalData);
+                        app.loadCalendarData();
+                    }
+                }
+            });
+
+            // Reject - only for pending
+            items.push({
+                text: "Reject",
+                onClick: async () => {
+                    const modal = await DayPilot.Modal.prompt("Rejection reason:");
+                    if (!modal.canceled && modal.result) {
+                        const rejectionData = {
+                            approverId: app.state.currentEmployeeId,
+                            reason: modal.result
+                        };
+
+                        await DayPilot.Http.post(`/api/absences/${absence.id}/reject`, rejectionData);
+                        app.loadCalendarData();
+                    }
+                }
+            });
+        }
+
+        // Delete - for pending or cancelled AND if user has permission
+        if ((status === "Pending" || status === "Cancelled") && canDelete) {
+            if (canEdit || canApprove) {
+                items.push({ text: "-" }); // Separator only if other actions were shown
+            }
+
+            items.push({
+                text: "Delete",
+                onClick: async () => {
+                    const modal = await DayPilot.Modal.confirm("Delete this absence request?");
+                    if (!modal.canceled) {
+                        await DayPilot.Http.delete(`/api/absences/${absence.id}`);
+                        calendar.events.remove(event);
+                    }
+                }
+            });
+        }
+
+        return items;
+    }
+
+    app.init();
+
+</script>

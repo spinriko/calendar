@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Save Test Results</title>
+</head>
+
+<body>
+    <div id="output"></div>
+    <script>
+        // This page runs after tests and outputs just the XML
+        if (window.opener && window.opener.getTestResultsXML) {
+            const xml = window.opener.getTestResultsXML();
+            document.getElementById('output').textContent = xml;
+            console.log(xml);
+        }
+    </script>
+</body>
+
+</html>
