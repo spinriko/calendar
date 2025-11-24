@@ -60,7 +60,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(absenceId, dto), Times.Once);
+        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<ForbidResult>(result);
-        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<ApproveAbsenceRequestDto>()), Times.Never);
+        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<ApproveAbsenceRequestDto>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class AbsencesAuthorizationTests
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Approver ID must match the authenticated user", badRequestResult.Value);
-        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<ApproveAbsenceRequestDto>()), Times.Never);
+        _mockAbsenceService.Verify(x => x.ApproveAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<ApproveAbsenceRequestDto>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -193,7 +193,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<ForbidResult>(result);
-        _mockAbsenceService.Verify(x => x.RejectAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<RejectAbsenceRequestDto>()), Times.Never);
+        _mockAbsenceService.Verify(x => x.RejectAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<RejectAbsenceRequestDto>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public class AbsencesAuthorizationTests
         );
 
         _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
-        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
+        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId, It.IsAny<CancellationToken>())).ReturnsAsync(existingRequest);
         _mockAbsenceService.Setup(x => x.UpdateAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>())).ReturnsAsync(Result.SuccessResult());
 
         // Act
@@ -255,7 +255,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockAbsenceService.Verify(x => x.UpdateAbsenceRequestAsync(absenceId, dto), Times.Once);
+        _mockAbsenceService.Verify(x => x.UpdateAbsenceRequestAsync(absenceId, dto, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -285,14 +285,14 @@ public class AbsencesAuthorizationTests
         );
 
         _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
-        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
+        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId, It.IsAny<CancellationToken>())).ReturnsAsync(existingRequest);
 
         // Act
         var result = await controller.PutAbsenceRequest(absenceId, dto);
 
         // Assert
         Assert.IsType<ForbidResult>(result);
-        _mockAbsenceService.Verify(x => x.UpdateAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<UpdateAbsenceRequestDto>()), Times.Never);
+        _mockAbsenceService.Verify(x => x.UpdateAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<UpdateAbsenceRequestDto>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public class AbsencesAuthorizationTests
         var dto = new UpdateAbsenceRequestDto(startDate, startDate.AddDays(2), "Test");
 
         _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(5);
-        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync((AbsenceRequestDto?)null);
+        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId, It.IsAny<CancellationToken>())).ReturnsAsync((AbsenceRequestDto?)null);
 
         // Act
         var result = await controller.PutAbsenceRequest(absenceId, dto);
@@ -354,7 +354,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<NoContentResult>(result);
-        _mockAbsenceService.Verify(x => x.CancelAbsenceRequestAsync(absenceId, employeeId), Times.Once);
+        _mockAbsenceService.Verify(x => x.CancelAbsenceRequestAsync(absenceId, employeeId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -373,7 +373,7 @@ public class AbsencesAuthorizationTests
 
         // Assert
         Assert.IsType<ForbidResult>(result);
-        _mockAbsenceService.Verify(x => x.CancelAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<int>()), Times.Never);
+        _mockAbsenceService.Verify(x => x.CancelAbsenceRequestAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -449,7 +449,7 @@ public class AbsencesAuthorizationTests
         );
 
         _mockUserSync.Setup(x => x.GetCurrentUserResourceIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(currentUserId);
-        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId)).ReturnsAsync(existingRequest);
+        _mockAbsenceService.Setup(x => x.GetAbsenceRequestByIdAsync(absenceId, It.IsAny<CancellationToken>())).ReturnsAsync(existingRequest);
 
         // Act
         await controller.PutAbsenceRequest(absenceId, dto);
