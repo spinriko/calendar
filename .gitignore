@@ -53,8 +53,8 @@ Thumbs.db
 /**/obj
 
 # Published output
-!publish/
-!publish-standalone/
+publish/
+publish-standalone/
 
 # Coverage reports
 coverage-report/
