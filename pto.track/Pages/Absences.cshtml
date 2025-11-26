@@ -318,10 +318,10 @@
             const promiseAbsences = DayPilot.Http.get(absencesUrl);
             const promiseResources = DayPilot.Http.get("/api/resources");
 
-            const [{ data: columns }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
+            const [resourcesResponse, absencesResponse] = await Promise.all([promiseResources, promiseAbsences]);
 
-            console.log("loadCalendarData - API returned", absences.length, "absences");
-            console.log("loadCalendarData - Absence statuses:", absences.map(a => a.status));
+            const columns = resourcesResponse.data;
+            const absences = absencesResponse.data;
 
             // Map absences to calendar events
             const events = absences.map(a => ({
@@ -333,8 +333,6 @@
                 barColor: getStatusColor(a.status),
                 data: a
             }));
-
-            console.log("loadCalendarData - Updating calendar with", events.length, "events");
 
             calendar.update({
                 columns,
