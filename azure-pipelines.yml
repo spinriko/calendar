@@ -13,6 +13,7 @@ variables:
   rewritePath: 'c:\inet\pto.track\web.config'
   serviceName: 'PTO Track Service'
   serviceAccount: 'NT AUTHORITY\NetworkService' # Change as needed
+  servicePassword: $(servicePassword) # Mark as secret in Azure DevOps
   serviceEnvVars: '' # Add environment variables as needed, e.g. "ASPNETCORE_ENVIRONMENT=Production;CUSTOM_VAR=value"
 
 pool:
@@ -96,31 +97,36 @@ stages:
     jobs:
       - job: Deploy
         steps:
-          - powershell: |
-            $exePath = Join-Path "$(deployFolder)" "pto.track.exe"
-            $svcName = "$(serviceName)"
-            $svcAccount = "$(serviceAccount)"
-            $envVars = "$(serviceEnvVars)"
-            if (Get-Service -Name $svcName -ErrorAction SilentlyContinue) {
-              Write-Host "Service $svcName exists. Stopping and removing..."
-              Stop-Service -Name $svcName -Force
-              sc.exe delete "$svcName"
-            }
-            Write-Host "Creating service $svcName..."
-            $createCmd = "sc.exe create `"$svcName`" binPath= `"$exePath`" obj= `"$svcAccount`""
-            Invoke-Expression $createCmd
-            if ($envVars -ne '') {
-              Write-Host "Setting environment variables for service..."
-              $envVars.Split(';') | ForEach-Object {
-                $pair = $_.Split('=')
-                if ($pair.Length -eq 2) {
-                  [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Machine')
+            - powershell: |
+              $exePath = Join-Path "$(deployFolder)" "pto.track.exe"
+              $svcName = "$(serviceName)"
+              $svcAccount = "$(serviceAccount)"
+              $svcPassword = "$(servicePassword)"
+              $envVars = "$(serviceEnvVars)"
+              if (Get-Service -Name $svcName -ErrorAction SilentlyContinue) {
+                Write-Host "Service $svcName exists. Stopping and removing..."
+                Stop-Service -Name $svcName -Force
+                sc.exe delete "$svcName"
+              }
+              Write-Host "Creating service $svcName..."
+              if ($svcAccount -ne 'NT AUTHORITY\NetworkService' -and $svcPassword -ne '') {
+                $createCmd = "sc.exe create `"$svcName`" binPath= `"$exePath`" obj= `"$svcAccount`" password= `"$svcPassword`""
+              } else {
+                $createCmd = "sc.exe create `"$svcName`" binPath= `"$exePath`" obj= `"$svcAccount`""
+              }
+              Invoke-Expression $createCmd
+              if ($envVars -ne '') {
+                Write-Host "Setting environment variables for service..."
+                $envVars.Split(';') | ForEach-Object {
+                  $pair = $_.Split('=')
+                  if ($pair.Length -eq 2) {
+                    [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Machine')
+                  }
                 }
               }
-            }
-            Start-Service -Name $svcName
-          displayName: 'Create and Start Windows Service'
-          failOnStderr: true
+              Start-Service -Name $svcName
+            displayName: 'Create and Start Windows Service'
+            failOnStderr: true
           - powershell: |
               # Check for IIS installation
               $iisFeature = Get-WindowsFeature -Name Web-Server
