@@ -13,7 +13,7 @@ variables:
   rewritePath: 'c:\inet\pto.track\web.config'
 
 pool:
-  vmImage: 'windows-latest'
+  name: Default
 
 stages:
   - stage: Build
@@ -69,6 +69,15 @@ stages:
     jobs:
       - job: Deploy
         steps:
+          - powershell: |
+              # Check for IIS installation
+              $iisFeature = Get-WindowsFeature -Name Web-Server
+              if (-not $iisFeature.Installed) {
+                  Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
+                  exit 1
+              }
+            displayName: 'Check IIS Installation'
+            failOnStderr: true
           - task: CopyFiles@2
             inputs:
               SourceFolder: '$(deployFolder)'
