@@ -18,7 +18,7 @@ public class UserSyncService : IUserSyncService
     }
 
     /// <inheritdoc />
-    public async Task<SchedulerResource?> EnsureCurrentUserExistsAsync(CancellationToken cancellationToken = default)
+    public async Task<Resource?> EnsureCurrentUserExistsAsync(CancellationToken cancellationToken = default)
     {
         if (!_claimsProvider.IsAuthenticated())
         {
@@ -35,7 +35,7 @@ public class UserSyncService : IUserSyncService
         }
 
         // Try to find existing user by Email, AD ID, or Employee Number
-        SchedulerResource? resource = null;
+        Resource? resource = null;
 
         if (!string.IsNullOrEmpty(email))
         {
@@ -58,7 +58,7 @@ public class UserSyncService : IUserSyncService
         if (resource == null)
         {
             // Create new user
-            resource = new SchedulerResource
+            resource = new Resource
             {
                 Name = displayName,
                 Email = email,
@@ -68,7 +68,9 @@ public class UserSyncService : IUserSyncService
                 IsApprover = roles.Contains("Approver", StringComparer.OrdinalIgnoreCase)
                     || roles.Contains("Manager", StringComparer.OrdinalIgnoreCase),
                 IsActive = true,
-                LastSyncDate = DateTime.UtcNow
+                LastSyncDate = DateTime.UtcNow,
+                CreatedDate = DateTime.UtcNow,
+                ModifiedDate = DateTime.UtcNow
             };
 
             _context.Resources.Add(resource);

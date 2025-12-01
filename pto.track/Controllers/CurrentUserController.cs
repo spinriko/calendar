@@ -34,36 +34,45 @@ public class CurrentUserController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetCurrentUser()
     {
-        if (!_claimsProvider.IsAuthenticated())
+        try
         {
-            return Unauthorized(new { message = "User is not authenticated" });
+            if (!_claimsProvider.IsAuthenticated())
+            {
+                return Unauthorized(new { message = "User is not authenticated" });
+            }
+
+            // Ensure user exists in database and get their resource record
+            var resource = await _userSync.EnsureCurrentUserExistsAsync();
+
+            if (resource == null)
+            {
+                return Problem("Unable to retrieve or create user record");
+            }
+
+            // Check if running in Mock mode
+            var authMode = _configuration["Authentication:Mode"];
+            var isMockMode = string.Equals(authMode, "Mock", StringComparison.OrdinalIgnoreCase);
+
+            return Ok(new
+            {
+                id = resource.Id,
+                name = resource.Name,
+                email = resource.Email,
+                employeeNumber = resource.EmployeeNumber,
+                role = resource.Role,
+                isApprover = resource.IsApprover,
+                isActive = resource.IsActive,
+                department = resource.Department,
+                roles = _claimsProvider.GetRoles(),
+                isMockMode = isMockMode
+            });
         }
-
-        // Ensure user exists in database and get their resource record
-        var resource = await _userSync.EnsureCurrentUserExistsAsync();
-
-        if (resource == null)
+        catch (Exception ex)
         {
-            return Problem("Unable to retrieve or create user record");
+            // Log the error for diagnostics
+            Console.Error.WriteLine($"GetCurrentUser error: {ex}");
+            return StatusCode(500, new { message = "Internal server error", error = ex.Message, stack = ex.StackTrace });
         }
-
-        // Check if running in Mock mode
-        var authMode = _configuration["Authentication:Mode"];
-        var isMockMode = string.Equals(authMode, "Mock", StringComparison.OrdinalIgnoreCase);
-
-        return Ok(new
-        {
-            id = resource.Id,
-            name = resource.Name,
-            email = resource.Email,
-            employeeNumber = resource.EmployeeNumber,
-            role = resource.Role,
-            isApprover = resource.IsApprover,
-            isActive = resource.IsActive,
-            department = resource.Department,
-            roles = _claimsProvider.GetRoles(),
-            isMockMode = isMockMode
-        });
     }
 
     /// <summary>

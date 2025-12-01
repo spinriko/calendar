@@ -3,16 +3,41 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Xunit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace pto.track.tests;
 
-public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
+public class ImpersonationTests : TestBase, IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
     public ImpersonationTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("environment", "Testing");
+            builder.ConfigureServices(services =>
+            {
+                // Remove any existing DbContextOptions registration
+                var dbContextDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(pto.track.data.PtoTrackDbContext));
+                if (dbContextDescriptor != null)
+                {
+                    services.Remove(dbContextDescriptor);
+                }
+                // Register in-memory provider for PtoTrackDbContext
+                services.AddDbContext<pto.track.data.PtoTrackDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase("TestDb");
+                });
+                // Register IHttpContextAccessor for MockUserClaimsProvider
+                services.AddHttpContextAccessor();
+                // Register MockUserClaimsProvider for IUserClaimsProvider
+                services.AddScoped<pto.track.services.Authentication.IUserClaimsProvider, pto.track.services.Authentication.MockUserClaimsProvider>();
+                // Register IUnitOfWork for UserSyncService
+                services.AddScoped<pto.track.services.IUnitOfWork, pto.track.services.UnitOfWork>();
+            });
+        });
     }
 
     [Fact]
@@ -180,9 +205,12 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Act
         var response = await client.GetAsync("/api/currentuser");
-
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            throw new Exception($"API returned {response.StatusCode}: {errorBody}");
+        }
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var user = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
         Assert.NotNull(user);
         Assert.Equal("EMP001", user["employeeNumber"].ToString());
@@ -213,14 +241,20 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Act
         var response = await client.GetAsync("/api/currentuser");
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"API returned {response.StatusCode}: {errorBody}");
+            throw new Exception($"API returned {response.StatusCode}: {errorBody}");
+        }
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var user = await response.Content.ReadFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>();
         Assert.NotNull(user);
         Assert.Equal("MGR001", user["employeeNumber"].GetString());
         Assert.Equal("manager@example.com", user["email"].GetString());
         Assert.Equal("Manager", user["role"].GetString());
+        Assert.True(user["isApprover"].GetBoolean());
         Assert.True(user["isApprover"].GetBoolean());
     }
 
