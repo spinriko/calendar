@@ -1,0 +1,137 @@
+# Azure Pipeline for PTO Track
+
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  serverName: 'YOUR_SERVER_NAME'
+  deployFolder: 'c:\inet\pto.track'
+  forwardedHttpUrl: 'http://localhost:5139'
+  forwardedHttpsUrl: 'https://localhost:7241'
+  rewritePath: 'c:\inet\pto.track\web.config'
+
+pool:
+  name: Default
+
+stages:
+  - stage: Build
+    displayName: 'Build Solution'
+    jobs:
+      - job: Build
+        steps:
+          - powershell: |
+              $sdk = dotnet --list-sdks
+              if ($sdk -notmatch '9.0') {
+                  Write-Host 'Required .NET SDK 9.0 is not installed. Attempting installation...'
+                  Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/thank-you/sdk-9.0.100-windows-x64-installer" -OutFile "dotnet-sdk-9.0.100-win-x64.exe"
+                  Start-Process -FilePath "dotnet-sdk-9.0.100-win-x64.exe" -ArgumentList "/quiet" -Wait
+                  Remove-Item "dotnet-sdk-9.0.100-win-x64.exe"
+                  $sdk = dotnet --list-sdks
+                  if ($sdk -notmatch '9.0') {
+                      Write-Error 'Failed to install .NET SDK 9.0.'
+                      exit 1
+                  }
+              }
+            displayName: 'Ensure .NET SDK 9.0 Installed'
+            failOnStderr: true
+          - powershell: |
+              $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
+              if (-not $efTool) {
+                  Write-Host 'dotnet-ef tool is not installed globally. Attempting installation...'
+                  dotnet tool install -g dotnet-ef
+                  $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
+                  if (-not $efTool) {
+                      Write-Error 'Failed to install dotnet-ef tool.'
+                      exit 1
+                  }
+              }
+            displayName: 'Ensure dotnet-ef Tool Installed'
+            failOnStderr: true
+          - script: dotnet restore
+            displayName: 'Restore NuGet Packages'
+          - script: dotnet build pto.track/pto.track.csproj --configuration Release
+            displayName: 'Build Project'
+
+  - stage: Test
+    displayName: 'Run Tests and Coverage'
+    dependsOn: Build
+    jobs:
+      - job: Test
+        steps:
+          - script: dotnet test **/*.tests.csproj --configuration Release --collect:"XPlat Code Coverage"
+            displayName: 'Run .NET Tests with Coverage (All Projects)'
+          - script: pwsh ./pto.track.tests.js/run-headless.ps1
+            displayName: 'Run QUnit JavaScript Tests'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: '**/TestResults/*.trx'
+              testRunTitle: 'C# Test Results'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.cobertura.xml'
+              reportDirectory: '$(System.DefaultWorkingDirectory)/**/TestResults/'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track.tests.js/save-results.html'
+              artifactName: 'JavaScriptTestReport'
+
+  - stage: Publish
+    displayName: 'Publish Standalone App'
+    dependsOn: Test
+    jobs:
+      - job: Publish
+        steps:
+          - script: dotnet publish pto.track/pto.track.csproj -c Release -o $(deployFolder) --self-contained -r win-x64
+            displayName: 'Publish Standalone Application'
+
+  - stage: Deploy
+    displayName: 'Deploy to IIS Server'
+    dependsOn: Publish
+    jobs:
+      - job: Deploy
+        steps:
+          - powershell: |
+              # Check for IIS installation
+              $iisFeature = Get-WindowsFeature -Name Web-Server
+              if (-not $iisFeature.Installed) {
+                  Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
+                  exit 1
+              }
+            displayName: 'Check IIS Installation'
+            failOnStderr: true
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(deployFolder)'
+              Contents: '**'
+              TargetFolder: '\\$(serverName)\$(deployFolder)'
+          - powershell: |
+              # Update IIS rewrite rules
+              $webConfig = "$(rewritePath)"
+              [xml]$config = Get-Content $webConfig
+              $rules = $config.configuration.'system.webServer'.rewrite.rules
+              # Remove existing rules (optional)
+              $rules.Clear()
+              # Add HTTP rule
+              $httpRule = $rules.CreateElement('rule')
+              $httpRule.SetAttribute('name', 'Forward HTTP')
+              $httpRule.SetAttribute('stopProcessing', 'true')
+              $httpAction = $httpRule.CreateElement('action')
+              $httpAction.SetAttribute('type', 'Rewrite')
+              $httpAction.SetAttribute('url', '$(forwardedHttpUrl)')
+              $httpRule.AppendChild($httpAction)
+              $rules.AppendChild($httpRule)
+              # Add HTTPS rule
+              $httpsRule = $rules.CreateElement('rule')
+              $httpsRule.SetAttribute('name', 'Forward HTTPS')
+              $httpsRule.SetAttribute('stopProcessing', 'true')
+              $httpsAction = $httpsRule.CreateElement('action')
+              $httpsAction.SetAttribute('type', 'Rewrite')
+              $httpsAction.SetAttribute('url', '$(forwardedHttpsUrl)')
+              $httpsRule.AppendChild($httpsAction)
+              $rules.AppendChild($httpsRule)
+              $config.Save($webConfig)
+            displayName: 'Update IIS Rewrite Rules'
+            failOnStderr: true
