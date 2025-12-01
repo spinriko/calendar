@@ -20,7 +20,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var requests = new List<AbsenceRequest>
@@ -51,7 +51,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var requests = new List<AbsenceRequest>
@@ -84,8 +84,8 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee1 = new SchedulerResource { Id = 1, Name = "Employee 1" };
-        var employee2 = new SchedulerResource { Id = 2, Name = "Employee 2" };
+        var employee1 = new Resource { Id = 1, Name = "Employee 1", GroupId = 1 };
+        var employee2 = new Resource { Id = 2, Name = "Employee 2", GroupId = 1 };
         context.Resources.AddRange(employee1, employee2);
 
         var requests = new List<AbsenceRequest>
@@ -113,8 +113,8 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee1 = new SchedulerResource { Id = 1, Name = "Employee 1" };
-        var employee2 = new SchedulerResource { Id = 2, Name = "Employee 2" };
+        var employee1 = new Resource { Id = 1, Name = "Employee 1", GroupId = 1 };
+        var employee2 = new Resource { Id = 2, Name = "Employee 2", GroupId = 1 };
         context.Resources.AddRange(employee1, employee2);
 
         var requests = new List<AbsenceRequest>
@@ -152,7 +152,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var requests = new List<AbsenceRequest>
@@ -180,7 +180,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var requests = new List<AbsenceRequest>
@@ -212,7 +212,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var targetId = Guid.NewGuid();
@@ -242,8 +242,8 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Test Employee" };
-        var approver = new SchedulerResource { Id = 2, Name = "Test Approver" };
+        var employee = new Resource { Id = 1, Name = "Test Employee", GroupId = 1 };
+        var approver = new Resource { Id = 2, Name = "Test Approver", GroupId = 1 };
         context.Resources.AddRange(employee, approver);
 
         var absence = new AbsenceRequest
@@ -279,7 +279,7 @@ public class AbsenceSpecificationTests
     {
         // Arrange
         await using var context = CreateContext();
-        var employee = new SchedulerResource { Id = 1, Name = "Employee" };
+        var employee = new Resource { Id = 1, Name = "Employee", GroupId = 1 };
         context.Resources.Add(employee);
 
         var requests = new List<AbsenceRequest>

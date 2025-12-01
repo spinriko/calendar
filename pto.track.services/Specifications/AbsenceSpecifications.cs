@@ -13,7 +13,7 @@ public class AbsencesByDateRangeSpec : BaseSpecification<AbsenceRequest>
     /// <param name="start">Start date of the range.</param>
     /// <param name="end">End date of the range.</param>
     public AbsencesByDateRangeSpec(DateTime start, DateTime end)
-        : base(a => a.Start < end && a.End > start)
+        : base(a => (a.Start < end && a.End > start)!)
     {
         AddInclude(a => a.Employee);
         AddInclude(a => a.Approver);
@@ -31,7 +31,7 @@ public class AbsencesByStatusSpec : BaseSpecification<AbsenceRequest>
     /// </summary>
     /// <param name="statuses">The list of statuses to filter by.</param>
     public AbsencesByStatusSpec(List<AbsenceStatus> statuses)
-        : base(a => statuses.Contains(a.Status))
+        : base(a => statuses.Contains(a.Status)!)
     {
         AddInclude(a => a.Employee);
         AddInclude(a => a.Approver);
@@ -48,7 +48,7 @@ public class AbsencesByEmployeeSpec : BaseSpecification<AbsenceRequest>
     /// </summary>
     /// <param name="employeeId">The employee ID to filter by.</param>
     public AbsencesByEmployeeSpec(int employeeId)
-        : base(a => a.EmployeeId == employeeId)
+        : base(a => (a.EmployeeId == employeeId)!)
     {
         AddInclude(a => a.Employee);
         AddInclude(a => a.Approver);
@@ -79,16 +79,16 @@ public class AbsencesFilteredSpec : BaseSpecification<AbsenceRequest>
         if (employeeId.HasValue)
         {
             // Filter by employee AND date range
-            And(a => a.EmployeeId == employeeId.Value);
+            And(a => (a.EmployeeId == employeeId.Value)!);
         }
 
         // Filter by date range
-        And(a => a.Start < end && a.End > start);
+        And(a => (a.Start < end && a.End > start)!);
 
         // Filter by statuses if provided
         if (statuses != null && statuses.Any())
         {
-            And(a => statuses.Contains(a.Status));
+            And(a => statuses.Contains(a.Status)!);
         }
     }
 }
@@ -102,7 +102,7 @@ public class PendingAbsencesSpec : BaseSpecification<AbsenceRequest>
     /// Initializes a new instance of the <see cref="PendingAbsencesSpec"/> class.
     /// </summary>
     public PendingAbsencesSpec()
-        : base(a => a.Status == AbsenceStatus.Pending)
+        : base(a => (a.Status == AbsenceStatus.Pending)!)
     {
         AddInclude(a => a.Employee);
         AddInclude(a => a.Approver);
@@ -120,7 +120,7 @@ public class AbsenceByIdSpec : BaseSpecification<AbsenceRequest>
     /// </summary>
     /// <param name="id">The absence request ID.</param>
     public AbsenceByIdSpec(Guid id)
-        : base(a => a.Id == id)
+        : base(a => (a.Id == id)!)
     {
         AddInclude(a => a.Employee);
         AddInclude(a => a.Approver);
