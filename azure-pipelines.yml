@@ -21,10 +21,22 @@ stages:
     jobs:
       - job: Build
         steps:
-          - task: UseDotNet@2
-            inputs:
-              packageType: 'sdk'
-              version: '9.0.x'
+          - powershell: |
+              $sdk = dotnet --list-sdks
+              if ($sdk -notmatch '9.0') {
+                  Write-Error 'Required .NET SDK 9.0 is not installed.'
+                  exit 1
+              }
+            displayName: 'Check .NET SDK Version'
+            failOnStderr: true
+          - powershell: |
+              dotnet tool list -g | Select-String 'dotnet-ef'
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Error 'dotnet-ef tool is not installed globally.'
+                  exit 1
+              }
+            displayName: 'Check dotnet-ef Tool'
+            failOnStderr: true
           - script: dotnet restore
             displayName: 'Restore NuGet Packages'
           - script: dotnet build pto.track/pto.track.csproj --configuration Release
