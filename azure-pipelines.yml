@@ -21,21 +21,33 @@ stages:
     jobs:
       - job: Build
         steps:
-          - powershell: |
+            - powershell: |
               $sdk = dotnet --list-sdks
               if ($sdk -notmatch '9.0') {
-                  Write-Error 'Required .NET SDK 9.0 is not installed.'
+                Write-Host 'Required .NET SDK 9.0 is not installed. Attempting installation...'
+                Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/thank-you/sdk-9.0.100-windows-x64-installer" -OutFile "dotnet-sdk-9.0.100-win-x64.exe"
+                Start-Process -FilePath "dotnet-sdk-9.0.100-win-x64.exe" -ArgumentList "/quiet" -Wait
+                Remove-Item "dotnet-sdk-9.0.100-win-x64.exe"
+                $sdk = dotnet --list-sdks
+                if ($sdk -notmatch '9.0') {
+                  Write-Error 'Failed to install .NET SDK 9.0.'
                   exit 1
+                }
               }
-            displayName: 'Check .NET SDK Version'
+            displayName: 'Ensure .NET SDK 9.0 Installed'
             failOnStderr: true
-          - powershell: |
-              dotnet tool list -g | Select-String 'dotnet-ef'
-              if ($LASTEXITCODE -ne 0) {
-                  Write-Error 'dotnet-ef tool is not installed globally.'
+            - powershell: |
+              $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
+              if (-not $efTool) {
+                Write-Host 'dotnet-ef tool is not installed globally. Attempting installation...'
+                dotnet tool install -g dotnet-ef
+                $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
+                if (-not $efTool) {
+                  Write-Error 'Failed to install dotnet-ef tool.'
                   exit 1
+                }
               }
-            displayName: 'Check dotnet-ef Tool'
+            displayName: 'Ensure dotnet-ef Tool Installed'
             failOnStderr: true
           - script: dotnet restore
             displayName: 'Restore NuGet Packages'
