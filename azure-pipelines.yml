@@ -1,0 +1,104 @@
+# Azure Pipeline for PTO Track
+
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  serverName: 'YOUR_SERVER_NAME'
+  deployFolder: 'c:\inet\pto.track'
+  forwardedHttpUrl: 'http://localhost:5139'
+  forwardedHttpsUrl: 'https://localhost:7241'
+  rewritePath: 'c:\inet\pto.track\web.config'
+
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+  - stage: Build
+    displayName: 'Build Solution'
+    jobs:
+      - job: Build
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              packageType: 'sdk'
+              version: '9.0.x'
+          - script: dotnet restore
+            displayName: 'Restore NuGet Packages'
+          - script: dotnet build pto.track/pto.track.csproj --configuration Release
+            displayName: 'Build Project'
+
+  - stage: Test
+    displayName: 'Run Tests and Coverage'
+    dependsOn: Build
+    jobs:
+      - job: Test
+        steps:
+          - script: dotnet test **/*.tests.csproj --configuration Release --collect:"XPlat Code Coverage"
+            displayName: 'Run .NET Tests with Coverage (All Projects)'
+          - script: pwsh ./pto.track.tests.js/run-headless.ps1
+            displayName: 'Run QUnit JavaScript Tests'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: '**/TestResults/*.trx'
+              testRunTitle: 'C# Test Results'
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.cobertura.xml'
+              reportDirectory: '$(System.DefaultWorkingDirectory)/**/TestResults/'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track.tests.js/save-results.html'
+              artifactName: 'JavaScriptTestReport'
+
+  - stage: Publish
+    displayName: 'Publish Standalone App'
+    dependsOn: Test
+    jobs:
+      - job: Publish
+        steps:
+          - script: dotnet publish pto.track/pto.track.csproj -c Release -o $(deployFolder) --self-contained -r win-x64
+            displayName: 'Publish Standalone Application'
+
+  - stage: Deploy
+    displayName: 'Deploy to IIS Server'
+    dependsOn: Publish
+    jobs:
+      - job: Deploy
+        steps:
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(deployFolder)'
+              Contents: '**'
+              TargetFolder: '\\$(serverName)\$(deployFolder)'
+          - powershell: |
+              # Update IIS rewrite rules
+              $webConfig = "$(rewritePath)"
+              [xml]$config = Get-Content $webConfig
+              $rules = $config.configuration.'system.webServer'.rewrite.rules
+              # Remove existing rules (optional)
+              $rules.Clear()
+              # Add HTTP rule
+              $httpRule = $rules.CreateElement('rule')
+              $httpRule.SetAttribute('name', 'Forward HTTP')
+              $httpRule.SetAttribute('stopProcessing', 'true')
+              $httpAction = $httpRule.CreateElement('action')
+              $httpAction.SetAttribute('type', 'Rewrite')
+              $httpAction.SetAttribute('url', '$(forwardedHttpUrl)')
+              $httpRule.AppendChild($httpAction)
+              $rules.AppendChild($httpRule)
+              # Add HTTPS rule
+              $httpsRule = $rules.CreateElement('rule')
+              $httpsRule.SetAttribute('name', 'Forward HTTPS')
+              $httpsRule.SetAttribute('stopProcessing', 'true')
+              $httpsAction = $httpsRule.CreateElement('action')
+              $httpsAction.SetAttribute('type', 'Rewrite')
+              $httpsAction.SetAttribute('url', '$(forwardedHttpsUrl)')
+              $httpsRule.AppendChild($httpsAction)
+              $rules.AppendChild($httpsRule)
+              $config.Save($webConfig)
+            displayName: 'Update IIS Rewrite Rules'
+            failOnStderr: true
