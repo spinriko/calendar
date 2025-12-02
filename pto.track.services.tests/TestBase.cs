@@ -32,6 +32,7 @@ public class TestBase
             cfg.AddProfile<AbsenceMappingProfile>();
             cfg.AddProfile<EventMappingProfile>();
             cfg.AddProfile<ResourceMappingProfile>();
+            cfg.AddProfile<GroupMappingProfile>();
         });
         return config.CreateMapper();
     }
