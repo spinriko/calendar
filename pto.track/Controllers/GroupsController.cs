@@ -9,6 +9,8 @@ namespace pto.track.Controllers;
 /// <summary>
 /// API controller for managing groups. Administrator access only.
 /// </summary>
+using Microsoft.AspNetCore.Authorization;
+[Authorize(Roles = "Admin")]
 [Produces("application/json")]
 [Route("api/groups")]
 public class GroupsController : Controller
@@ -16,6 +18,22 @@ public class GroupsController : Controller
     private readonly IGroupService _groupService;
     private readonly IUserClaimsProvider _claimsProvider;
     private readonly ILogger<GroupsController> _logger;
+    /// <summary>
+    /// Retrieves all resources for a specific group. Administrator access only.
+    /// </summary>
+    /// <param name="groupId">The group ID.</param>
+    /// <returns>A collection of resources in the group.</returns>
+    // GET: api/groups/{groupId}/resources
+    [HttpGet("{groupId}/resources")]
+    public async Task<ActionResult<IEnumerable<ResourceDto>>> GetResourcesForGroup(int groupId)
+    {
+        // ...existing code...
+
+        _logger.LogDebug("GetResourcesForGroup called for group {GroupId}", groupId);
+        var resources = await _groupService.GetResourcesByGroupAsync(groupId);
+        _logger.LogDebug("Returning {Count} resources for group {GroupId}", resources.Count(), groupId);
+        return Ok(resources);
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroupsController"/> class.
@@ -41,11 +59,7 @@ public class GroupsController : Controller
     [HttpGet]
     public async Task<ActionResult<IEnumerable<GroupDto>>> GetGroups()
     {
-        if (!_claimsProvider.IsInRole("Admin"))
-        {
-            _logger.LogWarning("Unauthorized access attempt to GetGroups by non-admin user");
-            return Forbid();
-        }
+        // ...existing code...
 
         _logger.LogDebug("GetGroups called");
         var groups = await _groupService.GetGroupsAsync();
@@ -62,11 +76,7 @@ public class GroupsController : Controller
     [HttpGet("{groupId}")]
     public async Task<ActionResult<GroupDto>> GetGroupById(int groupId)
     {
-        if (!_claimsProvider.IsInRole("Admin"))
-        {
-            _logger.LogWarning("Unauthorized access attempt to GetGroupById by non-admin user");
-            return Forbid();
-        }
+        // ...existing code...
 
         try
         {
@@ -90,11 +100,7 @@ public class GroupsController : Controller
     [HttpPost]
     public async Task<ActionResult<GroupDto>> CreateGroup([FromBody] CreateGroupDto createDto)
     {
-        if (!_claimsProvider.IsInRole("Admin"))
-        {
-            _logger.LogWarning("Unauthorized access attempt to CreateGroup by non-admin user");
-            return Forbid();
-        }
+        // ...existing code...
 
         if (string.IsNullOrWhiteSpace(createDto.Name))
         {
@@ -117,11 +123,7 @@ public class GroupsController : Controller
     [HttpPut("{groupId}")]
     public async Task<ActionResult> UpdateGroup(int groupId, [FromBody] UpdateGroupDto updateDto)
     {
-        if (!_claimsProvider.IsInRole("Admin"))
-        {
-            _logger.LogWarning("Unauthorized access attempt to UpdateGroup by non-admin user");
-            return Forbid();
-        }
+        // ...existing code...
 
         if (string.IsNullOrWhiteSpace(updateDto.Name))
         {
@@ -151,11 +153,7 @@ public class GroupsController : Controller
     [HttpDelete("{groupId}")]
     public async Task<ActionResult> DeleteGroup(int groupId)
     {
-        if (!_claimsProvider.IsInRole("Admin"))
-        {
-            _logger.LogWarning("Unauthorized access attempt to DeleteGroup by non-admin user");
-            return Forbid();
-        }
+        // ...existing code...
 
         try
         {

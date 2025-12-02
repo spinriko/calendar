@@ -33,6 +33,35 @@
             </div>
         </div>
 
+        <!-- Group Resource Listing -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <label for="groupSelect">Select Group:</label>
+                <select id="groupSelect" class="form-select w-auto d-inline-block" style="min-width:200px;" onchange="groupsApp.fetchResourcesForGroup()">
+                    <option value="">-- Select Group --</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div id="resourcesPanel" style="display:none;">
+                    <h4>Resources in Group</h4>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Roles</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resourcesTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="noResources" class="text-muted" style="display:none;">No resources found for this group.</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Groups Table -->
         <div class="row">
             <div class="col-md-12">
@@ -118,6 +147,61 @@
 
 @section Scripts {
     <script>
+                groupsApp.fetchResourcesForGroup = async function() {
+                    const groupId = document.getElementById('groupSelect').value;
+                    if (!groupId) {
+                        document.getElementById('resourcesPanel').style.display = 'none';
+                        return;
+                    }
+                    const response = await fetch(`/api/groups/${groupId}/resources`);
+                    if (!response.ok) {
+                        document.getElementById('resourcesPanel').style.display = 'none';
+                        return;
+                    }
+                    const resources = await response.json();
+                    const tbody = document.getElementById('resourcesTableBody');
+                    tbody.innerHTML = '';
+                    if (resources.length === 0) {
+                        document.getElementById('noResources').style.display = 'block';
+                    } else {
+                        document.getElementById('noResources').style.display = 'none';
+                        resources.forEach(resource => {
+                            const roles = [];
+                            if (resource.isActive) roles.push('<span class="badge bg-success">Active</span>');
+                            if (resource.isApprover) roles.push('<span class="badge bg-info">Approver</span>');
+                            if (resource.role === 'Admin') roles.push('<span class="badge bg-primary">Admin</span>');
+                            if (resource.role === 'Manager') roles.push('<span class="badge bg-warning text-dark">Manager</span>');
+                            if (resource.role === 'Employee') roles.push('<span class="badge bg-secondary">Employee</span>');
+                            tbody.innerHTML += `<tr><td>${groupsApp.escapeHtml(resource.name)}</td><td>${roles.join(' ')}</td></tr>`;
+                        });
+                    }
+                    document.getElementById('resourcesPanel').style.display = 'block';
+                };
+
+                groupsApp.loadGroups = async function() {
+                    try {
+                        document.getElementById('loadingSpinner').style.display = 'block';
+                        document.getElementById('groupsTableContainer').style.display = 'none';
+
+                        const response = await fetch('/api/groups');
+                        if (!response.ok) throw new Error('Failed to load groups');
+
+                        const groups = await response.json();
+                        this.renderGroups(groups);
+
+                        // Populate groupSelect dropdown
+                        const select = document.getElementById('groupSelect');
+                        select.innerHTML = '<option value="">-- Select Group --</option>';
+                        groups.forEach(group => {
+                            select.innerHTML += `<option value="${group.groupId}">${groupsApp.escapeHtml(group.name)}</option>`;
+                        });
+                    } catch (error) {
+                        console.error('Error loading groups:', error);
+                        alert('Error loading groups: ' + error.message);
+                    } finally {
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                    }
+                };
         const groupsApp = {
             currentUser: null,
             currentGroupId: null,

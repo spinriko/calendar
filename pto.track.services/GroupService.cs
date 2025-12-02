@@ -15,6 +15,19 @@ public class GroupService : IGroupService
     private readonly ILogger<GroupService> _logger;
     private readonly IMapper _mapper;
 
+    /// <inheritdoc />
+    public async Task<IEnumerable<ResourceDto>> GetResourcesByGroupAsync(int groupId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("GroupService.GetResourcesByGroupAsync: Fetching resources for group {GroupId}", groupId);
+        var resources = await _context.Resources
+            .AsNoTracking()
+            .Where(r => r.GroupId == groupId)
+            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
+            .ToListAsync(cancellationToken);
+        _logger.LogDebug("GroupService.GetResourcesByGroupAsync: Found {Count} resources for group {GroupId}", resources.Count, groupId);
+        return resources;
+    }
+
     public GroupService(PtoTrackDbContext context, ILogger<GroupService> logger, IMapper mapper)
     {
         _context = context;

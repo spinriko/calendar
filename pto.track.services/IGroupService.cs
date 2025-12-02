@@ -8,6 +8,14 @@ namespace pto.track.services;
 public interface IGroupService
 {
     /// <summary>
+    /// Gets all resources for a specific group.
+    /// </summary>
+    /// <param name="groupId">The unique identifier of the group.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A collection of resources in the group.</returns>
+    Task<IEnumerable<ResourceDto>> GetResourcesByGroupAsync(int groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all groups in the system.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
