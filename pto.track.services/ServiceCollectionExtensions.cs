@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();
         services.AddScoped<IUserSyncService, UserSyncService>();
+        services.AddScoped<IGroupService, GroupService>();
 
         // Register authentication based on configuration
         var authMode = configuration["Authentication:Mode"] ?? "Mock";
