@@ -13,6 +13,8 @@ dist/
 # Compiled Python bytecode
 *.py[cod]
 
+#ai help
+.claude/
 # Log files
 *.log
 
