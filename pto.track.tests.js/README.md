@@ -1,6 +1,6 @@
 # JavaScript Tests for PTO Track
 
-Pure JavaScript tests using QUnit - no Node.js required!
+Pure JavaScript tests using Jest - Node.js required!
 
 ## Running Tests
 
@@ -101,7 +101,7 @@ Production code location: ../pto.track/wwwroot/js/calendar-functions.js
 
 - **No Build Step**: Pure HTML/JS, no compilation needed
 - **Browser-Based**: Run directly in any browser
-- **Visual Feedback**: QUnit provides clear pass/fail UI
+- **Visual Feedback**: Jest provides clear pass/fail output in the terminal
 - **Fast**: Instant test execution
 - **Portable**: Works on any OS with a browser
 - **Easy to Debug**: Use browser DevTools to debug tests
@@ -110,8 +110,9 @@ Production code location: ../pto.track/wwwroot/js/calendar-functions.js
 
 1. Create a new test file in `tests/` directory:
 ```javascript
-QUnit.module('My Feature', function() {
-    QUnit.test('should do something', function(assert) {
+describe('My Feature', () => {
+    test('should do something', () => {
+        expect(true).toBe(true);
         const result = myFunction();
         assert.equal(result, expected, "Description");
     });
@@ -186,10 +187,10 @@ Example VS Code task (Windows):
 }
 ```
 
-## Why QUnit?
+## Why Jest?
 
 - **Simple**: No build tools, no package managers
 - **Proven**: Used by jQuery, WordPress, and many others
-- **Well-documented**: Extensive documentation at qunitjs.com
+- **Well-documented**: Extensive documentation at jestjs.io
 - **Browser DevTools**: Easy debugging with familiar tools
 - **Pure JavaScript**: No transpilation needed
