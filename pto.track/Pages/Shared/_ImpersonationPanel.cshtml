@@ -1,0 +1,47 @@
+@if (ViewData["ShowImpersonation"] as bool? ?? false)
+{
+    <div class="impersonation-panel position-fixed bottom-0 end-0 m-3 p-3 bg-warning border border-dark shadow-lg"
+        style="z-index: 9999; max-width: 300px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>🎭 Impersonation</strong>
+            <button type="button" class="btn-close btn-close-white" onclick="toggleImpersonationPanel()"
+                aria-label="Close"></button>
+        </div>
+
+        <div class="mb-2">
+            <label for="impersonateUser" class="form-label small">User:</label>
+            <select id="impersonateUser" class="form-select form-select-sm">
+                <option value="EMP001">Development User (Admin)</option>
+                <option value="EMP002">Test Employee</option>
+                <option value="EMP003">Test Manager</option>
+                <option value="EMP004">Test Approver</option>
+                <option value="EMP005">Administrator</option>
+            </select>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label small">Roles:</label>
+            <div class="form-check form-check-sm">
+                <input class="form-check-input" type="checkbox" id="roleEmployee" checked>
+                <label class="form-check-label small" for="roleEmployee">Employee</label>
+            </div>
+            <div class="form-check form-check-sm">
+                <input class="form-check-input" type="checkbox" id="roleManager">
+                <label class="form-check-label small" for="roleManager">Manager</label>
+            </div>
+            <div class="form-check form-check-sm">
+                <input class="form-check-input" type="checkbox" id="roleApprover">
+                <label class="form-check-label small" for="roleApprover">Approver</label>
+            </div>
+            <div class="form-check form-check-sm">
+                <input class="form-check-input" type="checkbox" id="roleAdmin">
+                <label class="form-check-label small" for="roleAdmin">Admin</label>
+            </div>
+        </div>
+
+        <button class="btn btn-sm btn-primary w-100" onclick="applyImpersonation()">Apply</button>
+        <button class="btn btn-sm btn-secondary w-100 mt-1" onclick="clearImpersonation()">Reset to Default</button>
+    </div>
+}
+
+<script type="module" src="~/js/impersonation-panel.mjs"></script>
