@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddControllers(); // Required for API controllers
 
 // Add HttpContextAccessor for claims access
 builder.Services.AddHttpContextAccessor();
@@ -30,6 +31,10 @@ builder.Services.AddAuthentication("Cookies")
 
 builder.Services.AddAuthorization();
 
+// Add Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // Add global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -54,6 +59,13 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseMockAuthentication(); // Auto-login for mock authentication in development
 app.UseAuthorization();
+
+// Enable Swagger in development
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // Configure static files with no caching in development
 if (app.Environment.IsDevelopment())
