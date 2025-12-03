@@ -421,3 +421,16 @@ function buildContextMenuItems(absence, userContext, event) {
 
     return items;
 }
+
+module.exports = {
+    getStatusColor,
+    buildAbsencesUrl,
+    determineUserRole,
+    getDefaultStatusFilters,
+    getVisibleFilters,
+    updateSelectedStatusesFromCheckboxes,
+    isUserManagerOrApprover,
+    canCreateAbsenceForResource,
+    getResourceSelectionMessage,
+    buildContextMenuItems
+};

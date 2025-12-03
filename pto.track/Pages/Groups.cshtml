@@ -24,9 +24,11 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <button class="btn btn-primary" id="btnCreateGroup">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle me-1" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-plus-circle me-1" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                     </svg>
                     Create New Group
                 </button>
@@ -37,7 +39,8 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <label for="groupSelect">Select Group:</label>
-                <select id="groupSelect" class="form-select w-auto d-inline-block" style="min-width:200px;" onchange="groupsApp.fetchResourcesForGroup()">
+                <select id="groupSelect" class="form-select w-auto d-inline-block" style="min-width:200px;"
+                    onchange="groupsApp.fetchResourcesForGroup()">
                     <option value="">-- Select Group --</option>
                 </select>
             </div>
@@ -57,7 +60,8 @@
                             <!-- Populated by JS -->
                         </tbody>
                     </table>
-                    <div id="noResources" class="text-muted" style="display:none;">No resources found for this group.</div>
+                    <div id="noResources" class="text-muted" style="display:none;">No resources found for this group.
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,7 +139,8 @@
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete the group "<strong id="deleteGroupName"></strong>"?</p>
-                <p class="text-muted small">This action cannot be undone. Groups with associated resources cannot be deleted.</p>
+                <p class="text-muted small">This action cannot be undone. Groups with associated resources cannot be
+                    deleted.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -147,66 +152,73 @@
 
 @section Scripts {
     <script>
-                groupsApp.fetchResourcesForGroup = async function() {
-                    const groupId = document.getElementById('groupSelect').value;
-                    if (!groupId) {
-                        document.getElementById('resourcesPanel').style.display = 'none';
-                        return;
-                    }
-                    const response = await fetch(`/api/groups/${groupId}/resources`);
-                    if (!response.ok) {
-                        document.getElementById('resourcesPanel').style.display = 'none';
-                        return;
-                    }
-                    const resources = await response.json();
-                    const tbody = document.getElementById('resourcesTableBody');
-                    tbody.innerHTML = '';
-                    if (resources.length === 0) {
-                        document.getElementById('noResources').style.display = 'block';
-                    } else {
-                        document.getElementById('noResources').style.display = 'none';
-                        resources.forEach(resource => {
-                            const roles = [];
-                            if (resource.isActive) roles.push('<span class="badge bg-success">Active</span>');
-                            if (resource.isApprover) roles.push('<span class="badge bg-info">Approver</span>');
-                            if (resource.role === 'Admin') roles.push('<span class="badge bg-primary">Admin</span>');
-                            if (resource.role === 'Manager') roles.push('<span class="badge bg-warning text-dark">Manager</span>');
-                            if (resource.role === 'Employee') roles.push('<span class="badge bg-secondary">Employee</span>');
-                            tbody.innerHTML += `<tr><td>${groupsApp.escapeHtml(resource.name)}</td><td>${roles.join(' ')}</td></tr>`;
-                        });
-                    }
-                    document.getElementById('resourcesPanel').style.display = 'block';
-                };
-
-                groupsApp.loadGroups = async function() {
-                    try {
-                        document.getElementById('loadingSpinner').style.display = 'block';
-                        document.getElementById('groupsTableContainer').style.display = 'none';
-
-                        const response = await fetch('/api/groups');
-                        if (!response.ok) throw new Error('Failed to load groups');
-
-                        const groups = await response.json();
-                        this.renderGroups(groups);
-
-                        // Populate groupSelect dropdown
-                        const select = document.getElementById('groupSelect');
-                        select.innerHTML = '<option value="">-- Select Group --</option>';
-                        groups.forEach(group => {
-                            select.innerHTML += `<option value="${group.groupId}">${groupsApp.escapeHtml(group.name)}</option>`;
-                        });
-                    } catch (error) {
-                        console.error('Error loading groups:', error);
-                        alert('Error loading groups: ' + error.message);
-                    } finally {
-                        document.getElementById('loadingSpinner').style.display = 'none';
-                    }
-                };
         const groupsApp = {
             currentUser: null,
             currentGroupId: null,
             groupModal: null,
             deleteModal: null,
+
+            escapeHtml(str) {
+                return str.replace(/[&<>'"]/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' }[c];
+                });
+            },
+
+            async fetchResourcesForGroup() {
+                const groupId = document.getElementById('groupSelect').value;
+                if (!groupId) {
+                    document.getElementById('resourcesPanel').style.display = 'none';
+                    return;
+                }
+                const response = await fetch(`/api/groups/${groupId}/resources`);
+                if (!response.ok) {
+                    document.getElementById('resourcesPanel').style.display = 'none';
+                    return;
+                }
+                const resources = await response.json();
+                const tbody = document.getElementById('resourcesTableBody');
+                tbody.innerHTML = '';
+                if (resources.length === 0) {
+                    document.getElementById('noResources').style.display = 'block';
+                } else {
+                    document.getElementById('noResources').style.display = 'none';
+                    resources.forEach(resource => {
+                        const roles = [];
+                        if (resource.isActive) roles.push('<span class="badge bg-success">Active</span>');
+                        if (resource.isApprover) roles.push('<span class="badge bg-info">Approver</span>');
+                        if (resource.role === 'Admin') roles.push('<span class="badge bg-primary">Admin</span>');
+                        if (resource.role === 'Manager') roles.push('<span class="badge bg-warning text-dark">Manager</span>');
+                        if (resource.role === 'Employee') roles.push('<span class="badge bg-secondary">Employee</span>');
+                        tbody.innerHTML += `<tr><td>${groupsApp.escapeHtml(resource.name)}</td><td>${roles.join(' ')}</td></tr>`;
+                    });
+                }
+                document.getElementById('resourcesPanel').style.display = 'block';
+            },
+
+            async loadGroups() {
+                try {
+                    document.getElementById('loadingSpinner').style.display = 'block';
+                    document.getElementById('groupsTableContainer').style.display = 'none';
+
+                    const response = await fetch('/api/groups');
+                    if (!response.ok) throw new Error('Failed to load groups');
+
+                    const groups = await response.json();
+                    this.renderGroups(groups);
+
+                    // Populate groupSelect dropdown
+                    const select = document.getElementById('groupSelect');
+                    select.innerHTML = '<option value="">-- Select Group --</option>';
+                    groups.forEach(group => {
+                        select.innerHTML += `<option value="${group.groupId}">${groupsApp.escapeHtml(group.name)}</option>`;
+                    });
+                } catch (error) {
+                    console.error('Error loading groups:', error);
+                    alert('Error loading groups: ' + error.message);
+                } finally {
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                }
+            },
 
             async init() {
                 this.groupModal = new bootstrap.Modal(document.getElementById('groupModal'));
@@ -248,24 +260,6 @@
                 document.getElementById('accessDenied').style.display = 'block';
             },
 
-            async loadGroups() {
-                try {
-                    document.getElementById('loadingSpinner').style.display = 'block';
-                    document.getElementById('groupsTableContainer').style.display = 'none';
-
-                    const response = await fetch('/api/groups');
-                    if (!response.ok) throw new Error('Failed to load groups');
-
-                    const groups = await response.json();
-                    this.renderGroups(groups);
-                } catch (error) {
-                    console.error('Error loading groups:', error);
-                    alert('Error loading groups: ' + error.message);
-                } finally {
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                }
-            },
-
             renderGroups(groups) {
                 const tbody = document.getElementById('groupsTableBody');
                 tbody.innerHTML = '';
@@ -280,17 +274,17 @@
                     groups.forEach(group => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${group.groupId}</td>
-                            <td>${this.escapeHtml(group.name)}</td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="groupsApp.openEditModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
-                                    Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="groupsApp.openDeleteModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
-                                    Delete
-                                </button>
-                            </td>
-                        `;
+                                        <td>${group.groupId}</td>
+                                        <td>${this.escapeHtml(group.name)}</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="groupsApp.openEditModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
+                                                Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="groupsApp.openDeleteModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    `;
                         tbody.appendChild(row);
                     });
                 }
@@ -322,73 +316,78 @@
                     nameInput.classList.add('is-invalid');
                     return;
                 }
-
-                nameInput.classList.remove('is-invalid');
-
-                try {
-                    let response;
-                    if (this.currentGroupId) {
-                        // Update existing group
-                        response = await fetch(`/api/groups/${this.currentGroupId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name })
-                        });
-                    } else {
-                        // Create new group
-                        response = await fetch('/api/groups', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name })
-                        });
-                    }
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Failed to save group');
-                    }
-
-                    this.groupModal.hide();
-                    await this.loadGroups();
-                } catch (error) {
-                    console.error('Error saving group:', error);
-                    alert('Error saving group: ' + error.message);
-                }
+                // ...existing code for saving group...
             },
 
-            openDeleteModal(groupId, groupName) {
-                this.currentGroupId = groupId;
-                document.getElementById('deleteGroupName').textContent = groupName;
-                this.deleteModal.show();
-            },
-
-            async confirmDelete() {
-                if (!this.currentGroupId) return;
-
-                try {
-                    const response = await fetch(`/api/groups/${this.currentGroupId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Failed to delete group');
-                    }
-
-                    this.deleteModal.hide();
-                    await this.loadGroups();
-                } catch (error) {
-                    console.error('Error deleting group:', error);
-                    alert('Error deleting group: ' + error.message);
-                }
-            },
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
+            // ...other methods as needed...
         };
+
+        nameInput.classList.remove('is-invalid');
+
+        try {
+            let response;
+            if (this.currentGroupId) {
+                // Update existing group
+                response = await fetch(`/api/groups/${this.currentGroupId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+            } else {
+                // Create new group
+                response = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+            }
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to save group');
+            }
+
+            this.groupModal.hide();
+            await this.loadGroups();
+        } catch (error) {
+            console.error('Error saving group:', error);
+            alert('Error saving group: ' + error.message);
+        }
+                    },
+
+        openDeleteModal(groupId, groupName) {
+            this.currentGroupId = groupId;
+            document.getElementById('deleteGroupName').textContent = groupName;
+            this.deleteModal.show();
+        },
+
+                            async confirmDelete() {
+            if (!this.currentGroupId) return;
+
+            try {
+                const response = await fetch(`/api/groups/${this.currentGroupId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to delete group');
+                }
+
+                this.deleteModal.hide();
+                await this.loadGroups();
+            } catch (error) {
+                console.error('Error deleting group:', error);
+                alert('Error deleting group: ' + error.message);
+            }
+        },
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+                        };
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => groupsApp.init());

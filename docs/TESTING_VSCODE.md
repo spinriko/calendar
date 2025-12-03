@@ -429,4 +429,4 @@ Configures test-related VS Code settings:
 - **ASP.NET Core Testing**: https://learn.microsoft.com/en-us/aspnet/core/test/
 - **VS Code Debugging**: https://code.visualstudio.com/docs/editor/debugging
 
-For detailed test descriptions and coverage, see [TESTING.md](TESTING.md)
+For detailed test descriptions and coverage, see [TESTING.md](./TESTING.md)

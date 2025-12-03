@@ -90,7 +90,7 @@ this.elements.impersonateRole.value = currentRole;
 ## Quality Assurance Measures Implemented
 
 ### 1. **Test-First Development**
-- All UI bugs now have corresponding QUnit tests
+- All UI bugs now have corresponding Jest tests
 - Cannot ship code without passing test suite
 
 ### 2. **Automated Test Suite**
@@ -111,7 +111,7 @@ this.elements.impersonateRole.value = currentRole;
 ## Prevention Plan
 
 ### Going Forward
-1. **✅ No UI changes without corresponding QUnit tests**
+1. **✅ No UI changes without corresponding Jest tests**
 2. **✅ Run full test suite before every commit**
 3. **✅ Manual testing checklist for role switching**
 4. **✅ Employee2 mock user for multi-employee testing**

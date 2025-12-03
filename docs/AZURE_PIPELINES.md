@@ -10,7 +10,7 @@ This document outlines the CI/CD pipeline steps for building, testing, publishin
 
 2. **Test Stage**
    - Run all C# unit and integration tests using `dotnet test` with code coverage enabled.
-   - Execute JavaScript QUnit tests (using a headless browser or Node.js runner).
+   - Execute JavaScript Jest tests (using Node.js runner).
    - Collect and publish HTML test and coverage reports as pipeline artifacts for review.
 
 3. **Publish Stage**
@@ -40,4 +40,4 @@ This document outlines the CI/CD pipeline steps for building, testing, publishin
 
 ---
 
-For implementation, create an `azure-pipelines.yml` file with the above steps, using appropriate Azure DevOps tasks for .NET, QUnit, artifact publishing, and IIS deployment.
+For implementation, create an `azure-pipelines.yml` file with the above steps, using appropriate Azure DevOps tasks for .NET, Jest, artifact publishing, and IIS deployment.

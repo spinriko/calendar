@@ -114,7 +114,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 ### Low Priority (Polish)
 9. ❌ **Error Handling** - Graceful handling when no group selected
 10. ⚠️ **Testing** - Update existing tests to include group scenarios (some tests reference groups already)
-11. ❌ **Documentation** - Update README.md and API documentation with group functionality
+11. ❌ **Documentation** - Update [README.md](../README.md) and API documentation with group functionality
 
 ## Summary Status
 ✅ **Completed:**
