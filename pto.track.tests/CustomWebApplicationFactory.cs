@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using pto.track;
+using pto.track.data;
 using pto.track.services.Authentication;
 using pto.track.tests.Mocks;
 
@@ -12,8 +15,40 @@ namespace pto.track.tests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseSetting("environment", "Testing");
+
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                // Override connection string to prevent using real database
+                var dict = new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:PtoTrackDbContext"] = string.Empty
+                };
+                config.AddInMemoryCollection(dict);
+            });
+
             builder.ConfigureServices(services =>
             {
+                // Remove existing DbContext registrations
+                var dbContextDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<PtoTrackDbContext>));
+                if (dbContextDescriptor != null)
+                {
+                    services.Remove(dbContextDescriptor);
+                }
+
+                var dbContextImplDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(PtoTrackDbContext));
+                if (dbContextImplDescriptor != null)
+                {
+                    services.Remove(dbContextImplDescriptor);
+                }
+
+                // Add in-memory database for testing
+                var dbName = "TestDb_" + Guid.NewGuid().ToString();
+                services.AddDbContext<PtoTrackDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase(dbName);
+                });
+
                 // Remove existing IUserClaimsProvider registration
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IUserClaimsProvider));
                 if (descriptor != null)
@@ -27,8 +62,15 @@ namespace pto.track.tests
                 services.AddAuthentication("Test")
                     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(
                         "Test", options => { });
-            });
 
+                // Ensure database is created and seeded
+                var sp = services.BuildServiceProvider();
+                using (var scope = sp.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<PtoTrackDbContext>();
+                    db.Database.EnsureCreated();
+                }
+            });
         }
     }
 

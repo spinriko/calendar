@@ -24,7 +24,7 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
         // Create a resource assigned to the group (pseudo-code, adjust for your API)
-        var resourceDto = new ResourceDto(0, "Test User", null, null, "Employee", false, true, null, createdGroup.GroupId);
+        var resourceDto = new ResourceDto(0, "Test User", null, null, "Employee", false, true, null, createdGroup!.GroupId);
         // You may need to POST to /api/resources with groupId
         // await adminClient.PostAsJsonAsync($"/api/resources", resourceDto);
 
@@ -98,10 +98,10 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createResponse = await adminClient.PostAsJsonAsync("/api/groups", createDto);
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
-        var response = await adminClient.GetAsync($"/api/groups/{createdGroup.GroupId}");
+        var response = await adminClient.GetAsync($"/api/groups/{createdGroup!.GroupId}"); ;
         response.EnsureSuccessStatusCode();
         var group = await response.Content.ReadFromJsonAsync<GroupDto>();
-        Assert.Equal(createdGroup.GroupId, group.GroupId);
+        Assert.Equal(createdGroup.GroupId, group!.GroupId);
         Assert.Equal("Integration Group", group.Name);
     }
 
@@ -114,7 +114,7 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
         var nonAdminClient = GetNonAdminClient();
-        var response = await nonAdminClient.GetAsync($"/api/groups/{createdGroup.GroupId}");
+        var response = await nonAdminClient.GetAsync($"/api/groups/{createdGroup!.GroupId}");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -127,12 +127,12 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
         var updateDto = new UpdateGroupDto("New Name");
-        var updateResponse = await adminClient.PutAsJsonAsync($"/api/groups/{createdGroup.GroupId}", updateDto);
+        var updateResponse = await adminClient.PutAsJsonAsync($"/api/groups/{createdGroup!.GroupId}", updateDto);
         Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
 
         var getResponse = await adminClient.GetAsync($"/api/groups/{createdGroup.GroupId}");
         var updatedGroup = await getResponse.Content.ReadFromJsonAsync<GroupDto>();
-        Assert.Equal("New Name", updatedGroup.Name);
+        Assert.Equal("New Name", updatedGroup!.Name);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         var nonAdminClient = GetNonAdminClient();
         var updateDto = new UpdateGroupDto("New Name");
-        var updateResponse = await nonAdminClient.PutAsJsonAsync($"/api/groups/{createdGroup.GroupId}", updateDto);
+        var updateResponse = await nonAdminClient.PutAsJsonAsync($"/api/groups/{createdGroup!.GroupId}", updateDto);
         Assert.Equal(HttpStatusCode.Forbidden, updateResponse.StatusCode);
     }
 
@@ -157,7 +157,7 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createResponse = await adminClient.PostAsJsonAsync("/api/groups", createDto);
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
-        var deleteResponse = await adminClient.DeleteAsync($"/api/groups/{createdGroup.GroupId}");
+        var deleteResponse = await adminClient.DeleteAsync($"/api/groups/{createdGroup!.GroupId}");
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         var getResponse = await adminClient.GetAsync($"/api/groups/{createdGroup.GroupId}");
@@ -173,7 +173,7 @@ public class GroupsControllerTests : IClassFixture<CustomWebApplicationFactory>
         var createdGroup = await createResponse.Content.ReadFromJsonAsync<GroupDto>();
 
         var nonAdminClient = GetNonAdminClient();
-        var deleteResponse = await nonAdminClient.DeleteAsync($"/api/groups/{createdGroup.GroupId}");
+        var deleteResponse = await nonAdminClient.DeleteAsync($"/api/groups/{createdGroup!.GroupId}");
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
     }
 }
