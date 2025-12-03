@@ -53,36 +53,10 @@ public class AbsencesController : ControllerBase
         [FromQuery] int? employeeId,
         [FromQuery(Name = "status[]")] List<string>? status)
     {
-        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}, status={Status}", start, end, employeeId, status != null ? string.Join(",", status) : "null");
+        _logger.LogDebug("GetAbsenceRequests called with start={Start}, end={End}, employeeId={EmployeeId}, status={Status}",
+            start, end, employeeId, status != null ? string.Join(",", status) : "null");
 
-        // Parse status parameters (can be multiple)
-        List<AbsenceStatus>? absenceStatuses = null;
-        if (status != null && status.Any())
-        {
-            _logger.LogInformation("Parsing {Count} status values: [{Statuses}]", status.Count, string.Join(", ", status));
-            absenceStatuses = new List<AbsenceStatus>();
-            foreach (var s in status)
-            {
-                if (Enum.TryParse<AbsenceStatus>(s, true, out var parsedStatus))
-                {
-                    absenceStatuses.Add(parsedStatus);
-                    _logger.LogInformation("Parsed status: {Status} -> {ParsedStatus}", s, parsedStatus);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to parse status: {Status}", s);
-                }
-            }
-            if (absenceStatuses.Count == 0)
-            {
-                absenceStatuses = null; // No valid statuses parsed
-            }
-            _logger.LogInformation("Total parsed statuses: {Count} - [{Statuses}]", absenceStatuses?.Count ?? 0, absenceStatuses != null ? string.Join(", ", absenceStatuses) : "null");
-        }
-        else
-        {
-            _logger.LogInformation("No status filters provided, will return all statuses");
-        }
+        var absenceStatuses = ParseStatusParameters(status);
 
         if (employeeId.HasValue)
         {
@@ -102,6 +76,46 @@ public class AbsencesController : ControllerBase
 
         _logger.LogDebug("Bad request - missing required parameters");
         return BadRequest("Either provide start and end dates, or provide employeeId");
+    }
+
+    /// <summary>
+    /// Parses status parameters from query string into AbsenceStatus enum values.
+    /// </summary>
+    /// <param name="status">The list of status strings to parse.</param>
+    /// <returns>A list of parsed AbsenceStatus values, or null if no valid statuses were provided.</returns>
+    private List<AbsenceStatus>? ParseStatusParameters(List<string>? status)
+    {
+        if (status == null || !status.Any())
+        {
+            _logger.LogInformation("No status filters provided, will return all statuses");
+            return null;
+        }
+
+        _logger.LogInformation("Parsing {Count} status values: [{Statuses}]", status.Count, string.Join(", ", status));
+        var absenceStatuses = new List<AbsenceStatus>();
+
+        foreach (var s in status)
+        {
+            if (Enum.TryParse<AbsenceStatus>(s, true, out var parsedStatus))
+            {
+                absenceStatuses.Add(parsedStatus);
+                _logger.LogInformation("Parsed status: {Status} -> {ParsedStatus}", s, parsedStatus);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to parse status: {Status}", s);
+            }
+        }
+
+        if (absenceStatuses.Count == 0)
+        {
+            _logger.LogInformation("No valid statuses parsed, will return all statuses");
+            return null;
+        }
+
+        _logger.LogInformation("Total parsed statuses: {Count} - [{Statuses}]",
+            absenceStatuses.Count, string.Join(", ", absenceStatuses));
+        return absenceStatuses;
     }
 
     /// <summary>
