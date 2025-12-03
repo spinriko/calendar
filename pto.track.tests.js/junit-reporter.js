@@ -1,6 +1,12 @@
 // JUnit XML Reporter for QUnit
 // Exports test results in JUnit XML format for CI/CD integration
 
+// Write user agent to DOM for debugging
+var uaDiv = document.createElement('div');
+uaDiv.id = 'debug-user-agent';
+uaDiv.style.display = 'none';
+uaDiv.textContent = navigator.userAgent;
+document.body.appendChild(uaDiv);
 (function () {
     let testResults = {
         suiteName: 'JavaScript Tests',
@@ -27,6 +33,12 @@
     });
 
     QUnit.done(function (details) {
+        // Write QUnit.done status to DOM for debugging
+        var doneDiv = document.createElement('div');
+        doneDiv.id = 'debug-qunit-done';
+        doneDiv.style.display = 'none';
+        doneDiv.textContent = 'QUnit.done triggered';
+        document.body.appendChild(doneDiv);
         testResults.endTime = new Date();
         testResults.runtime = details.runtime;
         testResults.passed = details.passed;
@@ -146,7 +158,8 @@
 
     function isHeadless() {
         return /HeadlessChrome/.test(navigator.userAgent) ||
-            /PhantomJS/.test(navigator.userAgent);
+            /PhantomJS/.test(navigator.userAgent) ||
+            (/Edg/.test(navigator.userAgent) && /Headless/.test(navigator.userAgent));
     }
 
     // Expose for headless environments to access results
