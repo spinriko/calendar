@@ -5,100 +5,46 @@ namespace pto.track.services.Authentication;
 
 /// <summary>
 /// Mock implementation of IUserClaimsProvider for development/testing.
-/// Returns hardcoded user information to simulate an authenticated user.
-/// Supports impersonation for testing different roles.
+/// Returns user information from the authenticated claims principal.
+/// Note: Impersonation is now handled by MockAuthenticationMiddleware via ImpersonationData cookie.
 /// </summary>
 public class MockUserClaimsProvider : IUserClaimsProvider
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private const string ImpersonationCookieName = "MockImpersonation";
-
-    // Default admin user
-    private const string AdminEmployeeNumber = "ADMIN001";
-    private const string AdminEmail = "admin@example.com";
-    private const string AdminDisplayName = "Admin User";
-    private const string AdminAdId = "mock-ad-guid-admin";
 
     public MockUserClaimsProvider(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
 
-    private string GetImpersonationRole()
-    {
-        var context = _httpContextAccessor.HttpContext;
-        if (context?.Request.Cookies.TryGetValue(ImpersonationCookieName, out var role) == true)
-        {
-            return role;
-        }
-        return "Admin"; // Default to Admin
-    }
+    private ClaimsPrincipal? GetUser() => _httpContextAccessor.HttpContext?.User;
 
     public string? GetEmployeeNumber()
     {
-        var role = GetImpersonationRole();
-        return role switch
-        {
-            "Employee" => "EMP001",
-            "Employee2" => "EMP002",
-            "Manager" => "MGR001",
-            "Approver" => "APR001",
-            _ => AdminEmployeeNumber
-        };
+        return GetUser()?.FindFirst("employeeNumber")?.Value
+            ?? GetUser()?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 
     public string? GetEmail()
     {
-        var role = GetImpersonationRole();
-        return role switch
-        {
-            "Employee" => "employee@example.com",
-            "Employee2" => "employee2@example.com",
-            "Manager" => "manager@example.com",
-            "Approver" => "approver@example.com",
-            _ => AdminEmail
-        };
+        return GetUser()?.FindFirst(ClaimTypes.Email)?.Value;
     }
 
     public string? GetDisplayName()
     {
-        var role = GetImpersonationRole();
-        return role switch
-        {
-            "Employee" => "Test Employee",
-            "Employee2" => "Test Employee 2",
-            "Manager" => "Test Manager",
-            "Approver" => "Test Approver",
-            _ => AdminDisplayName
-        };
+        return GetUser()?.FindFirst(ClaimTypes.Name)?.Value;
     }
 
     public string? GetActiveDirectoryId()
     {
-        var role = GetImpersonationRole();
-        return role switch
-        {
-            "Employee" => "mock-ad-guid-employee",
-            "Employee2" => "mock-ad-guid-employee2",
-            "Manager" => "mock-ad-guid-manager",
-            "Approver" => "mock-ad-guid-approver",
-            _ => AdminAdId
-        };
+        return GetUser()?.FindFirst("objectGUID")?.Value;
     }
 
-    public bool IsAuthenticated() => true;
+    public bool IsAuthenticated() => GetUser()?.Identity?.IsAuthenticated ?? false;
 
     public IEnumerable<string> GetRoles()
     {
-        var role = GetImpersonationRole();
-        return role switch
-        {
-            "Employee" => new[] { "Employee" },
-            "Employee2" => new[] { "Employee" },
-            "Manager" => new[] { "Employee", "Manager" },
-            "Approver" => new[] { "Employee", "Approver" },
-            _ => new[] { "Employee", "Manager", "Approver", "Admin" } // Admin has all roles
-        };
+        return GetUser()?.FindAll(ClaimTypes.Role).Select(c => c.Value) ?? Enumerable.Empty<string>();
     }
 
     public bool IsInRole(string role) => GetRoles().Contains(role, StringComparer.OrdinalIgnoreCase);

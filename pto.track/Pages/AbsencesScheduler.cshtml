@@ -42,18 +42,6 @@
                     <span>Cancelled</span>
                 </label>
             </div>
-            <div id="impersonationPanel"
-                style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
-                <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
-                <select id="impersonateRole"
-                    style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
-                    <option value="Admin">Admin (All Roles)</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Approver">Approver</option>
-                    <option value="Employee">Employee 1 (EMP001)</option>
-                    <option value="Employee2">Employee 2 (EMP002)</option>
-                </select>
-            </div>
         </div>
         <div id="scheduler"></div>
     </div>
@@ -308,9 +296,7 @@
             filterPending: document.getElementById("filterPending"),
             filterApproved: document.getElementById("filterApproved"),
             filterRejected: document.getElementById("filterRejected"),
-            filterCancelled: document.getElementById("filterCancelled"),
-            impersonationPanel: document.getElementById("impersonationPanel"),
-            impersonateRole: document.getElementById("impersonateRole")
+            filterCancelled: document.getElementById("filterCancelled")
         },
         state: {
             selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
@@ -382,23 +368,6 @@
                             r.toLowerCase() === 'manager' ||
                             r.toLowerCase() === 'approver'
                         );
-
-                    // Show impersonation panel in mock mode
-                    if (this.state.isMockMode) {
-                        this.elements.impersonationPanel.style.display = "block";
-                        // Set current role in dropdown - handle Employee2 specially
-                        let currentRole = "Employee";
-                        if (response.data.roles?.includes("Admin")) {
-                            currentRole = "Admin";
-                        } else if (response.data.roles?.includes("Manager")) {
-                            currentRole = "Manager";
-                        } else if (response.data.roles?.includes("Approver")) {
-                            currentRole = "Approver";
-                        } else if (response.data.employeeNumber === "EMP002") {
-                            currentRole = "Employee2";
-                        }
-                        this.elements.impersonateRole.value = currentRole;
-                    }
 
                     console.log("Current user:", this.state.currentUser);
                     console.log("Is manager/approver:", this.state.isManager);
@@ -544,32 +513,6 @@
             app.elements.filterApproved.addEventListener("change", updateFilters);
             app.elements.filterRejected.addEventListener("change", updateFilters);
             app.elements.filterCancelled.addEventListener("change", updateFilters);
-
-            // Impersonation handler
-            if (app.elements.impersonateRole) {
-                app.elements.impersonateRole.addEventListener("change", async (e) => {
-                    const role = e.target.value;
-                    try {
-                        await DayPilot.Http.post("/api/currentuser/impersonate", { role });
-                        console.log(`Impersonating ${role}, reloading user...`);
-
-                        // Reload current user and refresh data
-                        await app.loadCurrentUser();
-
-                        // Reinitialize checkboxes for new role
-                        app.initializeCheckboxes();
-
-                        app.loadSchedulerData();
-                        app.loadDatePickerData();
-
-                        // Show notification
-                        const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
-                    } catch (error) {
-                        console.error("Error setting impersonation:", error);
-                        await DayPilot.Modal.alert("Failed to change impersonation");
-                    }
-                });
-            }
         },
         initEventHandlers() {
             this.addHandlers();
