@@ -520,7 +520,7 @@ dotnet test --blame-crash
 ```
 
 ### Visual Studio Code
-See [TESTING_VSCODE.md](TESTING_VSCODE.md) for detailed VS Code testing instructions.
+See [TESTING_VSCODE.md](./TESTING_VSCODE.md) for detailed VS Code testing instructions.
 
 ### Visual Studio
 - Open Test Explorer: `Test → Test Explorer`

@@ -9,7 +9,7 @@ You've been summoned to my office because:
 - It lacks basic usability
 -- sure, we think we fixed the filtering issue
 -- switching impersonated users does not correctly render allowed text boxes
---- this, like the filtering issue could be caught with qunit tests
+--- this, like the filtering issue could be caught with Jest tests
 -- complete user testing is impossible because of instability
 - It's starting to slip past safe timelines
 - No one in the company has confidence that a viable site will come to fruition

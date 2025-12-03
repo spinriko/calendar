@@ -357,7 +357,7 @@ const data = {
 
 ## Documentation
 
-See **AUTHENTICATION.md** for detailed documentation including:
+See [AUTHENTICATION.md](./AUTHENTICATION.md) for detailed documentation including:
 - Complete architecture overview
 - Step-by-step migration guide
 - Advanced scenarios (Azure AD, multi-provider)
