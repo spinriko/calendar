@@ -47,8 +47,20 @@
     </div>
 </div>
 
-<script src="~/js/calendar-functions.js"></script>
-<script>
+<script type="module">
+    import {
+        getStatusColor,
+        buildAbsencesUrl,
+        determineUserRole,
+        getDefaultStatusFilters,
+        getVisibleFilters,
+        updateSelectedStatusesFromCheckboxes,
+        isUserManagerOrApprover,
+        canCreateAbsenceForResource,
+        getResourceSelectionMessage,
+        buildContextMenuItems
+    } from '/js/calendar-functions.mjs';
+
     const scheduler = new DayPilot.Scheduler("scheduler", {
         startDate: DayPilot.Date.today().addDays(-7),
         days: 21,

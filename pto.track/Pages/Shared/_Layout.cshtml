@@ -40,6 +40,24 @@
         </div>
     </nav>
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div id="errorBanner" class="alert alert-warning alert-dismissible fade show m-3" role="alert">
+            <strong>Access Denied:</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <script>
+            // Auto-dismiss the banner after 3 seconds
+            setTimeout(function() {
+                const banner = document.getElementById('errorBanner');
+                if (banner) {
+                    const bsAlert = new bootstrap.Alert(banner);
+                    bsAlert.close();
+                }
+            }, 3000);
+        </script>
+    }
+
     <div class="main">
         @RenderBody()
     </div>

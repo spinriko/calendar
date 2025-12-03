@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace pto.track.Pages
@@ -12,8 +13,16 @@ namespace pto.track.Pages
             _logger = logger;
         }
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            // Check if user has Admin role
+            if (!User.IsInRole("Admin"))
+            {
+                TempData["ErrorMessage"] = "Only administrators can view the Groups page.";
+                return RedirectToPage("/Index");
+            }
+
+            return Page();
         }
     }
 }
