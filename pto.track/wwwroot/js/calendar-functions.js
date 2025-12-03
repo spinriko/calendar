@@ -422,7 +422,7 @@ function buildContextMenuItems(absence, userContext, event) {
     return items;
 }
 
-module.exports = {
+export {
     getStatusColor,
     buildAbsencesUrl,
     determineUserRole,
