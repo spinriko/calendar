@@ -18,6 +18,40 @@ npm run test:watch
 npm run lint
 ```
 
+## Code Quality Metrics
+
+### Cyclomatic Complexity
+
+ESLint is configured to warn when function complexity exceeds 10, helping maintain code quality and testability.
+
+**Configuration** (`.eslintrc.json`):
+```json
+{
+  "rules": {
+    "complexity": ["warn", { "max": 10 }]
+  }
+}
+```
+
+**Benefits**:
+- Identifies overly complex functions that may be hard to test
+- Encourages breaking down large functions into smaller, testable units
+- TypeScript-ready with `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin`
+- Runs automatically before every test execution
+
+**What It Measures**:
+- Decision points: if, while, for, switch cases
+- Logical operators: &&, ||
+- Ternary operators: ? :
+- Optional chaining with branches: ?.
+
+**Example Warning**:
+```
+  32:1  warning  Function has a complexity of 12  complexity
+```
+
+When you see this warning, consider refactoring the function into smaller, single-purpose functions.
+
 ## Test Reports
 
 ### JUnit XML Report

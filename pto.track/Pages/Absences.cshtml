@@ -47,8 +47,20 @@
     </div>
 </div>
 
-<script src="~/js/calendar-functions.js"></script>
-<script>
+<script type="module">
+    import {
+        getStatusColor,
+        buildAbsencesUrl,
+        determineUserRole,
+        getDefaultStatusFilters,
+        getVisibleFilters,
+        updateSelectedStatusesFromCheckboxes,
+        isUserManagerOrApprover,
+        canCreateAbsenceForResource,
+        getResourceSelectionMessage,
+        buildContextMenuItems
+    } from '/js/calendar-functions.mjs';
+
     const calendar = new DayPilot.Calendar("calendar", {
         viewType: "Resources",
         durationBarVisible: false,
@@ -385,149 +397,6 @@
             this.addHandlers();
         }
     };
-
-    // Helper function to build context menu items based on absence status
-    function buildContextMenuItems(absence, event) {
-        const items = [];
-        const status = absence.status;
-
-        // Get current user role information
-        const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = app.state.isManager || false;
-        const isApprover = app.state.currentUser?.isApprover || false;
-        const isOwner = absence.employeeId === app.state.currentEmployeeId;
-
-        // Managers and Approvers have approval rights
-        const canApprove = isAdmin || isManager || isApprover;
-
-        // Only the owner can edit/delete their own pending requests
-        // Admins can also edit/delete
-        const canEdit = isAdmin || isOwner;
-        const canDelete = isAdmin || isOwner;
-
-        // View Details - always available
-        items.push({
-            text: "View Details",
-            onClick: async () => {
-                const form = [
-                    { name: "Employee", id: "employeeName", disabled: true },
-                    { name: "Reason", id: "reason", type: "textarea", disabled: true },
-                    { name: "Status", id: "status", disabled: true },
-                    { name: "Requested", id: "requestedDate", type: "date", disabled: true },
-                ];
-
-                if (absence.approverName) {
-                    form.push({ name: "Approver", id: "approverName", disabled: true });
-                    form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
-                }
-
-                if (absence.approvalComments) {
-                    form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
-                }
-
-                const formData = {
-                    employeeName: absence.employeeName,
-                    reason: absence.reason,
-                    status: absence.status,
-                    requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
-                    approverName: absence.approverName,
-                    approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
-                    approvalComments: absence.approvalComments
-                };
-
-                await DayPilot.Modal.form(form, formData);
-            }
-        });
-
-        // Edit - only for pending status AND if user has permission
-        if (status === "Pending" && canEdit) {
-            items.push({
-                text: "Edit Reason",
-                onClick: async () => {
-                    const form = [
-                        { name: "Reason", id: "reason", type: "textarea" },
-                    ];
-
-                    const formData = { reason: absence.reason };
-                    const modal = await DayPilot.Modal.form(form, formData);
-
-                    if (!modal.canceled) {
-                        const updateData = {
-                            start: absence.start,
-                            end: absence.end,
-                            reason: modal.result.reason
-                        };
-
-                        await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
-                        absence.reason = modal.result.reason;
-                        calendar.events.update(event);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-        }
-
-        // Approve/Reject - only for pending status AND if user can approve
-        if (status === "Pending" && canApprove) {
-            if (canEdit) {
-                items.push({ text: "-" }); // Separator only if Edit was shown
-            }
-
-            // Approve - only for pending
-            items.push({
-                text: "Approve",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
-                    if (!modal.canceled) {
-                        const approvalData = {
-                            approverId: app.state.currentEmployeeId,
-                            comments: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${absence.id}/approve`, approvalData);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-
-            // Reject - only for pending
-            items.push({
-                text: "Reject",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.prompt("Rejection reason:");
-                    if (!modal.canceled && modal.result) {
-                        const rejectionData = {
-                            approverId: app.state.currentEmployeeId,
-                            reason: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${absence.id}/reject`, rejectionData);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-        }
-
-        // Delete - for pending or cancelled AND if user has permission
-        if ((status === "Pending" || status === "Cancelled") && canDelete) {
-            if (canEdit || canApprove) {
-                items.push({ text: "-" }); // Separator only if other actions were shown
-            }
-
-            items.push({
-                text: "Delete",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.confirm("Delete this absence request?");
-                    if (!modal.canceled) {
-                        await DayPilot.Http.delete(`/api/absences/${absence.id}`);
-                        calendar.events.remove(event);
-                    }
-                }
-            });
-        }
-
-        return items;
-    }
 
     app.init();
 

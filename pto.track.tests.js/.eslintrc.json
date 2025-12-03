@@ -10,10 +10,11 @@
         "plugin:jest/recommended"
     ],
     "plugins": [
-        "jest"
+        "jest",
+        "complexity"
     ],
     "parserOptions": {
-        "ecmaVersion": 12,
+        "ecmaVersion": 2022,
         "sourceType": "module"
     },
     "rules": {
@@ -27,7 +28,13 @@
             "error",
             "double"
         ],
-        "eqeqeq": "error"
+        "eqeqeq": "error",
+        "complexity": [
+            "warn",
+            {
+                "max": 10
+            }
+        ]
     },
     "ignorePatterns": [
         "node_modules/",

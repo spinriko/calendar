@@ -447,6 +447,39 @@ public class AbsencesModel : BasePageModel
 }
 ```
 
+## Architecture: Two Authentication Paths
+
+The impersonation system uses different authentication mechanisms for **production use** versus **automated testing**:
+
+### Production/Development (Browser Usage)
+- **Uses Cookie-Based Authentication**: `ImpersonationData` cookie
+- **Flow**:
+  1. User selects employee and roles in impersonation panel UI
+  2. JavaScript calls `/api/impersonation` endpoint (POST)
+  3. Controller sets `ImpersonationData` cookie with user data
+  4. `MockAuthenticationMiddleware` reads cookie and creates claims
+  5. Page reloads with new identity
+- **Storage**: HTTP-only cookie (8-hour expiration) + localStorage (UI state only)
+- **Security**: Cookie is HttpOnly, SameSite=Lax, validated in Mock mode only
+
+### Automated Testing (Integration Tests)
+- **Uses Header-Based Authentication**: `X-Test-Role` header
+- **Flow**:
+  1. Test creates HttpClient with specific role header
+  2. `TestAuthHandler` reads header and creates claims
+  3. Test executes request with role-based authorization
+- **Purpose**: Simplifies test setup, avoids cookie management complexity
+- **Separation**: `CustomWebApplicationFactory` registers `TestAuthHandler` for tests only
+
+### Why Two Paths?
+
+1. **Simplicity**: Tests remain clean without cookie serialization/deserialization
+2. **Speed**: Header-based auth is faster in test execution
+3. **Clarity**: Clear separation between test infrastructure and production code
+4. **Realism**: Production code uses proper cookie-based flow matching real-world patterns
+
+**Note**: The two paths are completely independent. Production code never uses headers for impersonation, and tests never use the `ImpersonationData` cookie.
+
 ## Testing the Impersonation Feature
 
 ### Test Scenarios

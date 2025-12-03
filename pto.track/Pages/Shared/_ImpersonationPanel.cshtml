@@ -39,9 +39,30 @@
             </div>
         </div>
 
-        <button class="btn btn-sm btn-primary w-100" onclick="applyImpersonation()">Apply</button>
-        <button class="btn btn-sm btn-secondary w-100 mt-1" onclick="clearImpersonation()">Reset to Default</button>
+        <button class="btn btn-sm btn-primary w-100" id="applyImpersonationBtn">Apply</button>
+        <button class="btn btn-sm btn-secondary w-100 mt-1" id="clearImpersonationBtn">Reset to Default</button>
     </div>
 }
 
-<script type="module" src="~/js/impersonation-panel.mjs"></script>
+<script type="module">
+    import {
+        toggleImpersonationPanel,
+        applyImpersonation,
+        clearImpersonation,
+        initImpersonationPanel
+    } from '/js/impersonation-panel.mjs';
+
+    // Make functions available globally for onclick handlers
+    window.toggleImpersonationPanel = toggleImpersonationPanel;
+
+    // Initialize the panel when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initImpersonationPanel);
+    } else {
+        initImpersonationPanel();
+    }
+
+    // Set up button event listeners
+    document.getElementById('applyImpersonationBtn')?.addEventListener('click', () => applyImpersonation());
+    document.getElementById('clearImpersonationBtn')?.addEventListener('click', () => clearImpersonation());
+</script>

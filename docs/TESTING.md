@@ -143,6 +143,57 @@ npm run test:only
 
 ---
 
+## Code Quality Metrics
+
+### Cyclomatic Complexity Analysis
+
+The test suite includes automated cyclomatic complexity analysis to identify overly complex methods that may need refactoring.
+
+#### C# Complexity Analysis
+**Tool**: Microsoft.CodeAnalysis.Metrics with custom Roslyn analyzer  
+**Threshold**: Complexity > 10 triggers a report  
+**Run Command**:
+```bash
+cd pto.track.tests
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer"
+```
+
+**Output Example**:
+```
+=== Cyclomatic Complexity Report ===
+Analyzed 17 source files
+
+Found 1 method(s) with complexity > 10:
+  [11] AbsencesController.GetAbsenceRequests
+      in Controllers\AbsencesController.cs
+
+Consider refactoring methods with high complexity to improve maintainability.
+```
+
+**What It Measures**:
+- Decision points: if, while, for, foreach, switch cases
+- Logical operators: && and ||
+- Exception handling: catch clauses
+- Ternary operators: ? :
+
+**Benefits**:
+- Identifies methods that may be difficult to test or maintain
+- Helps prioritize refactoring efforts
+- Runs as part of test suite (informational, never fails)
+
+#### JavaScript Complexity Analysis
+**Tool**: ESLint with complexity plugin  
+**Threshold**: Complexity > 10 triggers a warning  
+**Run Command**: Runs automatically with `npm test` (ESLint validation before tests)  
+**Configuration**: `.eslintrc.json` with `complexity` rule set to `["warn", { "max": 10 }]`
+
+**Benefits**:
+- Prevents overly complex functions from being committed
+- TypeScript-ready (using @typescript-eslint/parser and @typescript-eslint/eslint-plugin)
+- Integrated into development workflow
+
+---
+
 ## Test Projects
 
 ### 1. pto.track.tests (Integration Tests)
