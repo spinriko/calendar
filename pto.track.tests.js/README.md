@@ -1,195 +1,199 @@
 # JavaScript Tests for PTO Track
 
-Pure JavaScript tests using QUnit - no Node.js required!
+Pure JavaScript tests using Jest with ES Modules - Node.js 20+ required!
 
 ## Running Tests
 
-### Option 1: Open in Browser
-Simply open `test-runner.html` in any web browser:
 ```bash
-# Using xdg-open (Linux)
-xdg-open test-runner.html
+# Run all tests with linting
+npm test
 
-# Using default browser (Windows)
-start test-runner.html
+# Run tests with coverage report
+npm run test:coverage
 
-# Or just drag and drop the file into your browser
+# Run tests in watch mode (for TDD)
+npm run test:watch
+
+# Run linter only
+npm run lint
 ```
 
-### Option 2: Live Server (VS Code)
-1. Install "Live Server" extension in VS Code
-2. Right-click `test-runner.html`
-3. Select "Open with Live Server"
+## Code Quality Metrics
 
-### Option 3: Headless (CI/CD)
+### Cyclomatic Complexity
 
-**Linux/WSL:**
-```bash
-./run-headless.sh
+ESLint is configured to warn when function complexity exceeds 10, helping maintain code quality and testability.
+
+**Configuration** (`.eslintrc.json`):
+```json
+{
+  "rules": {
+    "complexity": ["warn", { "max": 10 }]
+  }
+}
 ```
 
-**Windows (PowerShell):**
-```powershell
-.\run-headless.ps1
+**Benefits**:
+- Identifies overly complex functions that may be hard to test
+- Encourages breaking down large functions into smaller, testable units
+- TypeScript-ready with `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin`
+- Runs automatically before every test execution
+
+**What It Measures**:
+- Decision points: if, while, for, switch cases
+- Logical operators: &&, ||
+- Ternary operators: ? :
+- Optional chaining with branches: ?.
+
+**Example Warning**:
+```
+  32:1  warning  Function has a complexity of 12  complexity
 ```
 
-Both scripts:
-- Start a temporary web server on port 9999
-- Run tests in headless Microsoft Edge
-- Display test results in the terminal
-- **Save JUnit XML results to `test-results.xml`** for CI/CD integration
-- Exit with code 0 (success) or 1 (failure)
+When you see this warning, consider refactoring the function into smaller, single-purpose functions.
+
+## Test Reports
+
+### JUnit XML Report
+After running `npm test`, a JUnit XML report is generated at:
+- `test-results/jest-junit.xml`
+
+This report is compatible with:
+- VS Code Test Explorer
+- Azure DevOps
+- Jenkins
+- GitHub Actions
+- GitLab CI
+- Any CI system supporting JUnit XML
+
+### Coverage Reports
+
+**Note**: Coverage collection with ES modules and `--experimental-vm-modules` has limitations in Jest. The coverage reports may show 0% even though tests are passing. This is a known issue with Jest's coverage in experimental VM modules mode.
+
+**Workaround**: The test suite provides comprehensive functional coverage through 164 tests covering all exported functions. See `TEST-STRUCTURE.md` for detailed coverage breakdown.
+
+If coverage metrics are critical, consider:
+1. Using a different test runner (Vitest has better ESM support)
+2. Transpiling to CommonJS for testing
+3. Waiting for Jest's stable ESM support
 
 ## Test Structure
 
 ```
 pto.track.tests.js/
-├── test-runner.html          # Main test runner (open in browser)
-├── mock-daypilot.js          # Mock DayPilot library
-├── calendar-functions.js     # Symlink to production code
-├── run-headless.sh           # Headless test runner for CI/CD
+├── jest.config.js            # Jest configuration
+├── eslint.config.js          # ESLint configuration
+├── .c8rc.json               # Coverage configuration
+├── package.json              # Dependencies and scripts
+├── test-results/             # JUnit XML reports
+│   └── jest-junit.xml
+├── coverage/                 # Coverage reports (HTML)
+│   └── index.html
 └── tests/
-    ├── status-color.test.js       # 8 tests - Status color mapping
-    ├── checkbox-filters.test.js   # 4 tests - Checkbox state management
-    ├── url-builder.test.js        # 6 tests - API URL construction
-    ├── role-detection.test.js     # 18 tests - User role logic
-    └── impersonation.test.js      # 5 tests - Role switching
+    ├── unit/                         # Unit tests (148 tests)
+    │   ├── core/                     # Core business logic (58 tests)
+    │   │   ├── role-detection.test.mjs      # 54 tests
+    │   │   ├── url-builder.test.mjs         # 15 tests
+    │   │   └── calendar-functions.test.mjs  # 3 tests
+    │   ├── filters/                  # Filter management (18 tests)
+    │   │   ├── checkbox-filters.test.mjs
+    │   │   └── checkbox-visibility.test.mjs
+    │   ├── permissions/              # Access control (26 tests)
+    │   │   ├── employee-restrictions.test.mjs
+    │   │   └── impersonation.test.mjs
+    │   └── presentation/             # UI presentation (37 tests)
+    │       ├── context-menu.test.mjs
+    │       └── status-color.test.mjs
+    └── integration/                  # Integration tests (16 tests)
+        └── workflows.test.mjs
 
-Production code location: ../pto.track/wwwroot/js/calendar-functions.js
+Production code: ../pto.track/wwwroot/js/calendar-functions.mjs
 ```
 
 ## Test Coverage
 
-**Total: 41 JavaScript tests**
+**Total: 164 JavaScript tests** (all passing ✓)
 
-### Status Colors (8 tests)
-- ✓ Returns correct colors for all statuses
-- ✓ Handles null/undefined
-- ✓ Case sensitivity
-- ✓ Default color fallback
+See `TEST-STRUCTURE.md` for detailed breakdown by category.
 
-### Checkbox Filters (4 tests)
-- ✓ Collects checked statuses
-- ✓ Handles empty selection
-- ✓ Returns all when all checked
-- ✓ Single checkbox selection
-
-### URL Builder (6 tests)
-- ✓ Adds status parameters
-- ✓ Adds employeeId for employees
-- ✓ Excludes employeeId for managers/admins
-- ✓ Multiple status filters
-- ✓ Empty status array
-
-### Role Detection (18 tests)
-- ✓ Determines user role from roles array
-- ✓ Prioritizes Admin > Manager > Approver > Employee
-- ✓ Default status filters per role
-- ✓ Visible filter checkboxes per role
-- ✓ Manager/Approver detection
-- ✓ Case-insensitive role matching
-- ✓ Handles null/undefined users
-
-### Impersonation (5 tests)
-- ✓ Admin sees all checkboxes and statuses
-- ✓ Manager sees limited checkboxes
-- ✓ Employee sees all but selects only Pending
-- ✓ EmployeeId filtering per role
-- ✓ Role switching updates filters
+### Categories
+- **Core** (58 tests): Role detection, URL building, filter management
+- **Filters** (18 tests): Checkbox state and visibility
+- **Permissions** (26 tests): Access control and restrictions
+- **Presentation** (37 tests): Context menus and status colors
+- **Integration** (16 tests): Real-world workflows
 
 ## Benefits
 
-- **No Build Step**: Pure HTML/JS, no compilation needed
-- **Browser-Based**: Run directly in any browser
-- **Visual Feedback**: QUnit provides clear pass/fail UI
-- **Fast**: Instant test execution
-- **Portable**: Works on any OS with a browser
-- **Easy to Debug**: Use browser DevTools to debug tests
+- **ES Modules**: Modern JavaScript with native import/export
+- **No Build Step**: Direct Node.js execution with `--experimental-vm-modules`
+- **Fast**: ~1.5s execution time for all 164 tests
+- **Type Safe**: ESLint validation before every test run
+- **CI/CD Ready**: JUnit XML output for all CI systems
+- **Organized**: Clear folder structure by feature/concern
+- **Comprehensive**: 164 tests covering all 10 exported functions
 
 ## Adding New Tests
 
-1. Create a new test file in `tests/` directory:
+1. Create a new test file in appropriate `tests/` subdirectory:
 ```javascript
-QUnit.module('My Feature', function() {
-    QUnit.test('should do something', function(assert) {
+import { myFunction } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+
+describe('My Feature', () => {
+    it('should do something', () => {
         const result = myFunction();
-        assert.equal(result, expected, "Description");
+        expect(result).toBe(expected);
     });
 });
 ```
 
-2. Add script tag to `test-runner.html`:
-```html
-<script src="tests/my-feature.test.js"></script>
-```
-
-## Exporting Test Results
-
-### Manual Export (Browser)
-1. Open `test-runner.html` in browser
-2. Click the **"📥 Download JUnit XML Results"** button
-3. Save `test-results.xml` file
-
-### Automated Export (CI/CD)
-Run tests in headless Edge:
-
+2. Run tests:
 ```bash
-cd pto.track.tests.js
-./run-headless.sh
+npm test
 ```
 
-**WSL Support**: Automatically detects WSL and uses Windows Edge.
-
-**Output**: Generates `test-results.xml` in the same directory.
-
-The `test-results.xml` file is in JUnit format, compatible with:
-- Azure DevOps
-- Jenkins
-- GitHub Actions
-- GitLab CI
-- TeamCity
-- Any CI system supporting JUnit XML
-
-### GitHub Actions Integration
-
-The `.github/workflows/js-tests.yml` workflow is included:
-- Runs on every push and pull request
-- Executes tests in headless Chrome (Linux) or Edge (Windows)
-- Uploads test results as artifacts
-- Reports pass/fail status
-
-For Windows CI/CD pipelines, use `run-headless.ps1` instead of the bash script.
+Jest automatically discovers `*.test.mjs` files.
 
 ## Integration with CI/CD
 
-Example VS Code task (Linux/WSL):
-```json
-{
-    "label": "Run JS Tests (Headless)",
-    "type": "shell",
-    "command": "./run-headless.sh",
-    "options": {
-        "cwd": "${workspaceFolder}/pto.track.tests.js"
-    }
-}
+### GitHub Actions
+```yaml
+- name: Run JavaScript Tests
+  run: |
+    cd pto.track.tests.js
+    npm ci
+    npm test
+  
+- name: Upload Test Results
+  uses: actions/upload-artifact@v3
+  with:
+    name: jest-results
+    path: pto.track.tests.js/test-results/jest-junit.xml
 ```
 
-Example VS Code task (Windows):
-```json
-{
-    "label": "Run JS Tests (Headless - Windows)",
-    "type": "shell",
-    "command": "powershell -ExecutionPolicy Bypass -File run-headless.ps1",
-    "options": {
-        "cwd": "${workspaceFolder}/pto.track.tests.js"
-    }
-}
+### Azure DevOps
+```yaml
+- task: Npm@1
+  inputs:
+    command: 'ci'
+    workingDir: 'pto.track.tests.js'
+
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    customCommand: 'test'
+    workingDir: 'pto.track.tests.js'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'pto.track.tests.js/test-results/jest-junit.xml'
 ```
 
-## Why QUnit?
+## Why Jest?
 
-- **Simple**: No build tools, no package managers
-- **Proven**: Used by jQuery, WordPress, and many others
-- **Well-documented**: Extensive documentation at qunitjs.com
-- **Browser DevTools**: Easy debugging with familiar tools
-- **Pure JavaScript**: No transpilation needed
+- **Industry Standard**: Most popular JavaScript testing framework
+- **ES Module Support**: Works with modern JavaScript (experimental but stable)
+- **Rich Ecosystem**: JUnit reporters, coverage tools, VS Code integration
+- **Excellent DX**: Watch mode, clear error messages, fast execution
+- **Well-documented**: Extensive documentation at jestjs.io

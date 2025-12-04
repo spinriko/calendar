@@ -12,7 +12,7 @@ public class UnitOfWorkTests : TestBase
         var context = CreateInMemoryContext();
         var unitOfWork = CreateUnitOfWork(context);
 
-        var resource = new SchedulerResource { Name = "Test Resource" };
+        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
 
         // Act
@@ -32,7 +32,7 @@ public class UnitOfWorkTests : TestBase
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var resource = new SchedulerResource { Name = "Test Resource" };
+        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
 
         // Act & Assert
@@ -63,7 +63,7 @@ public class UnitOfWorkTests : TestBase
 
         await unitOfWork.BeginTransactionAsync();
 
-        var resource = new SchedulerResource { Name = "Test Resource" };
+        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
         await unitOfWork.SaveChangesAsync();
 
@@ -87,7 +87,7 @@ public class UnitOfWorkTests : TestBase
 
         await unitOfWork.BeginTransactionAsync();
 
-        var resource = new SchedulerResource { Name = "Test Resource" };
+        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
         await unitOfWork.SaveChangesAsync();
 
@@ -112,8 +112,8 @@ public class UnitOfWorkTests : TestBase
         // Act - Successful transaction
         await unitOfWork.BeginTransactionAsync();
 
-        var resource1 = new SchedulerResource { Name = "Resource 1" };
-        var resource2 = new SchedulerResource { Name = "Resource 2" };
+        var resource1 = new Resource { Name = "Resource 1", GroupId = 1 };
+        var resource2 = new Resource { Name = "Resource 2", GroupId = 1 };
         context.Resources.Add(resource1);
         context.Resources.Add(resource2);
 
@@ -136,7 +136,7 @@ public class UnitOfWorkTests : TestBase
 
         try
         {
-            var resource = new SchedulerResource { Name = "Test Resource" };
+            var resource = new Resource { Name = "Test Resource", GroupId = 1 };
             context.Resources.Add(resource);
             await unitOfWork.SaveChangesAsync();
 
@@ -161,7 +161,7 @@ public class UnitOfWorkTests : TestBase
         var context = CreateInMemoryContext();
         var unitOfWork = CreateUnitOfWork(context);
 
-        var resource = new SchedulerResource { Name = "Test Resource" };
+        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
 
         // Act
