@@ -1,0 +1,14 @@
+
+
+to run the project locally, start powershell or cmd using:
+runas /user:{service-account}  - this was tested with s-asbwebapps-dev
+or whatever account has access to the database
+
+ensure there is a user-secrets for the user above:
+cd {solution directory}
+dotnet user-secrets list --project .\pto.track\pto.track.csproj
+if no entry
+dotnet user-secrets set "ConnectionStrings:PtoTrackDbContext" "Server=={db-server-name},{db-server-port};Database={db_name};Integrated Security=True;TrustServerCertificate=True;"
+
+finally, you can run the project 
+dotnet run --project .\pto.track\pto.track.csproj --launch-profile "http"
