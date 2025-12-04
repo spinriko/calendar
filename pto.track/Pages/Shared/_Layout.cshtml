@@ -24,12 +24,6 @@
                         <a class="nav-link" href="/">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/Scheduling">Scheduling</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/Absences">Leave Requests (Calendar)</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/AbsencesScheduler">Leave Requests (Scheduler)</a>
                     </li>
                     <li class="nav-item" id="groupsNavItem" style="display: none;">
@@ -48,7 +42,7 @@
         </div>
         <script>
             // Auto-dismiss the banner after 3 seconds
-            setTimeout(function() {
+            setTimeout(function () {
                 const banner = document.getElementById('errorBanner');
                 if (banner) {
                     const bsAlert = new bootstrap.Alert(banner);

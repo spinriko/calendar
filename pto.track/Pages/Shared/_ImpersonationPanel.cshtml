@@ -9,38 +9,15 @@
         </div>
 
         <div class="mb-2">
-            <label for="impersonateUser" class="form-label small">User:</label>
+            <label for="impersonateUser" class="form-label small">Impersonate As:</label>
             <select id="impersonateUser" class="form-select form-select-sm">
-                <option value="EMP001">Development User (Admin)</option>
-                <option value="EMP002">Test Employee</option>
-                <option value="EMP003">Test Manager</option>
-                <option value="EMP004">Test Approver</option>
-                <option value="EMP005">Administrator</option>
+                <option value="EMP001">Development User - Admin</option>
+                <option value="EMP002">Test Employee - Employee</option>
+                <option value="EMP003">Test Manager - Manager</option>
+                <option value="EMP004">Test Approver - Approver</option>
+                <option value="EMP005">Administrator - Admin</option>
             </select>
         </div>
-
-        <div class="mb-2">
-            <label class="form-label small">Roles:</label>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleEmployee" checked>
-                <label class="form-check-label small" for="roleEmployee">Employee</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleManager">
-                <label class="form-check-label small" for="roleManager">Manager</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleApprover">
-                <label class="form-check-label small" for="roleApprover">Approver</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleAdmin">
-                <label class="form-check-label small" for="roleAdmin">Admin</label>
-            </div>
-        </div>
-
-        <button class="btn btn-sm btn-primary w-100" id="applyImpersonationBtn">Apply</button>
-        <button class="btn btn-sm btn-secondary w-100 mt-1" id="clearImpersonationBtn">Reset to Default</button>
     </div>
 }
 
@@ -48,7 +25,6 @@
     import {
         toggleImpersonationPanel,
         applyImpersonation,
-        clearImpersonation,
         initImpersonationPanel
     } from '/js/impersonation-panel.mjs';
 
@@ -62,7 +38,6 @@
         initImpersonationPanel();
     }
 
-    // Set up button event listeners
-    document.getElementById('applyImpersonationBtn')?.addEventListener('click', () => applyImpersonation());
-    document.getElementById('clearImpersonationBtn')?.addEventListener('click', () => clearImpersonation());
+    // Apply impersonation immediately when dropdown changes
+    document.getElementById('impersonateUser')?.addEventListener('change', () => applyImpersonation());
 </script>
