@@ -206,6 +206,24 @@ describe('buildContextMenuItems', () => {
         });
     });
 
+    describe('Type mismatch handling', () => {
+        it('correctly identifies owner when employeeId is number and currentEmployeeId is string', () => {
+            const absence = { status: 'Pending', employeeId: 1 };
+            const userContext = { currentEmployeeId: '1', isAdmin: false, isManager: false, isApprover: false };
+            const items = buildContextMenuItems(absence, userContext, {});
+            expect(items.some(i => i.text === 'Edit Reason')).toBe(true);
+            expect(items.some(i => i.text === 'Delete')).toBe(true);
+        });
+
+        it('correctly identifies owner when employeeId is string and currentEmployeeId is number', () => {
+            const absence = { status: 'Pending', employeeId: '1' };
+            const userContext = { currentEmployeeId: 1, isAdmin: false, isManager: false, isApprover: false };
+            const items = buildContextMenuItems(absence, userContext, {});
+            expect(items.some(i => i.text === 'Edit Reason')).toBe(true);
+            expect(items.some(i => i.text === 'Delete')).toBe(true);
+        });
+    });
+
     describe('Menu item order validation', () => {
         it('maintains correct order: View Details first', () => {
             const absence = { status: 'Pending', employeeId: '1' };

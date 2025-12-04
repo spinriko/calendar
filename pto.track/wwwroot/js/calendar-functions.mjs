@@ -112,7 +112,7 @@ function buildContextMenuItems(absence, userContext, event) {
     const isAdmin = context.isAdmin;
     const isManager = context.isManager;
     const isApprover = context.isApprover;
-    const isOwner = absence.employeeId === context.currentEmployeeId;
+    const isOwner = String(absence.employeeId) === String(context.currentEmployeeId);
     const canApprove = isAdmin || isManager || isApprover;
     const canEdit = isAdmin || isOwner;
     const canDelete = isAdmin || isOwner;
