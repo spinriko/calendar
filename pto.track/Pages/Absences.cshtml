@@ -42,25 +42,25 @@
                     <span>Cancelled</span>
                 </label>
             </div>
-            <div id="impersonationPanel"
-                style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
-                <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
-                <select id="impersonateRole"
-                    style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
-                    <option value="Admin">Admin (All Roles)</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Approver">Approver</option>
-                    <option value="Employee">Employee 1 (EMP001)</option>
-                    <option value="Employee2">Employee 2 (EMP002)</option>
-                </select>
-            </div>
         </div>
         <div id="calendar"></div>
     </div>
 </div>
 
-<script src="~/js/calendar-functions.js"></script>
-<script>
+<script type="module">
+    import {
+        getStatusColor,
+        buildAbsencesUrl,
+        determineUserRole,
+        getDefaultStatusFilters,
+        getVisibleFilters,
+        updateSelectedStatusesFromCheckboxes,
+        isUserManagerOrApprover,
+        canCreateAbsenceForResource,
+        getResourceSelectionMessage,
+        buildContextMenuItems
+    } from '/js/calendar-functions.mjs';
+
     const calendar = new DayPilot.Calendar("calendar", {
         viewType: "Resources",
         durationBarVisible: false,
@@ -186,9 +186,7 @@
             filterPending: document.getElementById("filterPending"),
             filterApproved: document.getElementById("filterApproved"),
             filterRejected: document.getElementById("filterRejected"),
-            filterCancelled: document.getElementById("filterCancelled"),
-            impersonationPanel: document.getElementById("impersonationPanel"),
-            impersonateRole: document.getElementById("impersonateRole")
+            filterCancelled: document.getElementById("filterCancelled")
         },
         state: {
             selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
@@ -260,23 +258,6 @@
                             r.toLowerCase() === 'manager' ||
                             r.toLowerCase() === 'approver'
                         );
-
-                    // Show impersonation panel in mock mode
-                    if (this.state.isMockMode) {
-                        this.elements.impersonationPanel.style.display = "block";
-                        // Set current role in dropdown - handle Employee2 specially
-                        let currentRole = "Employee";
-                        if (response.data.roles?.includes("Admin")) {
-                            currentRole = "Admin";
-                        } else if (response.data.roles?.includes("Manager")) {
-                            currentRole = "Manager";
-                        } else if (response.data.roles?.includes("Approver")) {
-                            currentRole = "Approver";
-                        } else if (response.data.employeeNumber === "EMP002") {
-                            currentRole = "Employee2";
-                        }
-                        this.elements.impersonateRole.value = currentRole;
-                    }
 
                     console.log("Current user:", this.state.currentUser);
                     console.log("Is manager/approver:", this.state.isManager);
@@ -411,191 +392,11 @@
             app.elements.filterApproved.addEventListener("change", updateFilters);
             app.elements.filterRejected.addEventListener("change", updateFilters);
             app.elements.filterCancelled.addEventListener("change", updateFilters);
-
-            // Impersonation handler
-            if (app.elements.impersonateRole) {
-                app.elements.impersonateRole.addEventListener("change", async (e) => {
-                    const role = e.target.value;
-                    try {
-                        await DayPilot.Http.post("/api/currentuser/impersonate", { role });
-                        console.log(`Impersonating ${role}, reloading user...`);
-
-                        // Reload current user and refresh data
-                        await app.loadCurrentUser();
-
-                        // Reinitialize checkboxes for new role
-                        app.initializeCheckboxes();
-
-                        app.loadCalendarData();
-                        app.loadDatePickerData();
-
-                        // Show notification
-                        const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
-                    } catch (error) {
-                        console.error("Error setting impersonation:", error);
-                        await DayPilot.Modal.alert("Failed to change impersonation");
-                    }
-                });
-            }
         },
         initEventHandlers() {
             this.addHandlers();
         }
     };
-
-    // Helper function to check if user can create absence for a resource
-    function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-        // Admins, Managers, and Approvers can create absences for anyone
-        if (isAdmin || isManager || isApprover) {
-            return true;
-        }
-
-        // Regular employees can only create absences for themselves
-        return currentEmployeeId === targetResourceId;
-    }
-
-    // Helper function to build context menu items based on absence status
-    function buildContextMenuItems(absence, event) {
-        const items = [];
-        const status = absence.status;
-
-        // Get current user role information
-        const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = app.state.isManager || false;
-        const isApprover = app.state.currentUser?.isApprover || false;
-        const isOwner = absence.employeeId === app.state.currentEmployeeId;
-
-        // Managers and Approvers have approval rights
-        const canApprove = isAdmin || isManager || isApprover;
-
-        // Only the owner can edit/delete their own pending requests
-        // Admins can also edit/delete
-        const canEdit = isAdmin || isOwner;
-        const canDelete = isAdmin || isOwner;
-
-        // View Details - always available
-        items.push({
-            text: "View Details",
-            onClick: async () => {
-                const form = [
-                    { name: "Employee", id: "employeeName", disabled: true },
-                    { name: "Reason", id: "reason", type: "textarea", disabled: true },
-                    { name: "Status", id: "status", disabled: true },
-                    { name: "Requested", id: "requestedDate", type: "date", disabled: true },
-                ];
-
-                if (absence.approverName) {
-                    form.push({ name: "Approver", id: "approverName", disabled: true });
-                    form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
-                }
-
-                if (absence.approvalComments) {
-                    form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
-                }
-
-                const formData = {
-                    employeeName: absence.employeeName,
-                    reason: absence.reason,
-                    status: absence.status,
-                    requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
-                    approverName: absence.approverName,
-                    approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
-                    approvalComments: absence.approvalComments
-                };
-
-                await DayPilot.Modal.form(form, formData);
-            }
-        });
-
-        // Edit - only for pending status AND if user has permission
-        if (status === "Pending" && canEdit) {
-            items.push({
-                text: "Edit Reason",
-                onClick: async () => {
-                    const form = [
-                        { name: "Reason", id: "reason", type: "textarea" },
-                    ];
-
-                    const formData = { reason: absence.reason };
-                    const modal = await DayPilot.Modal.form(form, formData);
-
-                    if (!modal.canceled) {
-                        const updateData = {
-                            start: absence.start,
-                            end: absence.end,
-                            reason: modal.result.reason
-                        };
-
-                        await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
-                        absence.reason = modal.result.reason;
-                        calendar.events.update(event);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-        }
-
-        // Approve/Reject - only for pending status AND if user can approve
-        if (status === "Pending" && canApprove) {
-            if (canEdit) {
-                items.push({ text: "-" }); // Separator only if Edit was shown
-            }
-
-            // Approve - only for pending
-            items.push({
-                text: "Approve",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
-                    if (!modal.canceled) {
-                        const approvalData = {
-                            approverId: app.state.currentEmployeeId,
-                            comments: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${absence.id}/approve`, approvalData);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-
-            // Reject - only for pending
-            items.push({
-                text: "Reject",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.prompt("Rejection reason:");
-                    if (!modal.canceled && modal.result) {
-                        const rejectionData = {
-                            approverId: app.state.currentEmployeeId,
-                            reason: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${absence.id}/reject`, rejectionData);
-                        app.loadCalendarData();
-                    }
-                }
-            });
-        }
-
-        // Delete - for pending or cancelled AND if user has permission
-        if ((status === "Pending" || status === "Cancelled") && canDelete) {
-            if (canEdit || canApprove) {
-                items.push({ text: "-" }); // Separator only if other actions were shown
-            }
-
-            items.push({
-                text: "Delete",
-                onClick: async () => {
-                    const modal = await DayPilot.Modal.confirm("Delete this absence request?");
-                    if (!modal.canceled) {
-                        await DayPilot.Http.delete(`/api/absences/${absence.id}`);
-                        calendar.events.remove(event);
-                    }
-                }
-            });
-        }
-
-        return items;
-    }
 
     app.init();
 

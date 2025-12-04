@@ -47,13 +47,13 @@ window.DayPilot = {
     },
 
     Http: {
-        get: function (url) {
+        get: function () {
             return Promise.resolve({ data: [] });
         },
-        post: function (url, data) {
+        post: function (_, data) {
             return Promise.resolve({ data: { id: 1, ...data } });
         },
-        put: function (url, data) {
+        put: function (_, data) {
             return Promise.resolve({ data: data });
         }
     },
@@ -65,13 +65,13 @@ window.DayPilot = {
                 result: data || {}
             });
         },
-        prompt: function (message) {
+        prompt: function () {
             return Promise.resolve({
                 canceled: false,
                 result: "Test comment"
             });
         },
-        alert: function (message) {
+        alert: function () {
             return Promise.resolve();
         }
     }

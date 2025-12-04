@@ -6,88 +6,74 @@
 
 <script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
 
-<div class="main">
-    <div class="left">
-        <div id="datepicker"></div>
-    </div>
-    <div class="right">
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
-            <div class="buttons">
-                <button id="previous">Previous</button>
-                <button id="today">Today</button>
-                <button id="next">Next</button>
-            </div>
-            <div id="statusFilters"
-                style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f5f5f5; border-radius: 4px;">
-                <span style="font-weight: 600; margin-right: 5px;">Show:</span>
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
-                    <input type="checkbox" id="filterPending" value="Pending" checked
-                        style="width: 16px; height: 16px; accent-color: #ffa500;">
-                    <span>Pending</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
-                    <input type="checkbox" id="filterApproved" value="Approved" checked
-                        style="width: 16px; height: 16px; accent-color: #6aa84f;">
-                    <span>Approved</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
-                    <input type="checkbox" id="filterRejected" value="Rejected" checked
-                        style="width: 16px; height: 16px; accent-color: #cc4125;">
-                    <span>Rejected</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
-                    <input type="checkbox" id="filterCancelled" value="Cancelled" checked
-                        style="width: 16px; height: 16px; accent-color: #999999;">
-                    <span>Cancelled</span>
-                </label>
-            </div>
-            <div id="impersonationPanel"
-                style="display: none; background: #fff3cd; padding: 8px 12px; border-radius: 4px; border: 2px solid #ffc107;">
-                <label style="margin-right: 10px; font-weight: 600; color: #856404;">🎭 Impersonate:</label>
-                <select id="impersonateRole"
-                    style="padding: 5px 10px; border: 1px solid #ffc107; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
-                    <option value="Admin">Admin (All Roles)</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Approver">Approver</option>
-                    <option value="Employee">Employee 1 (EMP001)</option>
-                    <option value="Employee2">Employee 2 (EMP002)</option>
-                </select>
-            </div>
+<div class="left">
+    <div id="datepicker"></div>
+</div>
+<div class="right">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
+        <div class="buttons">
+            <button id="previous">Previous</button>
+            <button id="today">Today</button>
+            <button id="next">Next</button>
         </div>
-        <div id="scheduler"></div>
+        <div id="statusFilters"
+            style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f5f5f5; border-radius: 4px;">
+            <span style="font-weight: 600; margin-right: 5px;">Show:</span>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" id="filterPending" value="Pending" checked
+                    style="width: 16px; height: 16px; accent-color: #ffa500;">
+                <span>Pending</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" id="filterApproved" value="Approved" checked
+                    style="width: 16px; height: 16px; accent-color: #6aa84f;">
+                <span>Approved</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" id="filterRejected" value="Rejected" checked
+                    style="width: 16px; height: 16px; accent-color: #cc4125;">
+                <span>Rejected</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" id="filterCancelled" value="Cancelled" checked
+                    style="width: 16px; height: 16px; accent-color: #999999;">
+                <span>Cancelled</span>
+            </label>
+        </div>
     </div>
+    <div id="scheduler"></div>
 </div>
 
-<script src="~/js/calendar-functions.js"></script>
-<script>
+<script type="module">
+    import {
+        getStatusColor,
+        buildAbsencesUrl,
+        determineUserRole,
+        getDefaultStatusFilters,
+        getVisibleFilters,
+        updateSelectedStatusesFromCheckboxes,
+        isUserManagerOrApprover,
+        canCreateAbsenceForResource,
+        getResourceSelectionMessage,
+        buildContextMenuItems
+    } from '/js/calendar-functions.mjs';
+
     const scheduler = new DayPilot.Scheduler("scheduler", {
-        startDate: DayPilot.Date.today().addDays(-7),
-        days: 21,
-        scale: "Hour",
-        cellDuration: 30,
+        startDate: DayPilot.Date.today().firstDayOfWeek(1),
+        days: 5,
+        scale: "Day",
+        width: "100%",
+        height: 500,
+        rowHeaderWidth: 200,
+        cellWidth: 200,
         timeHeaders: [
-            { groupBy: "Month" },
-            { groupBy: "Day", format: "ddd M/d" },
-            { groupBy: "Hour", format: "h tt" }
-        ],
-        cellWidth: 40,
-        eventHeight: 30,
-        businessBeginsHour: 8,
-        businessEndsHour: 18,
-        showNonBusiness: false, // Hide non-business hours
-        businessWeekends: false, // Also hide weekends
-        onIncludeTimeCell: (args) => {
-            // Only include cells within business hours (8 AM - 6 PM)
-            const hour = args.cell.start.getHours();
-            args.cell.enabled = hour >= 8 && hour < 18;
-        },
-        rowHeaderColumns: [
-            { text: "Employee", display: "name" }
+            { groupBy: "Month", format: "MMMM yyyy" },
+            { groupBy: "Day", format: "ddd M/d" }
         ],
         eventMoveHandling: "Disabled",
         eventResizeHandling: "Disabled",
         treeEnabled: true,
+        timeRangeSelectedHandling: "Enabled",
         onTimeRangeSelected: async (args) => {
             // Check if employee can create absence for this resource
             const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
@@ -100,8 +86,16 @@
                 return;
             }
 
+            // Calculate the date range
+            const startDate = args.start;
+            const endDate = args.end;
+            const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
             const form = [
-                { name: "Reason", id: "reason", type: "textarea" },
+                { name: "Date Range", id: "dateInfo", type: "text", disabled: true, value: `${daysDiff} day(s): ${startDate.toString("M/d/yyyy")} - ${endDate.addDays(-1).toString("M/d/yyyy")}` },
+                { name: "Start Time (first day)", id: "startTime", type: "time", value: "08:00" },
+                { name: "End Time (last day)", id: "endTime", type: "time", value: "17:00" },
+                { name: "Reason", id: "reason", type: "textarea" }
             ];
 
             const modal = await DayPilot.Modal.form(form);
@@ -110,9 +104,16 @@
                 return;
             }
 
+            // Combine date with time
+            const [startHour, startMinute] = modal.result.startTime.split(':');
+            const [endHour, endMinute] = modal.result.endTime.split(':');
+
+            const absenceStart = startDate.addHours(parseInt(startHour)).addMinutes(parseInt(startMinute));
+            const absenceEnd = endDate.addDays(-1).addHours(parseInt(endHour)).addMinutes(parseInt(endMinute));
+
             const absence = {
-                start: args.start.toString(),
-                end: args.end.toString(),
+                start: absenceStart.toString(),
+                end: absenceEnd.toString(),
                 employeeId: parseInt(args.resource, 10),
                 reason: modal.result.reason
             };
@@ -140,57 +141,8 @@
 
         },
         onEventClick: async (args) => {
-            const absence = args.e.data.data || args.e.data;
-
-            const form = [
-                { name: "Employee", id: "employeeName", disabled: true },
-                { name: "Reason", id: "reason", type: "textarea" },
-                { name: "Status", id: "status", disabled: true },
-                { name: "Requested", id: "requestedDate", type: "date", disabled: true },
-            ];
-
-            if (absence.approverName) {
-                form.push({ name: "Approver", id: "approverName", disabled: true });
-                form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
-            }
-
-            if (absence.approvalComments) {
-                form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
-            }
-
-            // Prepare data for the form with proper field values
-            // Format dates to remove excess precision that DayPilot can't parse
-            const formData = {
-                employeeName: absence.employeeName,
-                reason: absence.reason,
-                status: absence.status,
-                requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
-                approverName: absence.approverName,
-                approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
-                approvalComments: absence.approvalComments
-            };
-
-            const modal = await DayPilot.Modal.form(form, formData);
-            if (modal.canceled) {
-                return;
-            }
-
-            // For now, only show details. Update functionality would need status checking
-            if (absence.status === "Pending") {
-                const updateData = {
-                    start: absence.start,
-                    end: absence.end,
-                    reason: modal.result.reason
-                };
-
-                await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
-
-                scheduler.events.update({
-                    ...args.e.data,
-                    reason: modal.result.reason,
-                    text: modal.result.reason
-                });
-            }
+            // Disabled - using context menu instead
+            return;
         },
         onBeforeEventRender: args => {
             const status = args.data.status || args.data.data?.status;
@@ -198,96 +150,61 @@
             args.data.borderColor = "darker";
             args.data.fontColor = "#ffffff";
 
+            // Add ellipsis menu icon
             args.data.areas = [];
-
-            // Add approve/reject buttons for pending requests
-            if (status === "Pending") {
-                args.data.areas.push({
-                    right: 35,
-                    top: 5,
-                    width: 22,
-                    height: 22,
-                    symbol: "icons/daypilot.svg#checkmark",
-                    cssClass: "area_action",
-                    padding: 2,
-                    toolTip: "Approve",
-                    onClick: async args => {
-                        const e = args.source;
-                        const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
-                        if (modal.canceled) {
-                            return true;
+            args.data.areas.push({
+                right: 2,
+                top: 2,
+                width: 24,
+                height: 24,
+                html: "<div style='color: white; font-weight: bold; font-size: 18px; line-height: 24px; text-align: center; cursor: pointer; padding: 3px;'>⋯</div>",
+                toolTip: "Actions",
+                onClick: async args => {
+                    const e = args.source;
+                    const absence = e.data.data || e.data;
+                    
+                    const userContext = {
+                        currentEmployeeId: app.state.currentEmployeeId,
+                        isAdmin: app.state.currentUser?.role?.toLowerCase() === 'admin' || 
+                                 app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'admin') || false,
+                        isManager: app.state.currentUser?.role?.toLowerCase() === 'manager' ||
+                                   app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'manager') || false,
+                        isApprover: app.state.currentUser?.isApprover || 
+                                    app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'approver') || false
+                    };
+                    
+                    // Build menu items and wire up action handlers
+                    const menuItems = buildContextMenuItems(absence, userContext, e);
+                    menuItems.forEach(item => {
+                        if (item.onClick) {
+                            const originalOnClick = item.onClick;
+                            item.onClick = async function(args) {
+                                const result = originalOnClick();
+                                if (result && result.action) {
+                                    await app.handleMenuAction(result.action, result.absence, e);
+                                }
+                            };
                         }
-
-                        const approvalData = {
-                            approverId: app.state.currentEmployeeId,
-                            comments: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${e.id()}/approve`, approvalData);
-                        app.loadSchedulerData();
-                        console.log("Approved.");
-                    }
-                });
-
-                args.data.areas.push({
-                    right: 5,
-                    top: 5,
-                    width: 22,
-                    height: 22,
-                    symbol: "icons/daypilot.svg#x-2",
-                    cssClass: "area_action",
-                    padding: 2,
-                    toolTip: "Reject",
-                    onClick: async args => {
-                        const e = args.source;
-                        const modal = await DayPilot.Modal.prompt("Rejection reason:");
-                        if (modal.canceled || !modal.result) {
-                            return true;
-                        }
-
-                        const rejectionData = {
-                            approverId: app.state.currentEmployeeId,
-                            reason: modal.result
-                        };
-
-                        await DayPilot.Http.post(`/api/absences/${e.id()}/reject`, rejectionData);
-                        app.loadSchedulerData();
-                        console.log("Rejected.");
-                    }
-                });
-            }
-
-            // Add delete button for all statuses
-            if (status === "Pending" || status === "Cancelled") {
-                args.data.areas.push({
-                    right: 5,
-                    bottom: 5,
-                    width: 22,
-                    height: 22,
-                    symbol: "icons/daypilot.svg#x-circle",
-                    cssClass: "area_action",
-                    padding: 2,
-                    toolTip: "Delete",
-                    onClick: async args => {
-                        const e = args.source;
-                        const modal = await DayPilot.Modal.confirm("Delete this absence request?");
-                        if (modal.canceled) {
-                            return true;
-                        }
-                        await DayPilot.Http.delete(`/api/absences/${e.id()}`);
-                        scheduler.events.remove(e);
-                        console.log("Deleted.");
-                    }
-                });
-            }
+                    });
+                    
+                    const menu = new DayPilot.Menu({
+                        items: menuItems
+                    });
+                    menu.show(e);
+                    args.preventDefault();
+                    args.stopPropagation();
+                    return false;
+                }
+            });
         },
     });
     scheduler.init();
 
     const datepicker = new DayPilot.Navigator("datepicker", {
-        selectMode: "Day",
+        selectMode: "Week", // Select by week
         showMonths: 3,
         skipMonths: 3,
+        weekStarts: 1, // Start on Monday
         onTimeRangeSelected: args => {
             scheduler.update({
                 startDate: args.start,
@@ -308,9 +225,7 @@
             filterPending: document.getElementById("filterPending"),
             filterApproved: document.getElementById("filterApproved"),
             filterRejected: document.getElementById("filterRejected"),
-            filterCancelled: document.getElementById("filterCancelled"),
-            impersonationPanel: document.getElementById("impersonationPanel"),
-            impersonateRole: document.getElementById("impersonateRole")
+            filterCancelled: document.getElementById("filterCancelled")
         },
         state: {
             selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
@@ -382,23 +297,6 @@
                             r.toLowerCase() === 'manager' ||
                             r.toLowerCase() === 'approver'
                         );
-
-                    // Show impersonation panel in mock mode
-                    if (this.state.isMockMode) {
-                        this.elements.impersonationPanel.style.display = "block";
-                        // Set current role in dropdown - handle Employee2 specially
-                        let currentRole = "Employee";
-                        if (response.data.roles?.includes("Admin")) {
-                            currentRole = "Admin";
-                        } else if (response.data.roles?.includes("Manager")) {
-                            currentRole = "Manager";
-                        } else if (response.data.roles?.includes("Approver")) {
-                            currentRole = "Approver";
-                        } else if (response.data.employeeNumber === "EMP002") {
-                            currentRole = "Employee2";
-                        }
-                        this.elements.impersonateRole.value = currentRole;
-                    }
 
                     console.log("Current user:", this.state.currentUser);
                     console.log("Is manager/approver:", this.state.isManager);
@@ -499,24 +397,128 @@
 
             datepicker.update({ events });
         },
+        async handleMenuAction(action, absence, event) {
+            switch (action) {
+                case 'viewDetails':
+                    await this.viewDetails(absence);
+                    break;
+                case 'editReason':
+                    await this.editReason(absence, event);
+                    break;
+                case 'approve':
+                    await this.approveAbsence(absence);
+                    break;
+                case 'reject':
+                    await this.rejectAbsence(absence);
+                    break;
+                case 'delete':
+                    await this.deleteAbsence(absence, event);
+                    break;
+            }
+        },
+        async viewDetails(absence) {
+            const form = [
+                { name: "Employee", id: "employeeName", disabled: true },
+                { name: "Start", id: "start", type: "datetime", disabled: true },
+                { name: "End", id: "end", type: "datetime", disabled: true },
+                { name: "Reason", id: "reason", type: "textarea", disabled: true },
+                { name: "Status", id: "status", disabled: true },
+                { name: "Requested", id: "requestedDate", type: "date", disabled: true },
+            ];
+
+            if (absence.approverName) {
+                form.push({ name: "Approver", id: "approverName", disabled: true });
+                form.push({ name: "Approved Date", id: "approvedDate", type: "date", disabled: true });
+            }
+
+            if (absence.approvalComments) {
+                form.push({ name: "Comments", id: "approvalComments", type: "textarea", disabled: true });
+            }
+
+            const formData = {
+                employeeName: absence.employeeName,
+                start: absence.start,
+                end: absence.end,
+                reason: absence.reason,
+                status: absence.status,
+                requestedDate: absence.requestedDate ? absence.requestedDate.split('T')[0] : null,
+                approverName: absence.approverName,
+                approvedDate: absence.approvedDate ? absence.approvedDate.split('T')[0] : null,
+                approvalComments: absence.approvalComments
+            };
+
+            await DayPilot.Modal.form(form, formData);
+        },
+        async editReason(absence, event) {
+            const modal = await DayPilot.Modal.prompt("Edit reason:", absence.reason);
+            if (modal.canceled) return;
+
+            const updateData = {
+                start: absence.start,
+                end: absence.end,
+                reason: modal.result
+            };
+
+            await DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
+
+            scheduler.events.update({
+                ...event.data,
+                reason: modal.result,
+                text: modal.result
+            });
+
+            await this.loadSchedulerData();
+        },
+        async approveAbsence(absence) {
+            const modal = await DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
+            if (modal.canceled) return;
+
+            const approvalData = {
+                approverId: this.state.currentEmployeeId,
+                comments: modal.result
+            };
+
+            await DayPilot.Http.post(`/api/absences/${absence.id}/approve`, approvalData);
+            await this.loadSchedulerData();
+        },
+        async rejectAbsence(absence) {
+            const modal = await DayPilot.Modal.prompt("Rejection reason:");
+            if (modal.canceled || !modal.result) return;
+
+            const rejectionData = {
+                approverId: this.state.currentEmployeeId,
+                reason: modal.result
+            };
+
+            await DayPilot.Http.post(`/api/absences/${absence.id}/reject`, rejectionData);
+            await this.loadSchedulerData();
+        },
+        async deleteAbsence(absence, event) {
+            const modal = await DayPilot.Modal.confirm("Delete this absence request?");
+            if (modal.canceled) return;
+
+            await DayPilot.Http.delete(`/api/absences/${absence.id}`);
+            scheduler.events.remove(event);
+            await this.loadSchedulerData();
+        },
         addHandlers() {
             app.elements.previous.addEventListener("click", () => {
                 const currentStart = scheduler.startDate;
                 scheduler.update({
-                    startDate: currentStart.addDays(-21)
+                    startDate: currentStart.addDays(-7) // Go back 1 week
                 });
                 app.loadSchedulerData();
             });
             app.elements.next.addEventListener("click", () => {
                 const currentStart = scheduler.startDate;
                 scheduler.update({
-                    startDate: currentStart.addDays(21)
+                    startDate: currentStart.addDays(7) // Go forward 1 week
                 });
                 app.loadSchedulerData();
             });
             app.elements.today.addEventListener("click", () => {
                 scheduler.update({
-                    startDate: DayPilot.Date.today().addDays(-7)
+                    startDate: DayPilot.Date.today().firstDayOfWeek(1) // Jump to current week
                 });
                 app.loadSchedulerData();
             });
@@ -544,49 +546,10 @@
             app.elements.filterApproved.addEventListener("change", updateFilters);
             app.elements.filterRejected.addEventListener("change", updateFilters);
             app.elements.filterCancelled.addEventListener("change", updateFilters);
-
-            // Impersonation handler
-            if (app.elements.impersonateRole) {
-                app.elements.impersonateRole.addEventListener("change", async (e) => {
-                    const role = e.target.value;
-                    try {
-                        await DayPilot.Http.post("/api/currentuser/impersonate", { role });
-                        console.log(`Impersonating ${role}, reloading user...`);
-
-                        // Reload current user and refresh data
-                        await app.loadCurrentUser();
-
-                        // Reinitialize checkboxes for new role
-                        app.initializeCheckboxes();
-
-                        app.loadSchedulerData();
-                        app.loadDatePickerData();
-
-                        // Show notification
-                        const notification = await DayPilot.Modal.alert(`Now impersonating: ${role}`);
-                    } catch (error) {
-                        console.error("Error setting impersonation:", error);
-                        await DayPilot.Modal.alert("Failed to change impersonation");
-                    }
-                });
-            }
         },
         initEventHandlers() {
             this.addHandlers();
         }
     };
 
-    // Helper function to check if user can create absence for a resource
-    function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-        // Admins, Managers, and Approvers can create absences for anyone
-        if (isAdmin || isManager || isApprover) {
-            return true;
-        }
-
-        // Regular employees can only create absences for themselves
-        return currentEmployeeId === targetResourceId;
-    }
-
-    app.init();
-
-</script>
+    app.init();</script>

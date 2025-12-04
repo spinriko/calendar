@@ -6,8 +6,10 @@ namespace pto.track.Pages
 {
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     [IgnoreAntiforgeryToken]
-    public class ErrorModel : PageModel
+    public class ErrorModel : BasePageModel
     {
+        public ErrorModel(IConfiguration configuration) : base(configuration) { }
+
         public string? RequestId { get; set; }
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
