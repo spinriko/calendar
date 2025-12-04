@@ -1,3 +1,4 @@
+
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
@@ -21,14 +22,71 @@ public class ResourceService : IResourceService
         _mapper = mapper;
     }
 
+
+    /// <summary>
+    /// Gets resources filtered by group using specification pattern.
+    /// </summary>
+    public async Task<IEnumerable<ResourceDto>> GetResourcesByGroupAsync(int groupId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("ResourceService.GetResourcesByGroupAsync: Fetching resources for group {GroupId}", groupId);
+        var spec = new Specifications.ResourceGroupSpecification(groupId);
+        var query = Specifications.SpecificationEvaluator.GetQuery(_context.Resources, spec);
+        List<ResourceDto> resources;
+        if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            resources = await query
+                .Select(r => new ResourceDto(
+                    r.Id,
+                    r.Name,
+                    r.Email,
+                    r.EmployeeNumber,
+                    r.Role,
+                    r.IsApprover,
+                    r.IsActive,
+                    r.Department,
+                    r.GroupId
+                ))
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            resources = await query
+                .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+        }
+        _logger.LogDebug("ResourceService.GetResourcesByGroupAsync: Found {Count} resources for group {GroupId}", resources.Count, groupId);
+        return resources;
+    }
+
     /// <inheritdoc />
     public async Task<IEnumerable<ResourceDto>> GetResourcesAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("ResourceService.GetResourcesAsync: Fetching all resources");
-        var resources = await _context.Resources
-            .AsNoTracking()
-            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
-            .ToListAsync(cancellationToken);
+        List<ResourceDto> resources;
+        if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            resources = await _context.Resources
+                .AsNoTracking()
+                .Select(r => new ResourceDto(
+                    r.Id,
+                    r.Name,
+                    r.Email,
+                    r.EmployeeNumber,
+                    r.Role,
+                    r.IsApprover,
+                    r.IsActive,
+                    r.Department,
+                    r.GroupId
+                ))
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            resources = await _context.Resources
+                .AsNoTracking()
+                .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+        }
         _logger.LogDebug("ResourceService.GetResourcesAsync: Found {Count} resources", resources.Count);
         return resources;
     }

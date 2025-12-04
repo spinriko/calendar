@@ -17,7 +17,13 @@ namespace pto.track.data
         /// <summary>
         /// Gets or sets the collection of resources (employees).
         /// </summary>
-        public DbSet<SchedulerResource> Resources { get; set; }
+        public DbSet<Resource> Resources { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets the collection of groups.
+        /// </summary>
+        public DbSet<Models.Group> Groups { get; set; }
 
         /// <summary>
         /// Gets or sets the collection of absence requests.
@@ -32,17 +38,17 @@ namespace pto.track.data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure SchedulerResource primary key as identity
-            modelBuilder.Entity<SchedulerResource>()
+            // Configure Resource primary key as identity
+            modelBuilder.Entity<Resource>()
                 .Property(r => r.Id)
                 .ValueGeneratedOnAdd();
 
             // Configure default values for Resource timestamps
-            modelBuilder.Entity<SchedulerResource>()
+            modelBuilder.Entity<Resource>()
                 .Property(r => r.CreatedDate)
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            modelBuilder.Entity<SchedulerResource>()
+            modelBuilder.Entity<Resource>()
                 .Property(r => r.ModifiedDate)
                 .HasDefaultValueSql("GETUTCDATE()");
 
@@ -53,12 +59,21 @@ namespace pto.track.data
                 return;
             }
 
+
             var seedDate = new DateTime(2025, 11, 19, 0, 0, 0, DateTimeKind.Utc);
 
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            // Seed Group 1
+            modelBuilder.Entity<Models.Group>().HasData(new Models.Group
+            {
+                GroupId = 1,
+                Name = "Group 1"
+            });
+
+            // Seed required resources, all assigned to Group 1
+            modelBuilder.Entity<Resource>().HasData(new Resource
             {
                 Id = 1,
-                Name = "Test Employee",
+                Name = "Test Employee 1",
                 Role = "Employee",
                 IsActive = true,
                 IsApprover = false,
@@ -66,9 +81,10 @@ namespace pto.track.data
                 Email = "employee@example.com",
                 ActiveDirectoryId = "mock-ad-guid-employee",
                 CreatedDate = seedDate,
-                ModifiedDate = seedDate
+                ModifiedDate = seedDate,
+                GroupId = 1
             });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            modelBuilder.Entity<Resource>().HasData(new Resource
             {
                 Id = 2,
                 Name = "Test Employee 2",
@@ -79,12 +95,13 @@ namespace pto.track.data
                 Email = "employee2@example.com",
                 ActiveDirectoryId = "mock-ad-guid-employee2",
                 CreatedDate = seedDate,
-                ModifiedDate = seedDate
+                ModifiedDate = seedDate,
+                GroupId = 1
             });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            modelBuilder.Entity<Resource>().HasData(new Resource
             {
                 Id = 3,
-                Name = "Test Manager",
+                Name = "Manager",
                 Role = "Manager",
                 IsActive = true,
                 IsApprover = true,
@@ -92,12 +109,13 @@ namespace pto.track.data
                 Email = "manager@example.com",
                 ActiveDirectoryId = "mock-ad-guid-manager",
                 CreatedDate = seedDate,
-                ModifiedDate = seedDate
+                ModifiedDate = seedDate,
+                GroupId = 1
             });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            modelBuilder.Entity<Resource>().HasData(new Resource
             {
                 Id = 4,
-                Name = "Test Approver",
+                Name = "Approver",
                 Role = "Approver",
                 IsActive = true,
                 IsApprover = true,
@@ -105,12 +123,13 @@ namespace pto.track.data
                 Email = "approver@example.com",
                 ActiveDirectoryId = "mock-ad-guid-approver",
                 CreatedDate = seedDate,
-                ModifiedDate = seedDate
+                ModifiedDate = seedDate,
+                GroupId = 1
             });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
+            modelBuilder.Entity<Resource>().HasData(new Resource
             {
                 Id = 5,
-                Name = "Admin User",
+                Name = "Administrator",
                 Role = "Admin",
                 IsActive = true,
                 IsApprover = true,
@@ -118,57 +137,8 @@ namespace pto.track.data
                 Email = "admin@example.com",
                 ActiveDirectoryId = "mock-ad-guid-admin",
                 CreatedDate = seedDate,
-                ModifiedDate = seedDate
-            });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
-            {
-                Id = 6,
-                Name = "Resource F",
-                Role = "Employee",
-                IsActive = true,
-                IsApprover = false,
-                CreatedDate = seedDate,
-                ModifiedDate = seedDate
-            });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
-            {
-                Id = 7,
-                Name = "Resource G",
-                Role = "Employee",
-                IsActive = true,
-                IsApprover = false,
-                CreatedDate = seedDate,
-                ModifiedDate = seedDate
-            });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
-            {
-                Id = 8,
-                Name = "Resource H",
-                Role = "Employee",
-                IsActive = true,
-                IsApprover = false,
-                CreatedDate = seedDate,
-                ModifiedDate = seedDate
-            });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
-            {
-                Id = 9,
-                Name = "Resource I",
-                Role = "Employee",
-                IsActive = true,
-                IsApprover = false,
-                CreatedDate = seedDate,
-                ModifiedDate = seedDate
-            });
-            modelBuilder.Entity<SchedulerResource>().HasData(new SchedulerResource
-            {
-                Id = 10,
-                Name = "Resource J",
-                Role = "Employee",
-                IsActive = true,
-                IsApprover = false,
-                CreatedDate = seedDate,
-                ModifiedDate = seedDate
+                ModifiedDate = seedDate,
+                GroupId = 1
             });
 
         }

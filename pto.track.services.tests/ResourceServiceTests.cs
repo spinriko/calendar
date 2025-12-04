@@ -17,9 +17,9 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Resource A" },
-            new SchedulerResource { Id = 2, Name = "Resource B" },
-            new SchedulerResource { Id = 3, Name = "Resource C" }
+            new Resource { Id = 1, Name = "Resource A", GroupId = 1 },
+            new Resource { Id = 2, Name = "Resource B", GroupId = 1 },
+            new Resource { Id = 3, Name = "Resource C", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -52,8 +52,8 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Conference Room A" },
-            new SchedulerResource { Id = 2, Name = "Conference Room B" }
+            new Resource { Id = 1, Name = "Conference Room A", GroupId = 1 },
+            new Resource { Id = 2, Name = "Conference Room B", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -79,7 +79,7 @@ public class ResourceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
-        var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
+        var resource = new Resource { Id = 1, Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
 
@@ -89,7 +89,7 @@ public class ResourceServiceTests : TestBase
         // Assert
         var firstResult = result.First();
         Assert.IsType<ResourceDto>(firstResult);
-        Assert.IsNotType<SchedulerResource>(firstResult);
+        Assert.IsNotType<Resource>(firstResult);
     }
 
     [Fact]
@@ -101,9 +101,9 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 3, Name = "Resource C" },
-            new SchedulerResource { Id = 1, Name = "Resource A" },
-            new SchedulerResource { Id = 2, Name = "Resource B" }
+            new Resource { Id = 3, Name = "Resource C", GroupId = 1 },
+            new Resource { Id = 1, Name = "Resource A", GroupId = 1 },
+            new Resource { Id = 2, Name = "Resource B", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -126,7 +126,7 @@ public class ResourceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
-        var resource = new SchedulerResource { Id = 1, Name = "Only Resource" };
+        var resource = new Resource { Id = 1, Name = "Only Resource", GroupId = 1 };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
 
@@ -145,7 +145,7 @@ public class ResourceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
-        var resource = new SchedulerResource { Id = 1, Name = "Test Resource" };
+        var resource = new Resource { Id = 1, Name = "Test Resource", GroupId = 1 };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
 
@@ -174,9 +174,9 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Active User", IsActive = true, Role = "Employee" },
-            new SchedulerResource { Id = 2, Name = "Inactive User", IsActive = false, Role = "Employee" },
-            new SchedulerResource { Id = 3, Name = "Active Manager", IsActive = true, Role = "Manager", IsApprover = true }
+            new Resource { Id = 1, Name = "Active User", IsActive = true, Role = "Employee", GroupId = 1 },
+            new Resource { Id = 2, Name = "Inactive User", IsActive = false, Role = "Employee", GroupId = 1 },
+            new Resource { Id = 3, Name = "Active Manager", IsActive = true, Role = "Manager", IsApprover = true, GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -202,8 +202,8 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Inactive 1", IsActive = false, Role = "Employee" },
-            new SchedulerResource { Id = 2, Name = "Inactive 2", IsActive = false, Role = "Employee" }
+            new Resource { Id = 1, Name = "Inactive 1", IsActive = false, Role = "Employee", GroupId = 1 },
+            new Resource { Id = 2, Name = "Inactive 2", IsActive = false, Role = "Employee", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -224,10 +224,10 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Manager 1", IsActive = true, IsApprover = true, Role = "Manager" },
-            new SchedulerResource { Id = 2, Name = "Employee", IsActive = true, IsApprover = false, Role = "Employee" },
-            new SchedulerResource { Id = 3, Name = "Inactive Manager", IsActive = false, IsApprover = true, Role = "Manager" },
-            new SchedulerResource { Id = 4, Name = "Admin", IsActive = true, IsApprover = true, Role = "Administrator" }
+            new Resource { Id = 1, Name = "Manager 1", IsActive = true, IsApprover = true, Role = "Manager", GroupId = 1 },
+            new Resource { Id = 2, Name = "Employee", IsActive = true, IsApprover = false, Role = "Employee", GroupId = 1 },
+            new Resource { Id = 3, Name = "Inactive Manager", IsActive = false, IsApprover = true, Role = "Manager", GroupId = 1 },
+            new Resource { Id = 4, Name = "Admin", IsActive = true, IsApprover = true, Role = "Administrator", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -253,8 +253,8 @@ public class ResourceServiceTests : TestBase
 
         var resources = new[]
         {
-            new SchedulerResource { Id = 1, Name = "Employee 1", IsActive = true, IsApprover = false, Role = "Employee" },
-            new SchedulerResource { Id = 2, Name = "Employee 2", IsActive = true, IsApprover = false, Role = "Employee" }
+              new Resource { Id = 1, Name = "Employee 1", IsActive = true, IsApprover = false, Role = "Employee", GroupId = 1 },
+              new Resource { Id = 2, Name = "Employee 2", IsActive = true, IsApprover = false, Role = "Employee", GroupId = 1 }
         };
         context.Resources.AddRange(resources);
         await context.SaveChangesAsync();
@@ -273,7 +273,7 @@ public class ResourceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Id = 1,
             Name = "Test User",
@@ -282,12 +282,11 @@ public class ResourceServiceTests : TestBase
             Role = "Manager",
             IsApprover = true,
             IsActive = true,
-            Department = "IT"
+            Department = "IT",
+            GroupId = 1
         };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
-
-        // Act
         var result = await service.GetResourceByIdAsync(1);
 
         // Assert
@@ -309,7 +308,7 @@ public class ResourceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
 
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Id = 1,
             Name = "Full User",
@@ -318,7 +317,8 @@ public class ResourceServiceTests : TestBase
             Role = "Administrator",
             IsApprover = true,
             IsActive = true,
-            Department = "HR"
+            Department = "HR",
+            GroupId = 1
         };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
@@ -334,5 +334,170 @@ public class ResourceServiceTests : TestBase
         Assert.True(dto.IsApprover);
         Assert.True(dto.IsActive);
         Assert.Equal("HR", dto.Department);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_ReturnsResourcesForGroup()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resources = new[]
+        {
+            new Resource { Id = 1, Name = "Group 1 Resource A", GroupId = 1 },
+            new Resource { Id = 2, Name = "Group 1 Resource B", GroupId = 1 },
+            new Resource { Id = 3, Name = "Group 2 Resource C", GroupId = 2 }
+        };
+        context.Resources.AddRange(resources);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetResourcesByGroupAsync(1);
+
+        // Assert
+        var list = result.ToList();
+        Assert.Equal(2, list.Count);
+        Assert.All(list, r => Assert.Equal(1, r.GroupId));
+        Assert.Contains(list, r => r.Id == 1);
+        Assert.Contains(list, r => r.Id == 2);
+        Assert.DoesNotContain(list, r => r.Id == 3);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_WithMultipleGroups_FiltersCorrectly()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resources = new[]
+        {
+            new Resource { Id = 1, Name = "Group 1 Resource", GroupId = 1 },
+            new Resource { Id = 2, Name = "Group 2 Resource", GroupId = 2 },
+            new Resource { Id = 3, Name = "Group 3 Resource", GroupId = 3 },
+            new Resource { Id = 4, Name = "Group 2 Resource 2", GroupId = 2 }
+        };
+        context.Resources.AddRange(resources);
+        await context.SaveChangesAsync();
+
+        // Act
+        var resultGroup1 = await service.GetResourcesByGroupAsync(1);
+        var resultGroup2 = await service.GetResourcesByGroupAsync(2);
+        var resultGroup3 = await service.GetResourcesByGroupAsync(3);
+
+        // Assert
+        Assert.Single(resultGroup1);
+        Assert.Equal(1, resultGroup1.First().Id);
+
+        Assert.Equal(2, resultGroup2.Count());
+        Assert.All(resultGroup2, r => Assert.Equal(2, r.GroupId));
+
+        Assert.Single(resultGroup3);
+        Assert.Equal(3, resultGroup3.First().Id);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_WithNoResources_ReturnsEmpty()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resources = new[]
+        {
+            new Resource { Id = 1, Name = "Group 1 Resource", GroupId = 1 }
+        };
+        context.Resources.AddRange(resources);
+        await context.SaveChangesAsync();
+
+        // Act - Query for group that has no resources
+        var result = await service.GetResourcesByGroupAsync(99);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_IncludesGroupIdInDto()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resource = new Resource
+        {
+            Id = 1,
+            Name = "Test Resource",
+            Email = "test@example.com",
+            EmployeeNumber = "EMP001",
+            Role = "Employee",
+            IsActive = true,
+            GroupId = 5
+        };
+        context.Resources.Add(resource);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetResourcesByGroupAsync(5);
+
+        // Assert
+        var dto = result.First();
+        Assert.Equal(5, dto.GroupId);
+        Assert.Equal("Test Resource", dto.Name);
+        Assert.Equal("test@example.com", dto.Email);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_UsesNoTracking()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resource = new Resource { Id = 1, Name = "Test Resource", GroupId = 1 };
+        context.Resources.Add(resource);
+        await context.SaveChangesAsync();
+
+        // Clear any tracking from setup
+        context.ChangeTracker.Clear();
+
+        // Act
+        var result = await service.GetResourcesByGroupAsync(1);
+
+        // Assert - verify query uses AsNoTracking
+        Assert.Single(result);
+        Assert.Equal("Test Resource", result.First().Name);
+
+        // The actual check: after the query, no new tracked entities should exist
+        var trackedAfterQuery = context.ChangeTracker.Entries().Count();
+        Assert.Equal(0, trackedAfterQuery);
+    }
+
+    [Fact]
+    public async Task GetResourcesByGroupAsync_ReturnsOnlyActiveAndInactiveResources()
+    {
+        // Arrange
+        var context = CreateInMemoryContext();
+        var service = new ResourceService(context, CreateLogger<ResourceService>(), CreateMapper());
+
+        var resources = new[]
+        {
+            new Resource { Id = 1, Name = "Active Resource", GroupId = 1, IsActive = true },
+            new Resource { Id = 2, Name = "Inactive Resource", GroupId = 1, IsActive = false },
+            new Resource { Id = 3, Name = "Other Group Active", GroupId = 2, IsActive = true }
+        };
+        context.Resources.AddRange(resources);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetResourcesByGroupAsync(1);
+
+        // Assert - Should include both active and inactive resources for the group
+        var list = result.ToList();
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, r => r.Id == 1 && r.IsActive);
+        Assert.Contains(list, r => r.Id == 2 && !r.IsActive);
+        Assert.DoesNotContain(list, r => r.Id == 3);
     }
 }

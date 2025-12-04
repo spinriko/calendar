@@ -29,6 +29,14 @@ public interface IResourceService
     Task<IEnumerable<ResourceDto>> GetApproversAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets resources filtered by group.
+    /// </summary>
+    /// <param name="groupId">The group ID to filter resources.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A collection of resources for the group.</returns>
+    Task<IEnumerable<ResourceDto>> GetResourcesByGroupAsync(int groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a specific resource by ID.
     /// </summary>
     /// <param name="id">The unique identifier of the resource.</param>
