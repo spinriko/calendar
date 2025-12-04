@@ -67,3 +67,8 @@ publish-standalone/
 coverage/
 coverage-report/
 coverage.xml
+
+# published
+publish/
+publish-standalone/
+coverage.xml
