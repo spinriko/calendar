@@ -69,13 +69,48 @@ public class AbsencesController : ControllerBase
 
         if (start.HasValue && end.HasValue)
         {
-            var absences = (await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value, absenceStatuses)).ToList();
-            _logger.LogDebug("Returning {Count} absences for date range", absences.Count);
-            return Ok(absences);
-        }
+            var absences = await _absenceService.GetAbsenceRequestsAsync(start.Value, end.Value, absenceStatuses);
 
+            // Apply role-based filtering
+            var filteredAbsences = await ApplyRoleBasedFiltering(absences);
+
+            _logger.LogDebug("Returning {FilteredCount} of {TotalCount} absences for date range", filteredAbsences.Count(), absences.Count());
+            return Ok(filteredAbsences);
+        }
         _logger.LogDebug("Bad request - missing required parameters");
         return BadRequest("Either provide start and end dates, or provide employeeId");
+    }
+
+    /// <summary>
+    /// Applies role-based filtering to absence requests.
+    /// Employees can see: ALL Approved absences + their own absences (any status)
+    /// Managers/Approvers/Admin can see: ALL absences (all statuses)
+    /// </summary>
+    private async Task<IEnumerable<AbsenceRequestDto>> ApplyRoleBasedFiltering(IEnumerable<AbsenceRequestDto> absences)
+    {
+        // Check if user has privileged role
+        var roles = _claimsProvider.GetRoles();
+        var hasPrivilegedRole = roles.Any(r =>
+            r.Equals("Manager", StringComparison.OrdinalIgnoreCase) ||
+            r.Equals("Approver", StringComparison.OrdinalIgnoreCase) ||
+            r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+
+        if (hasPrivilegedRole)
+        {
+            // Managers/Approvers/Admin can see all absences
+            return absences;
+        }
+
+        // For employees: show approved absences for everyone + all their own absences
+        var currentUser = await _userSync.EnsureCurrentUserExistsAsync();
+        if (currentUser == null)
+        {
+            return Enumerable.Empty<AbsenceRequestDto>();
+        }
+
+        return absences.Where(a =>
+            a.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) || // All approved absences
+            a.EmployeeId == currentUser.Id);                                    // Or their own absences (any status)
     }
 
     /// <summary>

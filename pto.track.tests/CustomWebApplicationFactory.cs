@@ -80,9 +80,8 @@ namespace pto.track.tests
         public TestAuthHandler(
             Microsoft.Extensions.Options.IOptionsMonitor<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions> options,
             Microsoft.Extensions.Logging.ILoggerFactory logger,
-            System.Text.Encodings.Web.UrlEncoder encoder,
-            Microsoft.AspNetCore.Authentication.ISystemClock clock)
-            : base(options, logger, encoder, clock) { }
+            System.Text.Encodings.Web.UrlEncoder encoder)
+            : base(options, logger, encoder) { }
 
         protected override Task<Microsoft.AspNetCore.Authentication.AuthenticateResult> HandleAuthenticateAsync()
         {
