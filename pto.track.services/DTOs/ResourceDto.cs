@@ -21,5 +21,7 @@ public record ResourceDto(
     [property: JsonPropertyName("isActive")]
     bool IsActive,
     [property: JsonPropertyName("department")]
-    string? Department
+    string? Department,
+    [property: JsonPropertyName("groupId")]
+    int? GroupId
 );

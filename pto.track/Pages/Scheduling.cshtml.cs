@@ -4,11 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace pto.track.Pages
 {
-    public class SchedulingModel : PageModel
+    public class SchedulingModel : BasePageModel
     {
         private readonly ILogger<SchedulingModel> _logger;
 
-        public SchedulingModel(ILogger<SchedulingModel> logger)
+        public SchedulingModel(IConfiguration configuration, ILogger<SchedulingModel> logger)
+            : base(configuration)
         {
             _logger = logger;
         }

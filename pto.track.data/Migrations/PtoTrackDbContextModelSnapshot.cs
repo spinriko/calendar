@@ -17,7 +17,7 @@ namespace pto.track.data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -67,36 +67,31 @@ namespace pto.track.data.Migrations
                     b.ToTable("AbsenceRequests");
                 });
 
-            modelBuilder.Entity("pto.track.data.SchedulerEvent", b =>
+            modelBuilder.Entity("pto.track.data.Models.Group", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("GroupId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
 
-                    b.Property<string>("Color")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GroupId"));
 
-                    b.Property<DateTime>("End")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ResourceId")
-                        .HasColumnType("int")
-                        .HasJsonPropertyName("resource");
+                    b.HasKey("GroupId");
 
-                    b.Property<DateTime>("Start")
-                        .HasColumnType("datetime2");
+                    b.ToTable("Groups");
 
-                    b.Property<string>("Text")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Events");
+                    b.HasData(
+                        new
+                        {
+                            GroupId = 1,
+                            Name = "Group 1"
+                        });
                 });
 
-            modelBuilder.Entity("pto.track.data.SchedulerResource", b =>
+            modelBuilder.Entity("pto.track.data.Resource", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -124,6 +119,9 @@ namespace pto.track.data.Migrations
                     b.Property<string>("EmployeeNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -154,6 +152,8 @@ namespace pto.track.data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GroupId");
+
                     b.HasIndex("ManagerId");
 
                     b.ToTable("Resources");
@@ -166,10 +166,11 @@ namespace pto.track.data.Migrations
                             CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "employee@example.com",
                             EmployeeNumber = "EMP001",
+                            GroupId = 1,
                             IsActive = true,
                             IsApprover = false,
                             ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Test Employee",
+                            Name = "Test Employee 1",
                             Role = "Employee"
                         },
                         new
@@ -179,6 +180,7 @@ namespace pto.track.data.Migrations
                             CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "employee2@example.com",
                             EmployeeNumber = "EMP002",
+                            GroupId = 1,
                             IsActive = true,
                             IsApprover = false,
                             ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -192,10 +194,11 @@ namespace pto.track.data.Migrations
                             CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "manager@example.com",
                             EmployeeNumber = "MGR001",
+                            GroupId = 1,
                             IsActive = true,
                             IsApprover = true,
                             ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Test Manager",
+                            Name = "Manager",
                             Role = "Manager"
                         },
                         new
@@ -205,10 +208,11 @@ namespace pto.track.data.Migrations
                             CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "approver@example.com",
                             EmployeeNumber = "APR001",
+                            GroupId = 1,
                             IsActive = true,
                             IsApprover = true,
                             ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Test Approver",
+                            Name = "Approver",
                             Role = "Approver"
                         },
                         new
@@ -218,71 +222,51 @@ namespace pto.track.data.Migrations
                             CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@example.com",
                             EmployeeNumber = "ADMIN001",
+                            GroupId = 1,
                             IsActive = true,
                             IsApprover = true,
                             ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Admin User",
+                            Name = "Administrator",
                             Role = "Admin"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            IsApprover = false,
-                            ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Resource F",
-                            Role = "Employee"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            IsApprover = false,
-                            ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Resource G",
-                            Role = "Employee"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            IsApprover = false,
-                            ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Resource H",
-                            Role = "Employee"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            IsApprover = false,
-                            ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Resource I",
-                            Role = "Employee"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            CreatedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            IsApprover = false,
-                            ModifiedDate = new DateTime(2025, 11, 19, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "Resource J",
-                            Role = "Employee"
                         });
+                });
+
+            modelBuilder.Entity("pto.track.data.SchedulerEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("End")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int")
+                        .HasAnnotation("Relational:JsonPropertyName", "resource");
+
+                    b.Property<DateTime>("Start")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("pto.track.data.AbsenceRequest", b =>
                 {
-                    b.HasOne("pto.track.data.SchedulerResource", "Approver")
+                    b.HasOne("pto.track.data.Resource", "Approver")
                         .WithMany()
                         .HasForeignKey("ApproverId");
 
-                    b.HasOne("pto.track.data.SchedulerResource", "Employee")
+                    b.HasOne("pto.track.data.Resource", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -293,13 +277,26 @@ namespace pto.track.data.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("pto.track.data.SchedulerResource", b =>
+            modelBuilder.Entity("pto.track.data.Resource", b =>
                 {
-                    b.HasOne("pto.track.data.SchedulerResource", "Manager")
+                    b.HasOne("pto.track.data.Models.Group", "Group")
+                        .WithMany("Resources")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("pto.track.data.Resource", "Manager")
                         .WithMany()
                         .HasForeignKey("ManagerId");
 
+                    b.Navigation("Group");
+
                     b.Navigation("Manager");
+                });
+
+            modelBuilder.Entity("pto.track.data.Models.Group", b =>
+                {
+                    b.Navigation("Resources");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,0 +1,20 @@
+{
+    "all": true,
+    "include": [
+        "../pto.track/wwwroot/js/calendar-functions.mjs"
+    ],
+    "exclude": [
+        "**/node_modules/**",
+        "**/tests/**",
+        "**/*.test.mjs",
+        "jest.config.js",
+        "eslint.config.js"
+    ],
+    "reporter": [
+        "text",
+        "lcov",
+        "html",
+        "json-summary"
+    ],
+    "report-dir": "./coverage"
+}

@@ -115,13 +115,13 @@ namespace pto.track.tests.Integration
         {
             var client = GetClientWithInMemoryDb(db =>
             {
-                db.Resources.Add(new SchedulerResource { Id = 1, Name = "R1" });
-                db.Resources.Add(new SchedulerResource { Id = 2, Name = "R2" });
+                db.Resources.Add(new Resource { Id = 1, Name = "R1" });
+                db.Resources.Add(new Resource { Id = 2, Name = "R2" });
             });
 
             var resp = await client.GetAsync("/api/resources");
             resp.EnsureSuccessStatusCode();
-            var resources = await resp.Content.ReadFromJsonAsync<List<SchedulerResource>>();
+            var resources = await resp.Content.ReadFromJsonAsync<List<Resource>>();
             Assert.NotNull(resources);
             Assert.Equal(2, resources.Count);
         }
@@ -238,6 +238,118 @@ namespace pto.track.tests.Integration
 
             var put = await client.PutAsJsonAsync($"/api/events/{ev.Id}", ev);
             Assert.Equal(HttpStatusCode.BadRequest, put.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetResourcesByGroup_ReturnsGroupResources()
+        {
+            var client = GetClientWithInMemoryDb(db =>
+            {
+                // Remove existing groups if any
+                var existingGroups = db.Groups.ToList();
+                if (existingGroups.Any())
+                {
+                    db.Groups.RemoveRange(existingGroups);
+                    db.SaveChanges();
+                }
+
+                // Create groups
+                db.Groups.Add(new pto.track.data.Models.Group { GroupId = 1, Name = "Group 1" });
+                db.Groups.Add(new pto.track.data.Models.Group { GroupId = 2, Name = "Group 2" });
+                db.SaveChanges();
+
+                // Create resources
+                db.Resources.Add(new Resource { Id = 1, Name = "Group 1 Resource A", GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 2, Name = "Group 1 Resource B", GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 3, Name = "Group 2 Resource C", GroupId = 2 });
+            });
+
+            // Act
+            var resp = await client.GetAsync("/api/resources/group/1");
+
+            // Assert
+            resp.EnsureSuccessStatusCode();
+            var resources = await resp.Content.ReadFromJsonAsync<List<ResourceDto>>();
+            Assert.NotNull(resources);
+            Assert.Equal(2, resources.Count);
+            Assert.All(resources, r => Assert.Equal(1, r.GroupId));
+            Assert.Contains(resources, r => r.Id == 1);
+            Assert.Contains(resources, r => r.Id == 2);
+            Assert.DoesNotContain(resources, r => r.Id == 3);
+        }
+
+        [Fact]
+        public async Task GetResourcesByGroup_WithValidGroup_Returns200()
+        {
+            var client = GetClientWithInMemoryDb(db =>
+            {
+                // Remove existing groups if any
+                var existingGroups = db.Groups.ToList();
+                if (existingGroups.Any())
+                {
+                    db.Groups.RemoveRange(existingGroups);
+                    db.SaveChanges();
+                }
+
+                db.Groups.Add(new pto.track.data.Models.Group { GroupId = 1, Name = "Test Group" });
+                db.SaveChanges();
+                db.Resources.Add(new Resource { Id = 1, Name = "Test Resource", GroupId = 1 });
+            });
+
+            // Act
+            var resp = await client.GetAsync("/api/resources/group/1");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+            var resources = await resp.Content.ReadFromJsonAsync<List<ResourceDto>>();
+            Assert.NotNull(resources);
+            Assert.Single(resources);
+        }
+
+        [Fact]
+        public async Task GetResourcesByGroup_WithInvalidGroup_ReturnsEmpty()
+        {
+            var client = GetClientWithInMemoryDb(db =>
+            {
+                // Remove existing groups if any
+                var existingGroups = db.Groups.ToList();
+                if (existingGroups.Any())
+                {
+                    db.Groups.RemoveRange(existingGroups);
+                    db.SaveChanges();
+                }
+
+                db.Groups.Add(new pto.track.data.Models.Group { GroupId = 1, Name = "Test Group" });
+                db.SaveChanges();
+                db.Resources.Add(new Resource { Id = 1, Name = "Test Resource", GroupId = 1 });
+            });
+
+            // Act - Request resources for non-existent group
+            var resp = await client.GetAsync("/api/resources/group/99");
+
+            // Assert
+            resp.EnsureSuccessStatusCode();
+            var resources = await resp.Content.ReadFromJsonAsync<List<ResourceDto>>();
+            Assert.NotNull(resources);
+            Assert.Empty(resources);
+        }
+
+        [Fact]
+        public async Task GetResourcesByGroup_VerifiesSeededGroupData()
+        {
+            // Use the standard test setup but don't clear seeded data
+            var client = GetClientWithInMemoryDb(seed: null); // null means use default seeding
+
+            // Act - Get resources for Group 1 (seeded group)
+            var resp = await client.GetAsync("/api/resources/group/1");
+
+            // Assert
+            resp.EnsureSuccessStatusCode();
+            var resources = await resp.Content.ReadFromJsonAsync<List<ResourceDto>>();
+            Assert.NotNull(resources);
+            // The seed data should include 5 resources in Group 1
+            Assert.Equal(5, resources.Count);
+            Assert.All(resources, r => Assert.Equal(1, r.GroupId));
         }
     }
 }

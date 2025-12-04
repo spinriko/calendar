@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();
         services.AddScoped<IUserSyncService, UserSyncService>();
+        services.AddScoped<IGroupService, GroupService>();
 
         // Register authentication based on configuration
         var authMode = configuration["Authentication:Mode"] ?? "Mock";
@@ -71,8 +72,14 @@ public static class ServiceCollectionExtensions
         try
         {
             var context = services.GetRequiredService<PtoTrackDbContext>();
-            // Prefer migrations when available so schema upgrades work on deployment
-            context.Database.Migrate();
+            // Only run migrations if not using in-memory provider
+            var providerName = context.Database.ProviderName;
+            var logger = services.GetRequiredService<ILogger<PtoTrackDbContext>>();
+            logger.LogDebug($"EF Core provider: {providerName}");
+            if (providerName != null && !providerName.Contains("InMemory", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Database.Migrate();
+            }
         }
         catch (Exception ex)
         {

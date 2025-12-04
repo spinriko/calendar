@@ -1,0 +1,43 @@
+@if (ViewData["ShowImpersonation"] as bool? ?? false)
+{
+    <div class="impersonation-panel position-fixed bottom-0 end-0 m-3 p-3 bg-warning border border-dark shadow-lg"
+        style="z-index: 9999; max-width: 300px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>🎭 Impersonation</strong>
+            <button type="button" class="btn-close btn-close-white" onclick="toggleImpersonationPanel()"
+                aria-label="Close"></button>
+        </div>
+
+        <div class="mb-2">
+            <label for="impersonateUser" class="form-label small">Impersonate As:</label>
+            <select id="impersonateUser" class="form-select form-select-sm">
+                <option value="EMP001">Development User - Admin</option>
+                <option value="EMP002">Test Employee - Employee</option>
+                <option value="EMP003">Test Manager - Manager</option>
+                <option value="EMP004">Test Approver - Approver</option>
+                <option value="EMP005">Administrator - Admin</option>
+            </select>
+        </div>
+    </div>
+}
+
+<script type="module">
+    import {
+        toggleImpersonationPanel,
+        applyImpersonation,
+        initImpersonationPanel
+    } from '/js/impersonation-panel.mjs';
+
+    // Make functions available globally for onclick handlers
+    window.toggleImpersonationPanel = toggleImpersonationPanel;
+
+    // Initialize the panel when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initImpersonationPanel);
+    } else {
+        initImpersonationPanel();
+    }
+
+    // Apply impersonation immediately when dropdown changes
+    document.getElementById('impersonateUser')?.addEventListener('change', () => applyImpersonation());
+</script>
