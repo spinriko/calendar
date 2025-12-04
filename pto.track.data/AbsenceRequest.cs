@@ -66,7 +66,7 @@ public class AbsenceRequest : IValidatableObject
     /// <summary>
     /// Gets or sets the navigation property to the employee making the request.
     /// </summary>
-    public SchedulerResource? Employee { get; set; }
+    public Resource? Employee { get; set; }
 
     /// <summary>
     /// Gets or sets the current status of the absence request.
@@ -88,7 +88,7 @@ public class AbsenceRequest : IValidatableObject
     /// <summary>
     /// Gets or sets the navigation property to the approver who processed the request.
     /// </summary>
-    public SchedulerResource? Approver { get; set; }
+    public Resource? Approver { get; set; }
 
     /// <summary>
     /// Gets or sets the date when the absence request was approved or rejected.

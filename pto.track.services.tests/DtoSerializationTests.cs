@@ -144,7 +144,8 @@ public class DtoSerializationTests
             Role: "Employee",
             IsApprover: false,
             IsActive: true,
-            Department: "Facilities");
+            Department: "Facilities",
+            GroupId: 1);
 
         // Act
         var json = JsonSerializer.Serialize(dto, _jsonOptions);
@@ -171,7 +172,8 @@ public class DtoSerializationTests
             Role: "Employee",
             IsApprover: false,
             IsActive: true,
-            Department: null);
+            Department: null,
+            GroupId: 1);
 
         // Act
         var json = JsonSerializer.Serialize(dto, _jsonOptions);

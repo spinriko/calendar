@@ -15,7 +15,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "John Doe" };
+        var employee = new Resource { Id = 1, Name = "John Doe", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -67,7 +67,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Jane Doe" };
+        var employee = new Resource { Id = 1, Name = "Jane Doe", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -97,8 +97,8 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee1 = new SchedulerResource { Id = 1, Name = "Alice" };
-        var employee2 = new SchedulerResource { Id = 2, Name = "Bob" };
+        var employee1 = new Resource { Id = 1, Name = "Alice", GroupId = 1 };
+        var employee2 = new Resource { Id = 2, Name = "Bob", GroupId = 1 };
         context.Resources.AddRange(employee1, employee2);
         await context.SaveChangesAsync();
 
@@ -140,7 +140,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Charlie" };
+        var employee = new Resource { Id = 1, Name = "Charlie", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -191,7 +191,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Diana" };
+        var employee = new Resource { Id = 1, Name = "Diana", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -236,7 +236,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Eve" };
+        var employee = new Resource { Id = 1, Name = "Eve", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -271,7 +271,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Frank" };
+        var employee = new Resource { Id = 1, Name = "Frank", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -331,7 +331,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Grace" };
+        var employee = new Resource { Id = 1, Name = "Grace", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -367,8 +367,8 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Henry" };
-        var approver = new SchedulerResource { Id = 2, Name = "Manager" };
+        var employee = new Resource { Id = 1, Name = "Henry", GroupId = 1 };
+        var approver = new Resource { Id = 2, Name = "Manager", GroupId = 1 };
         context.Resources.AddRange(employee, approver);
         await context.SaveChangesAsync();
 
@@ -427,7 +427,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Ivy" };
+        var employee = new Resource { Id = 1, Name = "Ivy", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -462,8 +462,8 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Jack" };
-        var approver = new SchedulerResource { Id = 2, Name = "Manager" };
+        var employee = new Resource { Id = 1, Name = "Jack", GroupId = 1 };
+        var approver = new Resource { Id = 2, Name = "Manager", GroupId = 1 };
         context.Resources.AddRange(employee, approver);
         await context.SaveChangesAsync();
 
@@ -522,7 +522,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Karen" };
+        var employee = new Resource { Id = 1, Name = "Karen", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -556,7 +556,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Leo" };
+        var employee = new Resource { Id = 1, Name = "Leo", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -584,7 +584,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Mia" };
+        var employee = new Resource { Id = 1, Name = "Mia", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -630,7 +630,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 5, Name = "Noah Smith" };
+        var employee = new Resource { Id = 5, Name = "Noah Smith", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -656,8 +656,8 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Olivia" };
-        var approver = new SchedulerResource { Id = 2, Name = "Manager Smith" };
+        var employee = new Resource { Id = 1, Name = "Olivia", GroupId = 1 };
+        var approver = new Resource { Id = 2, Name = "Manager Smith", GroupId = 1 };
         context.Resources.AddRange(employee, approver);
         await context.SaveChangesAsync();
 
@@ -696,7 +696,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        var employee = new Resource { Id = 1, Name = "Test User", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -763,7 +763,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        var employee = new Resource { Id = 1, Name = "Test User", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -811,7 +811,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        var employee = new Resource { Id = 1, Name = "Test User", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -869,7 +869,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        var employee = new Resource { Id = 1, Name = "Test User", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -917,7 +917,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test User" };
+        var employee = new Resource { Id = 1, Name = "Test User", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -992,7 +992,7 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test" };
+        var employee = new Resource { Id = 1, Name = "Test", GroupId = 1 };
         context.Resources.Add(employee);
         await context.SaveChangesAsync();
 
@@ -1018,8 +1018,8 @@ public class AbsenceServiceTests : TestBase
         var context = CreateInMemoryContext();
         var service = new AbsenceService(context, CreateLogger<AbsenceService>(), CreateMapper(), CreateUnitOfWork(context));
 
-        var employee = new SchedulerResource { Id = 1, Name = "Test" };
-        var approver = new SchedulerResource { Id = 2, Name = "Manager" };
+        var employee = new Resource { Id = 1, Name = "Test", GroupId = 1 };
+        var approver = new Resource { Id = 2, Name = "Manager", GroupId = 1 };
         context.Resources.AddRange(employee, approver);
         await context.SaveChangesAsync();
 

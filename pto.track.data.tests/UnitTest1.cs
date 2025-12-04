@@ -420,13 +420,13 @@ public class AbsenceRequestValidationTests
     }
 }
 
-public class SchedulerResourceValidationTests
+public class ResourceValidationTests
 {
     [Fact]
     public void Validate_NameWithinMaxLength_NoValidationErrors()
     {
         // Arrange
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Name = "Resource A"
         };
@@ -442,7 +442,7 @@ public class SchedulerResourceValidationTests
     public void Validate_NameAtMaxLength_NoValidationErrors()
     {
         // Arrange
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Name = new string('A', 100)
         };
@@ -458,7 +458,7 @@ public class SchedulerResourceValidationTests
     public void Validate_NameExceedsMaxLength_ReturnsValidationError()
     {
         // Arrange
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Name = new string('A', 101)
         };
@@ -475,7 +475,7 @@ public class SchedulerResourceValidationTests
     public void Validate_NameRequired_ReturnsValidationError()
     {
         // Arrange
-        var resource = new SchedulerResource
+        var resource = new Resource
         {
             Name = null!
         };
@@ -485,6 +485,119 @@ public class SchedulerResourceValidationTests
 
         // Assert
         Assert.Contains(results, r => r.ErrorMessage?.Contains("required") == true || r.ErrorMessage?.Contains("Name") == true);
+    }
+
+    private List<ValidationResult> ValidateModel(object model)
+    {
+        var validationResults = new List<ValidationResult>();
+        var validationContext = new ValidationContext(model);
+        Validator.TryValidateObject(model, validationContext, validationResults, true);
+        return validationResults;
+    }
+}
+
+public class GroupValidationTests
+{
+    [Fact]
+    public void Validate_NameRequired_NoValidationErrors()
+    {
+        // Arrange
+        var group = new pto.track.data.Models.Group
+        {
+            Name = "Test Group"
+        };
+
+        // Act
+        var results = ValidateModel(group);
+
+        // Assert
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void Validate_NameRequired_ReturnsValidationError()
+    {
+        // Arrange
+        var group = new pto.track.data.Models.Group
+        {
+            Name = null!
+        };
+
+        // Act
+        var results = ValidateModel(group);
+
+        // Assert
+        Assert.Contains(results, r => r.ErrorMessage?.Contains("required") == true || r.ErrorMessage?.Contains("Name") == true);
+    }
+
+    [Fact]
+    public void Validate_NameWithValue_NoValidationErrors()
+    {
+        // Arrange
+        var group = new pto.track.data.Models.Group
+        {
+            GroupId = 1,
+            Name = "Engineering Team"
+        };
+
+        // Act
+        var results = ValidateModel(group);
+
+        // Assert
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void Validate_GroupIdCanBeSet()
+    {
+        // Arrange & Act
+        var group = new pto.track.data.Models.Group
+        {
+            GroupId = 5,
+            Name = "Test Group"
+        };
+
+        // Assert
+        Assert.Equal(5, group.GroupId);
+        Assert.Equal("Test Group", group.Name);
+    }
+
+    [Fact]
+    public void Validate_ResourcesCollectionCanBeNull()
+    {
+        // Arrange
+        var group = new pto.track.data.Models.Group
+        {
+            Name = "Test Group",
+            Resources = null
+        };
+
+        // Act
+        var results = ValidateModel(group);
+
+        // Assert
+        Assert.Empty(results);
+        Assert.Null(group.Resources);
+    }
+
+    [Fact]
+    public void Validate_ResourcesCollectionCanBeInitialized()
+    {
+        // Arrange & Act
+        var group = new pto.track.data.Models.Group
+        {
+            Name = "Test Group",
+            Resources = new List<Resource>
+            {
+                new Resource { Id = 1, Name = "Resource 1", GroupId = 1 },
+                new Resource { Id = 2, Name = "Resource 2", GroupId = 1 }
+            }
+        };
+
+        // Assert
+        Assert.NotNull(group.Resources);
+        Assert.Equal(2, group.Resources.Count);
+        Assert.All(group.Resources, r => Assert.Equal(1, r.GroupId));
     }
 
     private List<ValidationResult> ValidateModel(object model)

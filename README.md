@@ -130,14 +130,14 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Dependencies**: xUnit, System.ComponentModel.DataAnnotations
 
 #### **pto.track.tests.js** (JavaScript Tests)
-- **Tests**: 41 pure JavaScript tests using QUnit
+- **Tests**: 41 pure JavaScript tests using Jest
 - **Coverage**:
   - Status color mapping (8 tests)
   - Checkbox filters (4 tests)
   - URL builder (6 tests)
   - Role detection (18 tests)
   - Impersonation (5 tests)
-- **Technology**: QUnit, pure JavaScript (no build tools)
+- **Technology**: Jest, pure JavaScript (no build tools)
 - **Runs**: Browser-based or headless (CI/CD ready)
 
 **Total Test Coverage**: 157 tests (154 passing, 3 skipped)
