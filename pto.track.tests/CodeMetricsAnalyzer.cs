@@ -2,28 +2,25 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Reflection;
+using System.Text;
 using Xunit;
 
 namespace pto.track.tests;
 
 /// <summary>
-/// Utility class for analyzing cyclomatic complexity.
-/// Usage: Run this test to check for overly complex methods.
+/// Comprehensive code metrics analyzer including complexity, maintainability, and quality metrics.
+/// Usage: Run these tests to check for code quality issues.
 /// </summary>
 public class CodeMetricsAnalyzer
 {
     /// <summary>
-    /// Analyzes cyclomatic complexity for all source files in the main project.
+    /// Analyzes cyclomatic complexity for all C# projects in the solution.
     /// Reports methods with complexity > 10.
     /// </summary>
     [Fact]
     public async Task AnalyzeProjectComplexity()
     {
-        var projectPath = Path.GetFullPath(Path.Combine("..", "..", "..", "..", "pto.track"));
-        var sourceFiles = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\") &&
-                       !f.Contains("\\Migrations\\") && !f.Contains(".Designer.cs"))
-            .ToList();
+        var sourceFiles = GetAllSourceFiles();
 
         var highComplexityMethods = new List<(string File, string Method, int Complexity)>();
 
@@ -47,7 +44,7 @@ public class CodeMetricsAnalyzer
                         var fullName = className != null ? $"{className}.{methodName}" : methodName;
 
                         highComplexityMethods.Add((
-                            Path.GetRelativePath(projectPath, file),
+                            GetRelativeProjectPath(file),
                             fullName,
                             complexity
                         ));
@@ -106,5 +103,667 @@ public class CodeMetricsAnalyzer
                        b.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression));
 
         return complexity;
+    }
+
+    /// <summary>
+    /// Analyzes maintainability index for all methods.
+    /// Formula: 171 - 5.2 * ln(Volume) - 0.23 * Complexity - 16.2 * ln(Lines)
+    /// Scale: 0-100 (higher = more maintainable)
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeMaintainabilityIndex()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var lowMaintainabilityMethods = new List<(string File, string Method, double Index)>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                foreach (var method in methods)
+                {
+                    var complexity = CalculateCyclomaticComplexity(method);
+                    var lines = method.GetText().Lines.Count;
+                    var volume = CalculateHalsteadVolume(method);
+
+                    // Maintainability Index formula
+                    var maintainabilityIndex = 171 - 5.2 * Math.Log(volume) - 0.23 * complexity - 16.2 * Math.Log(lines);
+                    maintainabilityIndex = Math.Max(0, Math.Min(100, maintainabilityIndex * 100 / 171)); // Normalize to 0-100
+
+                    if (maintainabilityIndex < 65) // Low maintainability threshold
+                    {
+                        var methodName = $"{method.Identifier.Text}";
+                        var className = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+                        var fullName = className != null ? $"{className}.{methodName}" : methodName;
+
+                        lowMaintainabilityMethods.Add((
+                            GetRelativeProjectPath(file),
+                            fullName,
+                            maintainabilityIndex
+                        ));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not analyze {Path.GetFileName(file)}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n=== Maintainability Index Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+        Console.WriteLine("Scale: 0-100 (65+ = Good, 85+ = Excellent)");
+
+        if (lowMaintainabilityMethods.Any())
+        {
+            Console.WriteLine($"\nFound {lowMaintainabilityMethods.Count} method(s) with low maintainability (<65):");
+            foreach (var (file, method, index) in lowMaintainabilityMethods.OrderBy(x => x.Index))
+            {
+                Console.WriteLine($"  [{index:F1}] {method}");
+                Console.WriteLine($"      in {file}");
+            }
+            Console.WriteLine("\nConsider refactoring these methods to improve maintainability.");
+        }
+        else
+        {
+            Console.WriteLine("\n✓ All methods have good maintainability (≥65)");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Analyzes lines of code per method.
+    /// Threshold: 50 lines
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeLinesOfCode()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var longMethods = new List<(string File, string Method, int Lines)>();
+        var longClasses = new List<(string File, string Class, int Lines)>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                // Check methods
+                var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+                foreach (var method in methods)
+                {
+                    var lines = method.GetText().Lines.Count;
+                    if (lines > 50)
+                    {
+                        var methodName = $"{method.Identifier.Text}";
+                        var className = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+                        var fullName = className != null ? $"{className}.{methodName}" : methodName;
+
+                        longMethods.Add((
+                            GetRelativeProjectPath(file),
+                            fullName,
+                            lines
+                        ));
+                    }
+                }
+
+                // Check classes
+                var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+                foreach (var cls in classes)
+                {
+                    var lines = cls.GetText().Lines.Count;
+                    if (lines > 500)
+                    {
+                        longClasses.Add((
+                            GetRelativeProjectPath(file),
+                            cls.Identifier.Text,
+                            lines
+                        ));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not analyze {Path.GetFileName(file)}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n=== Lines of Code Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+
+        if (longMethods.Any())
+        {
+            Console.WriteLine($"Found {longMethods.Count} method(s) > 50 lines:");
+            foreach (var (file, method, lines) in longMethods.OrderByDescending(x => x.Lines))
+            {
+                Console.WriteLine($"  [{lines} lines] {method}");
+                Console.WriteLine($"      in {file}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("✓ All methods ≤50 lines");
+        }
+
+        if (longClasses.Any())
+        {
+            Console.WriteLine($"\nFound {longClasses.Count} class(es) > 500 lines:");
+            foreach (var (file, className, lines) in longClasses.OrderByDescending(x => x.Lines))
+            {
+                Console.WriteLine($"  [{lines} lines] {className}");
+                Console.WriteLine($"      in {file}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("\n✓ All classes ≤500 lines");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Analyzes method parameter count.
+    /// Threshold: 5 parameters
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeMethodParameters()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var highParamMethods = new List<(string File, string Method, int ParamCount)>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                foreach (var method in methods)
+                {
+                    var paramCount = method.ParameterList.Parameters.Count;
+                    if (paramCount > 5)
+                    {
+                        var methodName = $"{method.Identifier.Text}";
+                        var className = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+                        var fullName = className != null ? $"{className}.{methodName}" : methodName;
+
+                        highParamMethods.Add((
+                            GetRelativeProjectPath(file),
+                            fullName,
+                            paramCount
+                        ));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not analyze {Path.GetFileName(file)}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n=== Method Parameter Count Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+
+        if (highParamMethods.Any())
+        {
+            Console.WriteLine($"Found {highParamMethods.Count} method(s) with >5 parameters:");
+            foreach (var (file, method, count) in highParamMethods.OrderByDescending(x => x.ParamCount))
+            {
+                Console.WriteLine($"  [{count} params] {method}");
+                Console.WriteLine($"      in {file}");
+            }
+            Console.WriteLine("\nConsider using parameter objects or builder pattern.");
+        }
+        else
+        {
+            Console.WriteLine("✓ All methods have ≤5 parameters");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Analyzes nesting depth.
+    /// Threshold: 4 levels
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeNestingDepth()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var deeplyNestedMethods = new List<(string File, string Method, int Depth)>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+                foreach (var method in methods)
+                {
+                    var maxDepth = CalculateMaxNestingDepth(method);
+                    if (maxDepth > 4)
+                    {
+                        var methodName = $"{method.Identifier.Text}";
+                        var className = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+                        var fullName = className != null ? $"{className}.{methodName}" : methodName;
+
+                        deeplyNestedMethods.Add((
+                            GetRelativeProjectPath(file),
+                            fullName,
+                            maxDepth
+                        ));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not analyze {Path.GetFileName(file)}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n=== Nesting Depth Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+
+        if (deeplyNestedMethods.Any())
+        {
+            Console.WriteLine($"Found {deeplyNestedMethods.Count} method(s) with nesting depth >4:");
+            foreach (var (file, method, depth) in deeplyNestedMethods.OrderByDescending(x => x.Depth))
+            {
+                Console.WriteLine($"  [depth {depth}] {method}");
+                Console.WriteLine($"      in {file}");
+            }
+            Console.WriteLine("\nConsider extracting nested logic to separate methods.");
+        }
+        else
+        {
+            Console.WriteLine("✓ All methods have nesting depth ≤4");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Analyzes class coupling and dependencies.
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeClassCoupling()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var classDependencies = new Dictionary<string, HashSet<string>>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
+                foreach (var cls in classes)
+                {
+                    var className = cls.Identifier.Text;
+                    var dependencies = new HashSet<string>();
+
+                    // Count field/property types (dependencies)
+                    var fields = cls.DescendantNodes().OfType<FieldDeclarationSyntax>();
+                    foreach (var field in fields)
+                    {
+                        var typeName = field.Declaration.Type.ToString();
+                        if (!IsBuiltInType(typeName))
+                        {
+                            dependencies.Add(typeName);
+                        }
+                    }
+
+                    var properties = cls.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+                    foreach (var prop in properties)
+                    {
+                        var typeName = prop.Type.ToString();
+                        if (!IsBuiltInType(typeName))
+                        {
+                            dependencies.Add(typeName);
+                        }
+                    }
+
+                    // Constructor parameters
+                    var constructors = cls.DescendantNodes().OfType<ConstructorDeclarationSyntax>();
+                    foreach (var ctor in constructors)
+                    {
+                        foreach (var param in ctor.ParameterList.Parameters)
+                        {
+                            var typeName = param.Type?.ToString() ?? "";
+                            if (!IsBuiltInType(typeName))
+                            {
+                                dependencies.Add(typeName);
+                            }
+                        }
+                    }
+
+                    if (dependencies.Count > 0)
+                    {
+                        classDependencies[className] = dependencies;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not analyze {Path.GetFileName(file)}: {ex.Message}");
+            }
+        }
+
+        Console.WriteLine("\n=== Class Coupling Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+
+        var highCoupling = classDependencies.Where(kvp => kvp.Value.Count > 10).ToList();
+
+        if (highCoupling.Any())
+        {
+            Console.WriteLine($"Found {highCoupling.Count} class(es) with >10 dependencies:");
+            foreach (var (className, deps) in highCoupling.OrderByDescending(x => x.Value.Count))
+            {
+                Console.WriteLine($"  [{deps.Count} dependencies] {className}");
+                Console.WriteLine($"      Dependencies: {string.Join(", ", deps.Take(5))}{(deps.Count > 5 ? "..." : "")}");
+            }
+            Console.WriteLine("\nHigh coupling may indicate classes that do too much.");
+        }
+        else
+        {
+            Console.WriteLine("✓ All classes have ≤10 dependencies");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Analyzes depth of inheritance tree.
+    /// Threshold: 4 levels
+    /// </summary>
+    [Fact]
+    public async Task AnalyzeInheritanceDepth()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        var classInheritance = new Dictionary<string, string?>();
+
+        // First pass: build inheritance map
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
+                foreach (var cls in classes)
+                {
+                    var className = cls.Identifier.Text;
+                    var baseType = cls.BaseList?.Types.FirstOrDefault()?.ToString();
+                    classInheritance[className] = baseType;
+                }
+            }
+            catch { }
+        }
+
+        // Second pass: calculate depth
+        var deepInheritance = new List<(string Class, int Depth)>();
+
+        foreach (var className in classInheritance.Keys)
+        {
+            var depth = CalculateInheritanceDepth(className, classInheritance);
+            if (depth > 4)
+            {
+                deepInheritance.Add((className, depth));
+            }
+        }
+
+        Console.WriteLine("\n=== Inheritance Depth Report ===");
+        Console.WriteLine($"Analyzed {sourceFiles.Count} source files\n");
+
+        if (deepInheritance.Any())
+        {
+            Console.WriteLine($"Found {deepInheritance.Count} class(es) with inheritance depth >4:");
+            foreach (var (className, depth) in deepInheritance.OrderByDescending(x => x.Depth))
+            {
+                Console.WriteLine($"  [depth {depth}] {className}");
+            }
+            Console.WriteLine("\nDeep inheritance hierarchies can be difficult to maintain.");
+        }
+        else
+        {
+            Console.WriteLine("✓ All classes have inheritance depth ≤4");
+        }
+
+        Assert.True(true);
+    }
+
+    /// <summary>
+    /// Comprehensive summary report combining all metrics.
+    /// </summary>
+    [Fact]
+    public async Task GenerateComprehensiveSummary()
+    {
+        var sourceFiles = GetAllSourceFiles();
+
+        int totalMethods = 0;
+        int totalClasses = 0;
+        int totalLines = 0;
+        var complexityScores = new List<int>();
+        var maintainabilityScores = new List<double>();
+        var parameterCounts = new List<int>();
+
+        foreach (var file in sourceFiles)
+        {
+            try
+            {
+                var code = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(code);
+                var root = await tree.GetRootAsync();
+
+                totalLines += code.Split('\n').Length;
+                totalClasses += root.DescendantNodes().OfType<ClassDeclarationSyntax>().Count();
+
+                var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+                foreach (var method in methods)
+                {
+                    totalMethods++;
+                    var complexity = CalculateCyclomaticComplexity(method);
+                    complexityScores.Add(complexity);
+
+                    var lines = method.GetText().Lines.Count;
+                    var volume = CalculateHalsteadVolume(method);
+                    var mi = 171 - 5.2 * Math.Log(volume) - 0.23 * complexity - 16.2 * Math.Log(lines);
+                    mi = Math.Max(0, Math.Min(100, mi * 100 / 171));
+                    maintainabilityScores.Add(mi);
+
+                    parameterCounts.Add(method.ParameterList.Parameters.Count);
+                }
+            }
+            catch { }
+        }
+
+        Console.WriteLine("\n=== Comprehensive Code Quality Summary ===");
+        Console.WriteLine($"Solution: pto.track (all C# projects)\n");
+
+        Console.WriteLine("Code Base Statistics:");
+        Console.WriteLine($"  Files:   {sourceFiles.Count}");
+        Console.WriteLine($"  Lines:   {totalLines:N0}");
+        Console.WriteLine($"  Classes: {totalClasses}");
+        Console.WriteLine($"  Methods: {totalMethods}");
+
+        if (complexityScores.Any())
+        {
+            Console.WriteLine("\nCyclomatic Complexity:");
+            Console.WriteLine($"  Average: {complexityScores.Average():F1}");
+            Console.WriteLine($"  Median:  {GetMedian(complexityScores.Select(x => (double)x).ToList()):F1}");
+            Console.WriteLine($"  Max:     {complexityScores.Max()}");
+            Console.WriteLine($"  >10:     {complexityScores.Count(x => x > 10)} methods");
+        }
+
+        if (maintainabilityScores.Any())
+        {
+            Console.WriteLine("\nMaintainability Index (0-100):");
+            Console.WriteLine($"  Average: {maintainabilityScores.Average():F1}");
+            Console.WriteLine($"  Median:  {GetMedian(maintainabilityScores):F1}");
+            Console.WriteLine($"  Min:     {maintainabilityScores.Min():F1}");
+            Console.WriteLine($"  <65:     {maintainabilityScores.Count(x => x < 65)} methods");
+        }
+
+        if (parameterCounts.Any())
+        {
+            Console.WriteLine("\nMethod Parameters:");
+            Console.WriteLine($"  Average: {parameterCounts.Average():F1}");
+            Console.WriteLine($"  Max:     {parameterCounts.Max()}");
+            Console.WriteLine($"  >5:      {parameterCounts.Count(x => x > 5)} methods");
+        }
+
+        Console.WriteLine("\n✓ Analysis complete");
+        Assert.True(true);
+    }
+
+    // Helper methods
+
+    private double CalculateHalsteadVolume(MethodDeclarationSyntax method)
+    {
+        var operators = method.DescendantTokens()
+            .Count(t => t.IsKind(SyntaxKind.PlusToken) || t.IsKind(SyntaxKind.MinusToken) ||
+                       t.IsKind(SyntaxKind.AsteriskToken) || t.IsKind(SyntaxKind.SlashToken) ||
+                       t.IsKind(SyntaxKind.EqualsEqualsToken) || t.IsKind(SyntaxKind.ExclamationEqualsToken) ||
+                       t.IsKind(SyntaxKind.LessThanToken) || t.IsKind(SyntaxKind.GreaterThanToken) ||
+                       t.IsKind(SyntaxKind.AmpersandAmpersandToken) || t.IsKind(SyntaxKind.BarBarToken));
+
+        var operands = method.DescendantNodes().OfType<IdentifierNameSyntax>().Count();
+
+        var vocabulary = operators + operands;
+        var length = vocabulary;
+
+        return vocabulary > 0 ? length * Math.Log(vocabulary, 2) : 1;
+    }
+
+    private int CalculateMaxNestingDepth(MethodDeclarationSyntax method)
+    {
+        return CalculateDepth(method, 0);
+    }
+
+    private int CalculateDepth(SyntaxNode node, int currentDepth)
+    {
+        var maxDepth = currentDepth;
+
+        foreach (var child in node.ChildNodes())
+        {
+            var childDepth = currentDepth;
+
+            if (child is IfStatementSyntax || child is ForStatementSyntax ||
+                child is ForEachStatementSyntax || child is WhileStatementSyntax ||
+                child is DoStatementSyntax || child is SwitchStatementSyntax ||
+                child is TryStatementSyntax)
+            {
+                childDepth++;
+            }
+
+            maxDepth = Math.Max(maxDepth, CalculateDepth(child, childDepth));
+        }
+
+        return maxDepth;
+    }
+
+    private int CalculateInheritanceDepth(string className, Dictionary<string, string?> inheritanceMap, HashSet<string>? visited = null)
+    {
+        visited ??= new HashSet<string>();
+
+        if (!inheritanceMap.ContainsKey(className) || visited.Contains(className))
+            return 0;
+
+        visited.Add(className);
+
+        var baseType = inheritanceMap[className];
+        if (string.IsNullOrEmpty(baseType))
+            return 0;
+
+        // Extract just the class name (remove generics, etc.)
+        var cleanBaseType = baseType.Split('<', '(')[0].Trim();
+
+        return 1 + CalculateInheritanceDepth(cleanBaseType, inheritanceMap, visited);
+    }
+
+    private bool IsBuiltInType(string typeName)
+    {
+        var builtInTypes = new HashSet<string>
+        {
+            "string", "int", "long", "bool", "double", "float", "decimal", "byte", "char",
+            "DateTime", "Guid", "object", "void", "var", "dynamic", "Task", "ValueTask",
+            "List", "Dictionary", "HashSet", "IEnumerable", "ICollection", "IList",
+            "string?", "int?", "long?", "bool?", "double?", "float?", "decimal?", "byte?",
+            "DateTime?", "Guid?"
+        };
+
+        var cleanName = typeName.Split('<', '?', '[')[0].Trim();
+        return builtInTypes.Contains(cleanName);
+    }
+
+    private double GetMedian(List<double> values)
+    {
+        if (!values.Any()) return 0;
+
+        var sorted = values.OrderBy(x => x).ToList();
+        int count = sorted.Count;
+
+        if (count % 2 == 0)
+            return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
+        else
+            return sorted[count / 2];
+    }
+
+    private List<string> GetAllSourceFiles()
+    {
+        var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
+        var projectFolders = new[] { "pto.track", "pto.track.services", "pto.track.data" };
+
+        var sourceFiles = new List<string>();
+
+        foreach (var projectFolder in projectFolders)
+        {
+            var projectPath = Path.Combine(solutionPath, projectFolder);
+            if (Directory.Exists(projectPath))
+            {
+                var files = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories)
+                    .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\") &&
+                               !f.Contains("\\Migrations\\") && !f.Contains(".Designer.cs"));
+                sourceFiles.AddRange(files);
+            }
+        }
+
+        return sourceFiles;
+    }
+
+    private string GetRelativeProjectPath(string filePath)
+    {
+        var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
+        return Path.GetRelativePath(solutionPath, filePath);
     }
 }

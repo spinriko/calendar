@@ -49,42 +49,9 @@ public class CurrentUserController : ControllerBase
                 return Problem("Unable to retrieve or create user record");
             }
 
-            // Check if running in Mock mode
-            var authMode = _configuration["Authentication:Mode"];
-            var isMockMode = string.Equals(authMode, "Mock", StringComparison.OrdinalIgnoreCase);
-
-            // Get roles from claims (these reflect impersonation if active)
+            var (effectiveRole, effectiveIsApprover) = DetermineEffectiveRoleAndApprover(resource);
             var claimRoles = _claimsProvider.GetRoles().ToList();
-
-            // Determine effective role and isApprover based on claims when impersonating
-            string effectiveRole = resource.Role;
-            bool effectiveIsApprover = resource.IsApprover;
-
-            // In mock mode with impersonation, use claim-based roles to determine effective role
-            if (isMockMode && claimRoles.Any())
-            {
-                // Priority order: Admin > Manager > Approver > Employee
-                if (claimRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
-                {
-                    effectiveRole = "Admin";
-                    effectiveIsApprover = true;
-                }
-                else if (claimRoles.Contains("Manager", StringComparer.OrdinalIgnoreCase))
-                {
-                    effectiveRole = "Manager";
-                    effectiveIsApprover = true;
-                }
-                else if (claimRoles.Contains("Approver", StringComparer.OrdinalIgnoreCase))
-                {
-                    effectiveRole = "Approver";
-                    effectiveIsApprover = true;
-                }
-                else if (claimRoles.Contains("Employee", StringComparer.OrdinalIgnoreCase))
-                {
-                    effectiveRole = "Employee";
-                    effectiveIsApprover = false;
-                }
-            }
+            var isMockMode = IsMockAuthenticationMode();
 
             return Ok(new
             {
@@ -106,6 +73,43 @@ public class CurrentUserController : ControllerBase
             Console.Error.WriteLine($"GetCurrentUser error: {ex}");
             return StatusCode(500, new { message = "Internal server error", error = ex.Message, stack = ex.StackTrace });
         }
+    }
+
+    private (string role, bool isApprover) DetermineEffectiveRoleAndApprover(pto.track.data.Resource resource)
+    {
+        var claimRoles = _claimsProvider.GetRoles().ToList();
+
+        // In mock mode with impersonation, use claim-based roles to determine effective role
+        if (IsMockAuthenticationMode() && claimRoles.Any())
+        {
+            return GetRoleFromClaims(claimRoles);
+        }
+
+        return (resource.Role, resource.IsApprover);
+    }
+
+    private (string role, bool isApprover) GetRoleFromClaims(List<string> claimRoles)
+    {
+        // Priority order: Admin > Manager > Approver > Employee
+        if (claimRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+            return ("Admin", true);
+
+        if (claimRoles.Contains("Manager", StringComparer.OrdinalIgnoreCase))
+            return ("Manager", true);
+
+        if (claimRoles.Contains("Approver", StringComparer.OrdinalIgnoreCase))
+            return ("Approver", true);
+
+        if (claimRoles.Contains("Employee", StringComparer.OrdinalIgnoreCase))
+            return ("Employee", false);
+
+        return ("Employee", false); // Default
+    }
+
+    private bool IsMockAuthenticationMode()
+    {
+        var authMode = _configuration["Authentication:Mode"];
+        return string.Equals(authMode, "Mock", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
