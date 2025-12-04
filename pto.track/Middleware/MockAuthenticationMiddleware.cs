@@ -31,41 +31,61 @@ public class MockAuthenticationMiddleware
         // Only auto-authenticate in Mock mode
         if (authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
         {
-            // Check if user is already authenticated
-            if (!context.User.Identity?.IsAuthenticated ?? true)
+            // Always check for impersonation cookie, even if already authenticated
+            // This allows impersonation changes to take effect
+            var impersonationData = context.Request.Cookies["ImpersonationData"]; List<Claim> claims;
+            bool shouldReauthenticate = false;
+
+            if (!string.IsNullOrEmpty(impersonationData))
             {
-                // Check for impersonation cookie
-                var impersonationData = context.Request.Cookies["ImpersonationData"];
-
-                List<Claim> claims;
-
-                if (!string.IsNullOrEmpty(impersonationData))
+                // Use impersonated user claims
+                var impersonation = System.Text.Json.JsonSerializer.Deserialize<ImpersonationData>(impersonationData);
+                if (impersonation != null)
                 {
-                    // Use impersonated user claims
-                    var impersonation = System.Text.Json.JsonSerializer.Deserialize<ImpersonationData>(impersonationData);
-                    if (impersonation != null)
+                    claims = CreateClaimsForImpersonation(impersonation);
+
+                    // Check if current user is different from impersonated user
+                    var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
+                    if (currentEmployeeNumber != impersonation.EmployeeNumber)
                     {
-                        claims = CreateClaimsForImpersonation(impersonation);
+                        shouldReauthenticate = true;
                         _logger.LogDebug("Impersonating user: {EmployeeNumber} with roles: {Roles}",
                             impersonation.EmployeeNumber, string.Join(", ", impersonation.Roles));
-                    }
-                    else
-                    {
-                        claims = CreateDefaultMockClaims();
-                        _logger.LogDebug("Auto-authenticating default mock user");
                     }
                 }
                 else
                 {
-                    // Use default mock user claims
                     claims = CreateDefaultMockClaims();
+                    shouldReauthenticate = !context.User.Identity?.IsAuthenticated ?? true;
                     _logger.LogDebug("Auto-authenticating default mock user");
                 }
+            }
+            else
+            {
+                // No impersonation - use default mock user claims
+                claims = CreateDefaultMockClaims();
 
+                // Only authenticate if not already authenticated as default user
+                var isAuthenticated = context.User.Identity?.IsAuthenticated ?? false;
+                var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
+                shouldReauthenticate = !isAuthenticated || currentEmployeeNumber != "EMP001";
+
+                if (shouldReauthenticate)
+                {
+                    _logger.LogDebug("Auto-authenticating default mock user");
+                }
+            }
+
+            // Sign in if we need to (re)authenticate
+            if (shouldReauthenticate)
+            {
                 var identity = new ClaimsIdentity(claims, "MockAuth");
                 var principal = new ClaimsPrincipal(identity);
 
-                // Sign in the mock user
+                // Update the current request's user context
+                context.User = principal;
+
+                // Also persist the authentication for subsequent requests
                 await context.SignInAsync("Cookies", principal);
             }
         }

@@ -14,18 +14,21 @@ export function toggleImpersonationPanel() {
 }
 
 /**
- * Get the selected roles from the checkboxes
- * @returns {string[]} Array of selected role names
+ * Get the roles for a user based on their employee number
+ * @param {string} employeeNumber - The employee number
+ * @returns {string[]} Array of role names for that user
  */
-export function getSelectedRoles() {
-    const roles = [];
+export function getRolesForUser(employeeNumber) {
+    // Map employee numbers to their roles based on the database/test data
+    const userRoles = {
+        'EMP001': ['Employee', 'Manager', 'Approver', 'Admin'], // Development User
+        'EMP002': ['Employee'],                                   // Test Employee
+        'EMP003': ['Employee', 'Manager'],                       // Test Manager
+        'EMP004': ['Employee', 'Approver'],                      // Test Approver
+        'EMP005': ['Employee', 'Admin']                          // Administrator
+    };
 
-    if (document.getElementById('roleEmployee')?.checked) roles.push('Employee');
-    if (document.getElementById('roleManager')?.checked) roles.push('Manager');
-    if (document.getElementById('roleApprover')?.checked) roles.push('Approver');
-    if (document.getElementById('roleAdmin')?.checked) roles.push('Admin');
-
-    return roles;
+    return userRoles[employeeNumber] || ['Employee'];
 }
 
 /**
@@ -34,7 +37,7 @@ export function getSelectedRoles() {
  */
 export function getImpersonationData() {
     const employeeNumber = document.getElementById('impersonateUser')?.value || 'EMP001';
-    const roles = getSelectedRoles();
+    const roles = getRolesForUser(employeeNumber);
 
     return {
         employeeNumber,
@@ -85,29 +88,6 @@ export async function applyImpersonation(reloadFn = null) {
 }
 
 /**
- * Clear impersonation and return to default user
- * @param {Function} reloadFn - Optional reload function for testing
- */
-export async function clearImpersonation(reloadFn = null) {
-    try {
-        const response = await fetch('/api/impersonation', {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            localStorage.removeItem('impersonatedUser');
-            reloadPage(reloadFn);
-        } else {
-            console.error('Failed to clear impersonation:', await response.text());
-            alert('Failed to clear impersonation');
-        }
-    } catch (error) {
-        console.error('Error clearing impersonation:', error);
-        alert('Error clearing impersonation');
-    }
-}
-
-/**
  * Load saved impersonation state from localStorage and update UI
  */
 export function loadSavedImpersonation() {
@@ -121,19 +101,6 @@ export function loadSavedImpersonation() {
         const userSelect = document.getElementById('impersonateUser');
         if (userSelect && data.employeeNumber) {
             userSelect.value = data.employeeNumber;
-        }
-
-        // Update role checkboxes
-        if (data.roles && Array.isArray(data.roles)) {
-            const roleEmployee = document.getElementById('roleEmployee');
-            const roleManager = document.getElementById('roleManager');
-            const roleApprover = document.getElementById('roleApprover');
-            const roleAdmin = document.getElementById('roleAdmin');
-
-            if (roleEmployee) roleEmployee.checked = data.roles.includes('Employee');
-            if (roleManager) roleManager.checked = data.roles.includes('Manager');
-            if (roleApprover) roleApprover.checked = data.roles.includes('Approver');
-            if (roleAdmin) roleAdmin.checked = data.roles.includes('Admin');
         }
     } catch (error) {
         console.error('Error loading saved impersonation:', error);
@@ -149,7 +116,6 @@ export function initImpersonationPanel() {
     // Make functions available globally for onclick handlers
     window.toggleImpersonationPanel = toggleImpersonationPanel;
     window.applyImpersonation = applyImpersonation;
-    window.clearImpersonation = clearImpersonation;
 }
 
 // Auto-initialize on DOM content loaded

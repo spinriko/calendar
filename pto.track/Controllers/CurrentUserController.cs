@@ -53,17 +53,50 @@ public class CurrentUserController : ControllerBase
             var authMode = _configuration["Authentication:Mode"];
             var isMockMode = string.Equals(authMode, "Mock", StringComparison.OrdinalIgnoreCase);
 
+            // Get roles from claims (these reflect impersonation if active)
+            var claimRoles = _claimsProvider.GetRoles().ToList();
+
+            // Determine effective role and isApprover based on claims when impersonating
+            string effectiveRole = resource.Role;
+            bool effectiveIsApprover = resource.IsApprover;
+
+            // In mock mode with impersonation, use claim-based roles to determine effective role
+            if (isMockMode && claimRoles.Any())
+            {
+                // Priority order: Admin > Manager > Approver > Employee
+                if (claimRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+                {
+                    effectiveRole = "Admin";
+                    effectiveIsApprover = true;
+                }
+                else if (claimRoles.Contains("Manager", StringComparer.OrdinalIgnoreCase))
+                {
+                    effectiveRole = "Manager";
+                    effectiveIsApprover = true;
+                }
+                else if (claimRoles.Contains("Approver", StringComparer.OrdinalIgnoreCase))
+                {
+                    effectiveRole = "Approver";
+                    effectiveIsApprover = true;
+                }
+                else if (claimRoles.Contains("Employee", StringComparer.OrdinalIgnoreCase))
+                {
+                    effectiveRole = "Employee";
+                    effectiveIsApprover = false;
+                }
+            }
+
             return Ok(new
             {
                 id = resource.Id,
                 name = resource.Name,
                 email = resource.Email,
                 employeeNumber = resource.EmployeeNumber,
-                role = resource.Role,
-                isApprover = resource.IsApprover,
+                role = effectiveRole,
+                isApprover = effectiveIsApprover,
                 isActive = resource.IsActive,
                 department = resource.Department,
-                roles = _claimsProvider.GetRoles(),
+                roles = claimRoles,
                 isMockMode = isMockMode
             });
         }
