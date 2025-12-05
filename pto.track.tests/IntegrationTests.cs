@@ -10,11 +10,11 @@ using Xunit;
 
 namespace pto.track.tests.Integration
 {
-    public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class IntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory _factory;
 
-        public IntegrationTests(WebApplicationFactory<Program> factory)
+        public IntegrationTests(CustomWebApplicationFactory factory)
         {
             _factory = factory;
         }

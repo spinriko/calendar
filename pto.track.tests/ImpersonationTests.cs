@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using pto.track.data;
 using pto.track.Models;
+using pto.track.services.Authentication;
 using Xunit;
 
 namespace pto.track.tests;
@@ -16,11 +17,11 @@ namespace pto.track.tests;
 /// Ensures that when impersonation is active, all API endpoints return data
 /// for the impersonated user, not the actual authenticated user.
 /// </summary>
-public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
+public class ImpersonationTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory _factory;
 
-    public ImpersonationTests(WebApplicationFactory<Program> factory)
+    public ImpersonationTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -60,6 +61,16 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 {
                     services.Remove(d);
                 }
+
+                // Restore MockUserClaimsProvider for impersonation tests
+                // CustomWebApplicationFactory registers TestUserClaimsProvider which reads from headers,
+                // but we need to read from the ClaimsPrincipal set by MockAuthenticationMiddleware.
+                var claimsProviderDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IUserClaimsProvider));
+                if (claimsProviderDescriptor != null)
+                {
+                    services.Remove(claimsProviderDescriptor);
+                }
+                services.AddScoped<IUserClaimsProvider, MockUserClaimsProvider>();
 
                 var dbName = "ImpersonationTestDb_" + Guid.NewGuid().ToString();
                 services.AddDbContext<PtoTrackDbContext>(options =>
