@@ -12,7 +12,7 @@ This document defines requirements for introducing the concept of "Groups" for r
   - Name (required)
   - Additional attributes (optional, extensible in future)
 
-**Status:** ✅ Created [Models/Group.cs](pto.track.data/Models/Group.cs) with GroupId and Name properties, including navigation property to Resources collection.
+**Status:** ✅ Created [Models/Group.cs](../../pto.track.data/Models/Group.cs) with GroupId and Name properties, including navigation property to Resources collection.
 
 
 ### 2. Resource Renaming ✅ COMPLETED
@@ -38,7 +38,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 - Each resource can belong to one group (initially; future: support multiple groups if needed).
 - Resources must reference their group (e.g., via GroupId foreign key).
 
-**Status:** ✅ Added GroupId foreign key to Resource entity. Seed data configured with 5 test resources all assigned to Group 1. Migration file: [20251201211824_AddGroupsAndUpdateResources.cs](pto.track.data/Migrations/20251201211824_AddGroupsAndUpdateResources.cs)
+**Status:** ✅ Added GroupId foreign key to Resource entity. Seed data configured with 5 test resources all assigned to Group 1. Migration file: [20251201211824_AddGroupsAndUpdateResources.cs](../../pto.track.data/Migrations/20251201211824_AddGroupsAndUpdateResources.cs)
 
 
 ### 4. UI Changes (Absences Page) ❌ NOT IMPLEMENTED
@@ -48,7 +48,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 - Only show resources for the currently selected group.
 - Allow Administrators to switch between groups to view associated resources and absences.
 
-**Status:** ❌ UI changes not yet implemented. [Absences.cshtml](pto.track/Pages/Absences.cshtml) shows status filters and impersonation panel, but no group selection UI.
+**Status:** ❌ UI changes not yet implemented. [Absences.cshtml](../../pto.track/Pages/Absences.cshtml) shows status filters and impersonation panel, but no group selection UI.
 
 ### 5. Roles and Permissions ✅ COMPLETED
 - Existing roles continue to represent permission sets for UI actions.
@@ -61,11 +61,11 @@ This document defines requirements for introducing the concept of "Groups" for r
 - Endpoints to:
   - ❌ List groups
   - ❌ Create, update, delete groups
-  - ✅ List resources by group (GET /api/resources/group/{groupId}) - Implemented in [ResourcesController.cs:51-58](pto.track/Controllers/ResourcesController.cs#L51-L58)
+  - ✅ List resources by group (GET /api/resources/group/{groupId}) - Implemented in [ResourcesController.cs:51-58](../../pto.track/Controllers/ResourcesController.cs#L51-L58)
 - ❌ Absences API should support filtering by group.
 - The group API endpoints should only be accessible to users with the Administrator role.
 
-**Status:** ⚠️ Partial - Only resource filtering by group implemented via `GetResourcesByGroupAsync()`. Missing GroupsController and absence filtering by group in [AbsencesController.cs](pto.track/Controllers/AbsencesController.cs).
+**Status:** ⚠️ Partial - Only resource filtering by group implemented via `GetResourcesByGroupAsync()`. Missing GroupsController and absence filtering by group in [AbsencesController.cs](../../pto.track/Controllers/AbsencesController.cs).
 
 ### 7. Suggestions for Extensibility
 - Consider supporting nested groups or group hierarchies in future.
@@ -78,7 +78,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 - Existing resources should be assigned to a default group during migration.
 - UI should gracefully handle cases where no group is selected or available.
 
-**Status:** ✅ Migration applied successfully! [20251201211824_AddGroupsAndUpdateResources.cs](pto.track.data/Migrations/20251201211824_AddGroupsAndUpdateResources.cs). This migration:
+**Status:** ✅ Migration applied successfully! [20251201211824_AddGroupsAndUpdateResources.cs](../../pto.track.data/Migrations/20251201211824_AddGroupsAndUpdateResources.cs). This migration:
   - Created Groups table with GroupId and Name
   - Added GroupId column to Resources table
   - Inserted "Group 1" as default group
@@ -95,7 +95,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 - This menu item should only be visible to users with the Administrator role.
 - Create a Group Administration page for managing groups (create, update, delete, view group details and members).
 
-**Status:** ❌ No group management UI or navigation implemented yet. Would need to modify [_Layout.cshtml](pto.track/Pages/Shared/_Layout.cshtml) and create new Razor page.
+**Status:** ❌ No group management UI or navigation implemented yet. Would need to modify [_Layout.cshtml](../../pto.track/Pages/Shared/_Layout.cshtml) and create new Razor page.
 
 ## Remaining Tasks
 
@@ -114,7 +114,7 @@ This document defines requirements for introducing the concept of "Groups" for r
 ### Low Priority (Polish)
 9. ❌ **Error Handling** - Graceful handling when no group selected
 10. ⚠️ **Testing** - Update existing tests to include group scenarios (some tests reference groups already)
-11. ❌ **Documentation** - Update [README.md](../README.md) and API documentation with group functionality
+11. ❌ **Documentation** - Update [README.md](../../README.md) and API documentation with group functionality
 
 ## Summary Status
 ✅ **Completed:**
