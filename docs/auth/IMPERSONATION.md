@@ -642,5 +642,5 @@ The impersonation panel should be visually distinct:
 ## Related Documentation
 
 - [AUTHENTICATION.md](./AUTHENTICATION.md) - Authentication system overview
-- [TESTING.md](./TESTING.md) - Testing strategies including role-based tests
+- [TESTING.md](../run/TESTING.md) - Testing strategies including role-based tests
 - [AUTHORIZATION_SETUP.md](./AUTHORIZATION_SETUP.md) - Role-based authorization configuration
