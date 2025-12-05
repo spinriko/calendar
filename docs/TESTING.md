@@ -5,9 +5,9 @@ This solution includes comprehensive test coverage across multiple test projects
 ## Test Projects Overview
 
 ### Summary Statistics
-- **Total Tests**: 321 (318 passing ✓, 3 skipped)
+- **Total Tests**: 340 (337 passing ✓, 3 skipped)
 - **C# Test Projects**: 3 projects with 157 tests
-- **JavaScript Test Suites**: 10 suites with 164 tests
+- **JavaScript Test Suites**: 13 suites with 183 tests
 - **Code Coverage**: 67.9% overall (C# code)
 - **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation, User management, Status filtering, Authorization & Role-based access control, Transaction management, User synchronization, JavaScript business logic
 
@@ -42,9 +42,12 @@ pto.track.tests.js/
 │   │       ├── context-menu.test.mjs        # 24 tests - Context menu item generation
 │   │       └── status-color.test.mjs        # 13 tests - Status color mapping
 │   │
-│   └── integration/                    # Integration tests (16 tests)
-│       └── workflows.test.mjs               # 16 tests - Cross-function workflows
+│   └── integration/                    # Integration tests (19 tests)
+│       ├── workflows.test.mjs               # 16 tests - Cross-function workflows
+│       └── impersonation-flow.test.mjs      #  3 tests - Full impersonation flow verification
 │
+├── tests/scheduler-permissions.test.mjs     # 10 tests - Scheduler row coloring & selection
+├── tests/date-validation.test.mjs           #  6 tests - Retroactive date prevention
 ├── package.json                        # Test runner configuration
 ├── jest.config.js                      # Jest ES module setup
 ├── eslint.config.js                    # Linting rules
@@ -122,6 +125,22 @@ Tests real-world user scenarios:
   - Different roles viewing different statuses
   - Comprehensive permission validation
 
+#### Scheduler Logic (19 tests)
+Tests for the enhanced scheduler UI:
+- **Scheduler Permissions** (10 tests)
+  - `getSchedulerRowColor`: Verifies gray color for unauthorized rows
+  - `shouldAllowSelection`: Verifies selection blocking for unauthorized rows
+  - Role-based overrides (Admin/Manager can select anyone)
+
+- **Date Validation** (6 tests)
+  - `getCellCssClass`: Verifies gray color for past dates (retroactive prevention)
+  - Ensures past dates are disabled even for the owner
+  - Ensures future dates respect role permissions
+
+- **Impersonation Flow** (3 tests)
+  - Integration test for the impersonation panel
+  - Verifies role mapping and API calls
+
 #### Running JavaScript Tests
 
 ```bash
@@ -145,43 +164,195 @@ npm run test:only
 
 ## Code Quality Metrics
 
-### Cyclomatic Complexity Analysis
+### Comprehensive Code Metrics Analysis
 
-The test suite includes automated cyclomatic complexity analysis to identify overly complex methods that may need refactoring.
+The test suite includes comprehensive code quality metrics analysis across all C# projects in the solution using custom Roslyn analyzers.
 
-#### C# Complexity Analysis
-**Tool**: Microsoft.CodeAnalysis.Metrics with custom Roslyn analyzer  
-**Threshold**: Complexity > 10 triggers a report  
-**Run Command**:
+**Run All Metrics**:
 ```bash
-cd pto.track.tests
-dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer"
+dotnet test pto.track.tests/pto.track.tests.csproj --filter "FullyQualifiedName~CodeMetricsAnalyzer"
 ```
 
-**Output Example**:
-```
-=== Cyclomatic Complexity Report ===
-Analyzed 17 source files
+**Scope**: Analyzes `pto.track`, `pto.track.services`, and `pto.track.data` projects
 
-Found 1 method(s) with complexity > 10:
-  [11] AbsencesController.GetAbsenceRequests
-      in Controllers\AbsencesController.cs
-
-Consider refactoring methods with high complexity to improve maintainability.
-```
-
+#### 1. Cyclomatic Complexity Analysis
+**Threshold**: Complexity > 10  
 **What It Measures**:
 - Decision points: if, while, for, foreach, switch cases
 - Logical operators: && and ||
 - Exception handling: catch clauses
 - Ternary operators: ? :
 
-**Benefits**:
-- Identifies methods that may be difficult to test or maintain
-- Helps prioritize refactoring efforts
-- Runs as part of test suite (informational, never fails)
+**Output Example**:
+```
+=== Cyclomatic Complexity Report ===
+Analyzed 65 source files
 
-#### JavaScript Complexity Analysis
+✓ All methods have acceptable complexity (≤10)
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeProjectComplexity"
+```
+
+#### 2. Maintainability Index
+**Threshold**: Index < 65 triggers report  
+**Scale**: 0-100 (higher = more maintainable)  
+- 85-100: Excellent maintainability
+- 65-84: Good maintainability
+- <65: Low maintainability (consider refactoring)
+
+**Formula**: `171 - 5.2 * ln(Volume) - 0.23 * Complexity - 16.2 * ln(Lines)`
+
+**Output Example**:
+```
+=== Maintainability Index Report ===
+Analyzed 65 source files
+Scale: 0-100 (65+ = Good, 85+ = Excellent)
+
+Found 72 method(s) with low maintainability (<65):
+  [34.3] CurrentUserController.GetCurrentUser
+      in pto.track\Controllers\CurrentUserController.cs
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeMaintainabilityIndex"
+```
+
+#### 3. Lines of Code Analysis
+**Thresholds**:
+- Methods: > 50 lines
+- Classes: > 500 lines
+
+**Output Example**:
+```
+=== Lines of Code Report ===
+Analyzed 65 source files
+
+Found 3 method(s) > 50 lines:
+  [81 lines] CurrentUserController.GetCurrentUser
+      in pto.track\Controllers\CurrentUserController.cs
+
+✓ All classes ≤500 lines
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeLinesOfCode"
+```
+
+#### 4. Method Parameter Count
+**Threshold**: > 5 parameters  
+**Recommendation**: Consider using parameter objects or builder pattern for methods exceeding this threshold
+
+**Output Example**:
+```
+=== Method Parameter Count Report ===
+Analyzed 65 source files
+
+✓ All methods have ≤5 parameters
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeMethodParameters"
+```
+
+#### 5. Nesting Depth Analysis
+**Threshold**: > 4 levels  
+**Recommendation**: Extract nested logic to separate methods
+
+**Output Example**:
+```
+=== Nesting Depth Report ===
+Analyzed 65 source files
+
+Found 1 method(s) with nesting depth >4:
+  [depth 6] CurrentUserController.GetCurrentUser
+      in pto.track\Controllers\CurrentUserController.cs
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeNestingDepth"
+```
+
+#### 6. Class Coupling Analysis
+**Threshold**: > 10 dependencies  
+**What It Measures**: Field types, property types, constructor parameters (excluding built-in types)
+
+**Output Example**:
+```
+=== Class Coupling Report ===
+Analyzed 65 source files
+
+✓ All classes have ≤10 dependencies
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeClassCoupling"
+```
+
+#### 7. Inheritance Depth Analysis
+**Threshold**: > 4 levels  
+**What It Measures**: Depth of inheritance tree
+
+**Output Example**:
+```
+=== Inheritance Depth Report ===
+Analyzed 65 source files
+
+✓ All classes have inheritance depth ≤4
+```
+
+**Individual Test**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.AnalyzeInheritanceDepth"
+```
+
+#### 8. Comprehensive Summary Report
+Combines all metrics into a single dashboard view.
+
+**Run Command**:
+```bash
+dotnet test --filter "FullyQualifiedName~CodeMetricsAnalyzer.GenerateComprehensiveSummary"
+```
+
+**Output Example**:
+```
+=== Comprehensive Code Quality Summary ===
+Solution: pto.track (all C# projects)
+
+Code Base Statistics:
+  Files:   65
+  Lines:   4,375
+  Classes: 56
+  Methods: 155
+
+Cyclomatic Complexity:
+  Average: 1.9
+  Median:  1.0
+  Max:     13
+  >10:     1 methods
+
+Maintainability Index (0-100):
+  Average: 64.7
+  Median:  67.8
+  Min:     34.3
+  <65:     72 methods
+
+Method Parameters:
+  Average: 1.3
+  Max:     5
+  >5:      0 methods
+
+✓ Analysis complete
+```
+
+### JavaScript Complexity Analysis
 **Tool**: ESLint with complexity plugin  
 **Threshold**: Complexity > 10 triggers a warning  
 **Run Command**: Runs automatically with `npm test` (ESLint validation before tests)  

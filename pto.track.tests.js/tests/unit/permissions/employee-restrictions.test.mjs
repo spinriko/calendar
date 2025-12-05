@@ -37,8 +37,8 @@ describe('canCreateAbsenceForResource', () => {
         });
 
         it('works with mixed string and number IDs (loose equality)', () => {
-            expect(canCreateAbsenceForResource(1, '1', false, false, false)).toBe(false);
-            expect(canCreateAbsenceForResource('1', 1, false, false, false)).toBe(false);
+            expect(canCreateAbsenceForResource(1, '1', false, false, false)).toBe(true);
+            expect(canCreateAbsenceForResource('1', 1, false, false, false)).toBe(true);
         });
 
         it('handles null employee IDs', () => {

@@ -90,7 +90,8 @@ function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isMana
     if (isAdmin || isManager || isApprover) {
         return true;
     }
-    return currentEmployeeId === targetResourceId;
+    // Use loose equality to handle string/number differences
+    return currentEmployeeId == targetResourceId;
 }
 
 function getResourceSelectionMessage(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
@@ -161,6 +162,41 @@ function buildContextMenuItems(absence, userContext, event) {
     return items;
 }
 
+function getSchedulerRowColor(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
+    if (!canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover)) {
+        return "#eeeeee";
+    }
+    return null; // Default color
+}
+
+function shouldAllowSelection(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
+    return canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover);
+}
+
+function getCellCssClass(cellStart, today, currentEmployeeId, resourceId, isManager, isAdmin, isApprover) {
+    // Check for past dates
+    if (cellStart < today) {
+        return "disabled-row";
+    }
+    // Check for permissions
+    if (!canCreateAbsenceForResource(currentEmployeeId, resourceId, isManager, isAdmin, isApprover)) {
+        return "disabled-row";
+    }
+    return null;
+}
+
+function updateViewButtons(buttons, activeView) {
+    buttons.forEach(btn => {
+        btn.style.fontWeight = 'normal';
+        btn.style.backgroundColor = '';
+    });
+    const activeBtn = buttons.find(b => b.id === `view${activeView}`);
+    if (activeBtn) {
+        activeBtn.style.fontWeight = 'bold';
+        activeBtn.style.backgroundColor = '#ddd';
+    }
+}
+
 export {
     getStatusColor,
     buildAbsencesUrl,
@@ -171,5 +207,9 @@ export {
     isUserManagerOrApprover,
     canCreateAbsenceForResource,
     getResourceSelectionMessage,
-    buildContextMenuItems
+    buildContextMenuItems,
+    getSchedulerRowColor,
+    shouldAllowSelection,
+    getCellCssClass,
+    updateViewButtons
 };

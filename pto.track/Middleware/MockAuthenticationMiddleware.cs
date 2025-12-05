@@ -31,66 +31,87 @@ public class MockAuthenticationMiddleware
         // Only auto-authenticate in Mock mode
         if (authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
         {
-            // Always check for impersonation cookie, even if already authenticated
-            // This allows impersonation changes to take effect
-            var impersonationData = context.Request.Cookies["ImpersonationData"]; List<Claim> claims;
-            bool shouldReauthenticate = false;
-
-            if (!string.IsNullOrEmpty(impersonationData))
-            {
-                // Use impersonated user claims
-                var impersonation = System.Text.Json.JsonSerializer.Deserialize<ImpersonationData>(impersonationData);
-                if (impersonation != null)
-                {
-                    claims = CreateClaimsForImpersonation(impersonation);
-
-                    // Check if current user is different from impersonated user
-                    var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
-                    if (currentEmployeeNumber != impersonation.EmployeeNumber)
-                    {
-                        shouldReauthenticate = true;
-                        _logger.LogDebug("Impersonating user: {EmployeeNumber} with roles: {Roles}",
-                            impersonation.EmployeeNumber, string.Join(", ", impersonation.Roles));
-                    }
-                }
-                else
-                {
-                    claims = CreateDefaultMockClaims();
-                    shouldReauthenticate = !context.User.Identity?.IsAuthenticated ?? true;
-                    _logger.LogDebug("Auto-authenticating default mock user");
-                }
-            }
-            else
-            {
-                // No impersonation - use default mock user claims
-                claims = CreateDefaultMockClaims();
-
-                // Only authenticate if not already authenticated as default user
-                var isAuthenticated = context.User.Identity?.IsAuthenticated ?? false;
-                var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
-                shouldReauthenticate = !isAuthenticated || currentEmployeeNumber != "EMP001";
-
-                if (shouldReauthenticate)
-                {
-                    _logger.LogDebug("Auto-authenticating default mock user");
-                }
-            }
-
-            // Sign in if we need to (re)authenticate
-            if (shouldReauthenticate)
-            {
-                var identity = new ClaimsIdentity(claims, "MockAuth");
-                var principal = new ClaimsPrincipal(identity);
-
-                // Update the current request's user context
-                context.User = principal;
-
-                // Also persist the authentication for subsequent requests
-                await context.SignInAsync("Cookies", principal);
-            }
+            await HandleMockAuthentication(context);
         }
 
         await _next(context);
+    }
+
+    private async Task HandleMockAuthentication(HttpContext context)
+    {
+        // Always check for impersonation cookie, even if already authenticated
+        // This allows impersonation changes to take effect
+        var impersonationData = context.Request.Cookies["ImpersonationData"];
+
+        var (claims, shouldReauthenticate) = DetermineClaimsAndAuthStatus(context, impersonationData);
+
+        // Sign in if we need to (re)authenticate
+        if (shouldReauthenticate)
+        {
+            var identity = new ClaimsIdentity(claims, "MockAuth");
+            var principal = new ClaimsPrincipal(identity);
+
+            // Update the current request's user context
+            context.User = principal;
+
+            // Also persist the authentication for subsequent requests
+            await context.SignInAsync("Cookies", principal);
+        }
+    }
+
+    private (List<Claim> Claims, bool ShouldReauthenticate) DetermineClaimsAndAuthStatus(HttpContext context, string? impersonationData)
+    {
+        if (!string.IsNullOrEmpty(impersonationData))
+        {
+            return GetImpersonationClaims(context, impersonationData);
+        }
+
+        return GetDefaultClaims(context);
+    }
+
+    private (List<Claim> Claims, bool ShouldReauthenticate) GetImpersonationClaims(HttpContext context, string impersonationData)
+    {
+        // Use impersonated user claims
+        var impersonation = System.Text.Json.JsonSerializer.Deserialize<ImpersonationData>(impersonationData);
+        if (impersonation != null)
+        {
+            var claims = CreateClaimsForImpersonation(impersonation);
+
+            // Check if current user is different from impersonated user
+            var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
+            var shouldReauthenticate = false;
+
+            if (currentEmployeeNumber != impersonation.EmployeeNumber)
+            {
+                shouldReauthenticate = true;
+                _logger.LogDebug("Impersonating user: {EmployeeNumber} with roles: {Roles}",
+                    impersonation.EmployeeNumber, string.Join(", ", impersonation.Roles));
+            }
+
+            return (claims, shouldReauthenticate);
+        }
+
+        // Fallback if deserialization fails
+        _logger.LogDebug("Auto-authenticating default mock user (impersonation failed)");
+        return (CreateDefaultMockClaims(), !context.User.Identity?.IsAuthenticated ?? true);
+    }
+
+    private (List<Claim> Claims, bool ShouldReauthenticate) GetDefaultClaims(HttpContext context)
+    {
+        // No impersonation - use default mock user claims
+        var claims = CreateDefaultMockClaims();
+
+        // Only authenticate if not already authenticated as default user
+        var isAuthenticated = context.User.Identity?.IsAuthenticated ?? false;
+        var currentEmployeeNumber = context.User?.FindFirst("employeeNumber")?.Value;
+        var shouldReauthenticate = !isAuthenticated || currentEmployeeNumber != "EMP001";
+
+        if (shouldReauthenticate)
+        {
+            _logger.LogDebug("Auto-authenticating default mock user");
+        }
+
+        return (claims, shouldReauthenticate);
     }
 
     private List<Claim> CreateDefaultMockClaims()
@@ -98,14 +119,11 @@ public class MockAuthenticationMiddleware
         return new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, "EMP001"),
-            new Claim(ClaimTypes.Email, "developer@example.com"),
-            new Claim(ClaimTypes.Name, "Development User"),
+            new Claim(ClaimTypes.Email, "employee@example.com"),
+            new Claim(ClaimTypes.Name, "Test Employee 1"),
             new Claim("employeeNumber", "EMP001"),
-            new Claim("objectGUID", "mock-ad-guid-12345"),
-            new Claim(ClaimTypes.Role, "Employee"),
-            new Claim(ClaimTypes.Role, "Manager"),
-            new Claim(ClaimTypes.Role, "Approver"),
-            new Claim(ClaimTypes.Role, "Admin")
+            new Claim("objectGUID", "mock-ad-guid-employee"),
+            new Claim(ClaimTypes.Role, "Employee")
         };
     }
 
@@ -132,11 +150,11 @@ public class MockAuthenticationMiddleware
     {
         return employeeNumber switch
         {
-            "EMP001" => "Development User",
-            "EMP002" => "Test Employee",
-            "EMP003" => "Test Manager",
-            "EMP004" => "Test Approver",
-            "EMP005" => "Administrator",
+            "EMP001" => "Test Employee 1",
+            "EMP002" => "Test Employee 2",
+            "MGR001" => "Test Manager",
+            "APR001" => "Test Approver",
+            "ADMIN001" => "Administrator",
             _ => $"User {employeeNumber}"
         };
     }

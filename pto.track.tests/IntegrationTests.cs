@@ -10,13 +10,19 @@ using Xunit;
 
 namespace pto.track.tests.Integration
 {
-    public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class IntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory _factory;
 
-        public IntegrationTests(WebApplicationFactory<Program> factory)
+        public IntegrationTests(CustomWebApplicationFactory factory)
         {
             _factory = factory;
+        }
+
+        private CancellationToken GetTimeoutToken()
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            return cts.Token;
         }
 
         private HttpClient GetClientWithInMemoryDb(Action<PtoTrackDbContext>? seed = null)
@@ -119,7 +125,7 @@ namespace pto.track.tests.Integration
                 db.Resources.Add(new Resource { Id = 2, Name = "R2" });
             });
 
-            var resp = await client.GetAsync("/api/resources");
+            var resp = await client.GetAsync("/api/resources", GetTimeoutToken());
             resp.EnsureSuccessStatusCode();
             var resources = await resp.Content.ReadFromJsonAsync<List<Resource>>();
             Assert.NotNull(resources);
@@ -137,7 +143,7 @@ namespace pto.track.tests.Integration
 
             var start = "2025-11-13T00:00:00";
             var end = "2025-11-13T23:59:59";
-            var resp = await client.GetAsync($"/api/events?start={WebUtility.UrlEncode(start)}&end={WebUtility.UrlEncode(end)}");
+            var resp = await client.GetAsync($"/api/events?start={WebUtility.UrlEncode(start)}&end={WebUtility.UrlEncode(end)}", GetTimeoutToken());
             resp.EnsureSuccessStatusCode();
             var events = await resp.Content.ReadFromJsonAsync<List<SchedulerEvent>>();
             Assert.NotNull(events);
@@ -158,7 +164,7 @@ namespace pto.track.tests.Integration
                 ResourceId: 1
             );
 
-            var postResp = await client.PostAsJsonAsync("/api/events", newEvent);
+            var postResp = await client.PostAsJsonAsync("/api/events", newEvent, GetTimeoutToken());
             Assert.Equal(HttpStatusCode.Created, postResp.StatusCode);
             var created = await postResp.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(created);
@@ -167,7 +173,7 @@ namespace pto.track.tests.Integration
             var id = created.Id;
 
             // Read
-            var getResp = await client.GetAsync($"/api/events/{id}");
+            var getResp = await client.GetAsync($"/api/events/{id}", GetTimeoutToken());
             getResp.EnsureSuccessStatusCode();
             var fetched = await getResp.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(fetched);
@@ -181,22 +187,22 @@ namespace pto.track.tests.Integration
                 Color: fetched.Color,
                 ResourceId: fetched.ResourceId
             );
-            var putResp = await client.PutAsJsonAsync($"/api/events/{id}", updateDto);
+            var putResp = await client.PutAsJsonAsync($"/api/events/{id}", updateDto, GetTimeoutToken());
             Assert.Equal(HttpStatusCode.NoContent, putResp.StatusCode);
 
             // Read back updated
-            var getResp2 = await client.GetAsync($"/api/events/{id}");
+            var getResp2 = await client.GetAsync($"/api/events/{id}", GetTimeoutToken());
             getResp2.EnsureSuccessStatusCode();
             var fetched2 = await getResp2.Content.ReadFromJsonAsync<EventDto>();
             Assert.NotNull(fetched2);
             Assert.Equal("E2E Updated", fetched2.Text);
 
             // Delete
-            var delResp = await client.DeleteAsync($"/api/events/{id}");
+            var delResp = await client.DeleteAsync($"/api/events/{id}", GetTimeoutToken());
             Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
 
             // Verify deleted
-            var getAfterDel = await client.GetAsync($"/api/events/{id}");
+            var getAfterDel = await client.GetAsync($"/api/events/{id}", GetTimeoutToken());
             Assert.Equal(HttpStatusCode.NotFound, getAfterDel.StatusCode);
         }
 
@@ -213,7 +219,7 @@ namespace pto.track.tests.Integration
                 ResourceId = 1
             };
 
-            var resp = await client.PostAsJsonAsync("/api/events", badEvent);
+            var resp = await client.PostAsJsonAsync("/api/events", badEvent, GetTimeoutToken());
             Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         }
 
@@ -227,7 +233,7 @@ namespace pto.track.tests.Integration
             });
 
             // Fetch the created event
-            var get = await client.GetAsync($"/api/events/{eventId}");
+            var get = await client.GetAsync($"/api/events/{eventId}", GetTimeoutToken());
             get.EnsureSuccessStatusCode();
             var ev = await get.Content.ReadFromJsonAsync<SchedulerEvent>();
             Assert.NotNull(ev);
@@ -236,7 +242,7 @@ namespace pto.track.tests.Integration
             ev.Start = new DateTime(2025, 11, 15, 12, 0, 0);
             ev.End = new DateTime(2025, 11, 15, 11, 0, 0);
 
-            var put = await client.PutAsJsonAsync($"/api/events/{ev.Id}", ev);
+            var put = await client.PutAsJsonAsync($"/api/events/{ev.Id}", ev, GetTimeoutToken());
             Assert.Equal(HttpStatusCode.BadRequest, put.StatusCode);
         }
 
@@ -265,7 +271,7 @@ namespace pto.track.tests.Integration
             });
 
             // Act
-            var resp = await client.GetAsync("/api/resources/group/1");
+            var resp = await client.GetAsync("/api/resources/group/1", GetTimeoutToken());
 
             // Assert
             resp.EnsureSuccessStatusCode();
@@ -297,7 +303,7 @@ namespace pto.track.tests.Integration
             });
 
             // Act
-            var resp = await client.GetAsync("/api/resources/group/1");
+            var resp = await client.GetAsync("/api/resources/group/1", GetTimeoutToken());
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -325,7 +331,7 @@ namespace pto.track.tests.Integration
             });
 
             // Act - Request resources for non-existent group
-            var resp = await client.GetAsync("/api/resources/group/99");
+            var resp = await client.GetAsync("/api/resources/group/99", GetTimeoutToken());
 
             // Assert
             resp.EnsureSuccessStatusCode();
@@ -341,7 +347,7 @@ namespace pto.track.tests.Integration
             var client = GetClientWithInMemoryDb(seed: null); // null means use default seeding
 
             // Act - Get resources for Group 1 (seeded group)
-            var resp = await client.GetAsync("/api/resources/group/1");
+            var resp = await client.GetAsync("/api/resources/group/1", GetTimeoutToken());
 
             // Assert
             resp.EnsureSuccessStatusCode();

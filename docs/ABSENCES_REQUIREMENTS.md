@@ -50,6 +50,27 @@ Full system access for maintenance and data management.
 - **View Audit Trail**: Access request history and approval workflow
 - **System Configuration**: Manage absence policies, employee records, and approval chains
 
+### 4. Scheduler Behavior
+
+#### Calendar View
+- **Single Day Selection**: Clicking a date in the left-hand calendar highlights only that specific day (not the entire week).
+- **Working Hours**: Time selection is restricted to working hours (08:00 - 18:00) in 30-minute increments.
+- **Multi-Week Requests**: Users can create absence requests spanning multiple weeks by editing the Start/End dates in the creation modal.
+
+#### View Modes
+- **Day View**: Displays the schedule for a single day.
+  - Headers: Year > Month > Week.
+  - Content: Only the selected day from the left-hand calendar is populated.
+- **Week View**: Displays the schedule for the entire week.
+- **Month View**: Displays the schedule for the entire month.
+- **View Switching**: A picker/control situated next to the navigation buttons (Previous/Today/Next) allows users to switch between Day, Week, and Month views.
+- **Inference**: The detailed behavior and layout of Week and Month views should be consistent with the patterns established in the Day view.
+
+#### Permission Enforcement
+- **Visual Feedback**: Rows for other employees are grayed out and non-selectable for regular employees.
+- **Retroactive Prevention**: Past dates are grayed out and non-selectable to prevent retroactive PTO requests.
+- **Interaction**: Clicking on a grayed-out row or past date performs no action (selection is silently rejected).
+
 ## Page Behavior by User Role
 
 ### Initial Page Load

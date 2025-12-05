@@ -48,6 +48,7 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - `Pages/Index.cshtml` - Landing page with navigation to both calendars
   - `Pages/Scheduling.cshtml` - Interactive scheduling calendar UI using DayPilot
   - `Pages/Absences.cshtml` - Absence request calendar UI with approval actions
+  - `Pages/AbsencesScheduler.cshtml` - Enhanced scheduler view for absence management
   - `Program.cs` - Application configuration and service registration
 - **Features**:
   - Dual calendar system (Scheduling + Absences)
@@ -102,13 +103,14 @@ pto.track.data         → Data access layer (EF Core + Entities)
 ### Test Projects
 
 #### **pto.track.tests** (Integration Tests)
-- **Tests**: 50 integration tests
+- **Tests**: 50 integration tests + 8 code quality metrics analyzers
 - **Coverage**:
   - Controller endpoint testing (including absences API)
   - End-to-end CRUD workflows
   - Resource and event retrieval
   - Absence request approval workflows
-- **Dependencies**: xUnit, Microsoft.AspNetCore.Mvc.Testing, In-Memory Database
+  - **Code Quality Metrics**: Cyclomatic complexity, maintainability index, LOC analysis, parameter counts, nesting depth, class coupling, inheritance depth
+- **Dependencies**: xUnit, Microsoft.AspNetCore.Mvc.Testing, In-Memory Database, Microsoft.CodeAnalysis (Roslyn)
 
 #### **pto.track.services.tests** (Service Layer Tests)
 - **Tests**: 83 unit tests
@@ -140,15 +142,26 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - **Technology**: Jest, pure JavaScript (no build tools)
 - **Runs**: Browser-based or headless (CI/CD ready)
 
-**Total Test Coverage**: 157 tests (154 passing, 3 skipped)
-- **C# Tests**: 116 tests
+**Total Test Coverage**: 165 tests (162 passing, 3 skipped)
+- **C# Tests**: 124 tests
   - Integration Tests: 50 tests (pto.track.tests)
+  - Code Quality Metrics: 8 analyzers (pto.track.tests)
   - Service Layer Tests: 83 tests (pto.track.services.tests) including UnitOfWork tests
   - Data Layer Tests: 24 tests (pto.track.data.tests)
 - **JavaScript Tests**: 41 tests (pto.track.tests.js)
 - **Code Coverage**: 67.9% overall (coverage.xml available)
 
-See [TESTING.md](TESTING.md) for C# test documentation and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
+**Code Quality Metrics** (Solution-wide):
+- Cyclomatic complexity analysis
+- Maintainability index (0-100 scale)
+- Lines of code per method/class
+- Method parameter counts
+- Nesting depth analysis
+- Class coupling analysis
+- Inheritance depth analysis
+- Comprehensive summary dashboard
+
+See [TESTING.md](docs/TESTING.md) for detailed C# test documentation and code metrics, and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
 
 ## Getting Started
 

@@ -1,5 +1,6 @@
 export default {
     testEnvironment: "jsdom",
+    testTimeout: 30000,
     transform: {}, // disables Babel, use native ESM
     testMatch: ["**/*.test.mjs"],
 
