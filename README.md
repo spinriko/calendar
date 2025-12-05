@@ -48,6 +48,7 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - `Pages/Index.cshtml` - Landing page with navigation to both calendars
   - `Pages/Scheduling.cshtml` - Interactive scheduling calendar UI using DayPilot
   - `Pages/Absences.cshtml` - Absence request calendar UI with approval actions
+  - `Pages/AbsencesScheduler.cshtml` - Enhanced scheduler view for absence management
   - `Program.cs` - Application configuration and service registration
 - **Features**:
   - Dual calendar system (Scheduling + Absences)

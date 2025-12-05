@@ -5,9 +5,9 @@ This solution includes comprehensive test coverage across multiple test projects
 ## Test Projects Overview
 
 ### Summary Statistics
-- **Total Tests**: 321 (318 passing ✓, 3 skipped)
+- **Total Tests**: 340 (337 passing ✓, 3 skipped)
 - **C# Test Projects**: 3 projects with 157 tests
-- **JavaScript Test Suites**: 10 suites with 164 tests
+- **JavaScript Test Suites**: 13 suites with 183 tests
 - **Code Coverage**: 67.9% overall (C# code)
 - **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation, User management, Status filtering, Authorization & Role-based access control, Transaction management, User synchronization, JavaScript business logic
 
@@ -42,9 +42,12 @@ pto.track.tests.js/
 │   │       ├── context-menu.test.mjs        # 24 tests - Context menu item generation
 │   │       └── status-color.test.mjs        # 13 tests - Status color mapping
 │   │
-│   └── integration/                    # Integration tests (16 tests)
-│       └── workflows.test.mjs               # 16 tests - Cross-function workflows
+│   └── integration/                    # Integration tests (19 tests)
+│       ├── workflows.test.mjs               # 16 tests - Cross-function workflows
+│       └── impersonation-flow.test.mjs      #  3 tests - Full impersonation flow verification
 │
+├── tests/scheduler-permissions.test.mjs     # 10 tests - Scheduler row coloring & selection
+├── tests/date-validation.test.mjs           #  6 tests - Retroactive date prevention
 ├── package.json                        # Test runner configuration
 ├── jest.config.js                      # Jest ES module setup
 ├── eslint.config.js                    # Linting rules
@@ -121,6 +124,22 @@ Tests real-world user scenarios:
 - **Context Menu Matrix** (6 tests)
   - Different roles viewing different statuses
   - Comprehensive permission validation
+
+#### Scheduler Logic (19 tests)
+Tests for the enhanced scheduler UI:
+- **Scheduler Permissions** (10 tests)
+  - `getSchedulerRowColor`: Verifies gray color for unauthorized rows
+  - `shouldAllowSelection`: Verifies selection blocking for unauthorized rows
+  - Role-based overrides (Admin/Manager can select anyone)
+
+- **Date Validation** (6 tests)
+  - `getCellCssClass`: Verifies gray color for past dates (retroactive prevention)
+  - Ensures past dates are disabled even for the owner
+  - Ensures future dates respect role permissions
+
+- **Impersonation Flow** (3 tests)
+  - Integration test for the impersonation panel
+  - Verifies role mapping and API calls
 
 #### Running JavaScript Tests
 
