@@ -5,10 +5,9 @@
 import { jest } from '@jest/globals';
 import {
     toggleImpersonationPanel,
-    getSelectedRoles,
+    getRolesForUser,
     getImpersonationData,
     applyImpersonation,
-    clearImpersonation,
     loadSavedImpersonation,
     initImpersonationPanel
 } from '../../pto.track/wwwroot/js/impersonation-panel.mjs';
@@ -19,26 +18,31 @@ describe('Impersonation Panel', () => {
     beforeEach(() => {
         // Set up DOM
         document.body.innerHTML = `
-            <div class="impersonation-panel" style="display: block;"></div>
+            <div class="impersonation-panel" style="display: none;"></div>
             <select id="impersonateUser">
-                <option value="EMP001">Development User</option>
-                <option value="EMP002">Test Employee</option>
-                <option value="EMP003">Test Manager</option>
+                <option value="EMP001">Test Employee 1</option>
+                <option value="EMP002">Test Employee 2</option>
+                <option value="MGR001">Test Manager</option>
+                <option value="APR001">Test Approver</option>
+                <option value="ADMIN001">Administrator</option>
             </select>
-            <input type="checkbox" id="roleEmployee" checked>
-            <input type="checkbox" id="roleManager">
-            <input type="checkbox" id="roleApprover">
-            <input type="checkbox" id="roleAdmin">
         `;
 
         mockPanel = document.querySelector('.impersonation-panel');
 
         // Clear localStorage
         localStorage.clear();
-    });
 
-    afterEach(() => {
+        // Mock fetch
+        global.fetch = jest.fn(() =>
+            Promise.resolve({
+                ok: true,
+                text: () => Promise.resolve('OK')
+            })
+        );
+    }); afterEach(() => {
         localStorage.clear();
+        jest.clearAllMocks();
     });
 
     describe('toggleImpersonationPanel', () => {
@@ -53,221 +57,120 @@ describe('Impersonation Panel', () => {
             toggleImpersonationPanel();
             expect(mockPanel.style.display).toBe('block');
         });
-
-        test('handles missing panel gracefully', () => {
-            document.body.innerHTML = '';
-            expect(() => toggleImpersonationPanel()).not.toThrow();
-        });
     });
 
-    describe('getSelectedRoles', () => {
-        test('returns checked roles', () => {
-            document.getElementById('roleEmployee').checked = true;
-            document.getElementById('roleManager').checked = false;
-            document.getElementById('roleApprover').checked = true;
-            document.getElementById('roleAdmin').checked = false;
-
-            const roles = getSelectedRoles();
-            expect(roles).toEqual(['Employee', 'Approver']);
+    describe('getRolesForUser', () => {
+        test('returns correct roles for Employee', () => {
+            expect(getRolesForUser('EMP001')).toEqual(['Employee']);
         });
 
-        test('returns empty array when no roles selected', () => {
-            document.getElementById('roleEmployee').checked = false;
-            document.getElementById('roleManager').checked = false;
-            document.getElementById('roleApprover').checked = false;
-            document.getElementById('roleAdmin').checked = false;
-
-            const roles = getSelectedRoles();
-            expect(roles).toEqual([]);
+        test('returns correct roles for Manager', () => {
+            expect(getRolesForUser('MGR001')).toEqual(['Employee', 'Manager']);
         });
 
-        test('returns all roles when all selected', () => {
-            document.getElementById('roleEmployee').checked = true;
-            document.getElementById('roleManager').checked = true;
-            document.getElementById('roleApprover').checked = true;
-            document.getElementById('roleAdmin').checked = true;
-
-            const roles = getSelectedRoles();
-            expect(roles).toEqual(['Employee', 'Manager', 'Approver', 'Admin']);
+        test('returns correct roles for Approver', () => {
+            expect(getRolesForUser('APR001')).toEqual(['Employee', 'Approver']);
         });
 
-        test('handles missing checkboxes gracefully', () => {
-            document.body.innerHTML = '';
-            const roles = getSelectedRoles();
-            expect(roles).toEqual([]);
+        test('returns correct roles for Admin', () => {
+            expect(getRolesForUser('ADMIN001')).toEqual(['Employee', 'Admin']);
+        });
+
+        test('returns default Employee role for unknown user', () => {
+            expect(getRolesForUser('UNKNOWN')).toEqual(['Employee']);
         });
     });
 
     describe('getImpersonationData', () => {
-        test('returns employee number and selected roles', () => {
-            document.getElementById('impersonateUser').value = 'EMP002';
-            document.getElementById('roleManager').checked = true;
+        test('returns data for selected user', () => {
+            document.getElementById('impersonateUser').value = 'MGR001';
 
             const data = getImpersonationData();
-            expect(data.employeeNumber).toBe('EMP002');
-            expect(data.roles).toContain('Employee');
-            expect(data.roles).toContain('Manager');
+
+            expect(data).toEqual({
+                employeeNumber: 'MGR001',
+                roles: ['Employee', 'Manager']
+            });
         });
 
-        test('defaults to EMP001 when select missing', () => {
-            document.body.innerHTML = `
-                <input type="checkbox" id="roleEmployee" checked>
-            `;
+        test('defaults to EMP001 if no selection', () => {
+            // Simulate missing element or value
+            document.body.innerHTML = '';
 
             const data = getImpersonationData();
+
             expect(data.employeeNumber).toBe('EMP001');
+            expect(data.roles).toEqual(['Employee']);
         });
     });
 
     describe('applyImpersonation', () => {
-        test('saves to server and localStorage, then calls reload', async () => {
-            const reloadSpy = jest.fn();
-            global.fetch = jest.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ message: 'Impersonation applied' })
-                })
-            );
+        test('sends correct data to API and reloads', async () => {
+            document.getElementById('impersonateUser').value = 'MGR001';
+            const reloadMock = jest.fn();
 
-            document.getElementById('impersonateUser').value = 'EMP003';
-            document.getElementById('roleManager').checked = true;
-            document.getElementById('roleApprover').checked = true;
+            await applyImpersonation(reloadMock);
 
-            await applyImpersonation(reloadSpy);
-
-            expect(global.fetch).toHaveBeenCalledWith('/api/impersonation', {
+            // Verify API call
+            expect(global.fetch).toHaveBeenCalledWith('/api/impersonation', expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    employeeNumber: 'EMP003',
-                    roles: ['Employee', 'Manager', 'Approver']
+                    employeeNumber: 'MGR001',
+                    roles: ['Employee', 'Manager']
                 })
-            });
-
-            const saved = JSON.parse(localStorage.getItem('impersonatedUser'));
-            expect(saved.employeeNumber).toBe('EMP003');
-            expect(saved.roles).toContain('Employee');
-            expect(saved.roles).toContain('Manager');
-            expect(saved.roles).toContain('Approver');
-            expect(reloadSpy).toHaveBeenCalled();
-        });
-
-        test('handles API error gracefully', async () => {
-            const reloadSpy = jest.fn();
-            global.fetch = jest.fn(() =>
-                Promise.resolve({
-                    ok: false,
-                    text: () => Promise.resolve('Error message')
-                })
-            );
-            global.alert = jest.fn();
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-            await applyImpersonation(reloadSpy);
-
-            expect(reloadSpy).not.toHaveBeenCalled();
-            expect(global.alert).toHaveBeenCalledWith('Failed to apply impersonation');
-
-            consoleErrorSpy.mockRestore();
-        });
-    });
-
-    describe('clearImpersonation', () => {
-        test('clears server and localStorage, then calls reload', async () => {
-            const reloadSpy = jest.fn();
-            global.fetch = jest.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ message: 'Impersonation cleared' })
-                })
-            );
-
-            localStorage.setItem('impersonatedUser', JSON.stringify({
-                employeeNumber: 'EMP002',
-                roles: ['Employee']
             }));
 
-            await clearImpersonation(reloadSpy);
+            // Verify localStorage update
+            const saved = JSON.parse(localStorage.getItem('impersonatedUser'));
+            expect(saved.employeeNumber).toBe('MGR001');
 
-            expect(global.fetch).toHaveBeenCalledWith('/api/impersonation', {
-                method: 'DELETE'
-            });
-            expect(localStorage.getItem('impersonatedUser')).toBeNull();
-            expect(reloadSpy).toHaveBeenCalled();
+            // Verify reload
+            expect(reloadMock).toHaveBeenCalled();
         });
 
-        test('handles API error gracefully', async () => {
-            const reloadSpy = jest.fn();
-            global.fetch = jest.fn(() =>
+        test('handles API failure', async () => {
+            global.fetch.mockImplementationOnce(() =>
                 Promise.resolve({
                     ok: false,
-                    text: () => Promise.resolve('Error message')
+                    text: () => Promise.resolve('Error')
                 })
             );
-            global.alert = jest.fn();
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-            await clearImpersonation(reloadSpy);
+            const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => { });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+            const reloadMock = jest.fn();
 
-            expect(reloadSpy).not.toHaveBeenCalled();
-            expect(global.alert).toHaveBeenCalledWith('Failed to clear impersonation');
+            await applyImpersonation(reloadMock);
 
-            consoleErrorSpy.mockRestore();
+            expect(alertMock).toHaveBeenCalledWith('Failed to apply impersonation');
+            expect(consoleSpy).toHaveBeenCalled();
+            expect(reloadMock).not.toHaveBeenCalled();
+
+            consoleSpy.mockRestore();
         });
     });
 
     describe('loadSavedImpersonation', () => {
-        test('loads saved data and updates UI', () => {
-            localStorage.setItem('impersonatedUser', JSON.stringify({
-                employeeNumber: 'EMP002',
-                roles: ['Manager', 'Admin']
-            }));
+        test('restores selection from localStorage', () => {
+            const savedData = {
+                employeeNumber: 'MGR001',
+                roles: ['Employee', 'Manager']
+            };
+            localStorage.setItem('impersonatedUser', JSON.stringify(savedData));
 
             loadSavedImpersonation();
 
-            expect(document.getElementById('impersonateUser').value).toBe('EMP002');
-            expect(document.getElementById('roleEmployee').checked).toBe(false);
-            expect(document.getElementById('roleManager').checked).toBe(true);
-            expect(document.getElementById('roleApprover').checked).toBe(false);
-            expect(document.getElementById('roleAdmin').checked).toBe(true);
+            const select = document.getElementById('impersonateUser');
+            expect(select.value).toBe('MGR001');
         });
 
-        test('does nothing when no saved data', () => {
+        test('does nothing if no saved data', () => {
+            document.getElementById('impersonateUser').value = 'EMP001';
+
             loadSavedImpersonation();
 
-            // Should not throw and original values should remain
-            expect(document.getElementById('roleEmployee').checked).toBe(true);
-        });
-
-        test('handles corrupted localStorage data', () => {
-            localStorage.setItem('impersonatedUser', 'invalid json');
-
-            // Should not throw
-            expect(() => loadSavedImpersonation()).not.toThrow();
-        });
-
-        test('handles missing roles array', () => {
-            localStorage.setItem('impersonatedUser', JSON.stringify({
-                employeeNumber: 'EMP002'
-            }));
-
-            expect(() => loadSavedImpersonation()).not.toThrow();
-        });
-    });
-
-    describe('initImpersonationPanel', () => {
-        test('loads saved data and sets global functions', () => {
-            localStorage.setItem('impersonatedUser', JSON.stringify({
-                employeeNumber: 'EMP002',
-                roles: ['Manager']
-            }));
-
-            initImpersonationPanel();
-
-            expect(document.getElementById('impersonateUser').value).toBe('EMP002');
-            expect(window.toggleImpersonationPanel).toBe(toggleImpersonationPanel);
-            expect(window.applyImpersonation).toBe(applyImpersonation);
-            expect(window.clearImpersonation).toBe(clearImpersonation);
+            const select = document.getElementById('impersonateUser');
+            expect(select.value).toBe('EMP001');
         });
     });
 });

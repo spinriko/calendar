@@ -21,11 +21,11 @@ export function toggleImpersonationPanel() {
 export function getRolesForUser(employeeNumber) {
     // Map employee numbers to their roles based on the database/test data
     const userRoles = {
-        'EMP001': ['Employee', 'Manager', 'Approver', 'Admin'], // Development User
-        'EMP002': ['Employee'],                                   // Test Employee
-        'EMP003': ['Employee', 'Manager'],                       // Test Manager
-        'EMP004': ['Employee', 'Approver'],                      // Test Approver
-        'EMP005': ['Employee', 'Admin']                          // Administrator
+        'EMP001': ['Employee'],                                   // Test Employee 1
+        'EMP002': ['Employee'],                                   // Test Employee 2
+        'MGR001': ['Employee', 'Manager'],                       // Test Manager
+        'APR001': ['Employee', 'Approver'],                      // Test Approver
+        'ADMIN001': ['Employee', 'Admin']                          // Administrator
     };
 
     return userRoles[employeeNumber] || ['Employee'];

@@ -40,9 +40,9 @@ Create `pto.track/Pages/Shared/_ImpersonationPanel.cshtml`:
             <select id="impersonateUser" class="form-select form-select-sm">
                 <option value="EMP001">Development User (Admin)</option>
                 <option value="EMP002">Test Employee</option>
-                <option value="EMP003">Test Manager</option>
-                <option value="EMP004">Test Approver</option>
-                <option value="EMP005">Administrator</option>
+                <option value="MGR001">Test Manager</option>
+                <option value="APR001">Test Approver</option>
+                <option value="ADMIN001">Administrator</option>
             </select>
         </div>
         

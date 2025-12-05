@@ -25,6 +25,12 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         _factory = factory;
     }
 
+    private CancellationToken GetTimeoutToken()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        return cts.Token;
+    }
+
     private HttpClient GetClientWithMockAuth(Action<PtoTrackDbContext>? seed = null)
     {
         var factory = _factory.WithWebHostBuilder(builder =>
@@ -92,18 +98,18 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             new Resource
             {
                 Id = 1,
-                Name = "Admin User",
-                Email = "admin@test.com",
+                Name = "Test Employee 1",
+                Email = "employee@test.com",
                 EmployeeNumber = "EMP001",
-                Role = "Admin",
-                IsApprover = true,
+                Role = "Employee",
+                IsApprover = false,
                 IsActive = true
             },
             new Resource
             {
                 Id = 2,
-                Name = "Test Employee",
-                Email = "employee@test.com",
+                Name = "Test Employee 2",
+                Email = "employee2@test.com",
                 EmployeeNumber = "EMP002",
                 Role = "Employee",
                 IsApprover = false,
@@ -114,7 +120,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 Id = 3,
                 Name = "Test Manager",
                 Email = "manager@test.com",
-                EmployeeNumber = "EMP003",
+                EmployeeNumber = "MGR001",
                 Role = "Manager",
                 IsApprover = true,
                 IsActive = true
@@ -124,8 +130,18 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 Id = 4,
                 Name = "Test Approver",
                 Email = "approver@test.com",
-                EmployeeNumber = "EMP004",
+                EmployeeNumber = "APR001",
                 Role = "Approver",
+                IsApprover = true,
+                IsActive = true
+            },
+            new Resource
+            {
+                Id = 5,
+                Name = "Administrator",
+                Email = "admin@test.com",
+                EmployeeNumber = "ADMIN001",
+                Role = "Admin",
                 IsApprover = true,
                 IsActive = true
             }
@@ -140,15 +156,15 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         var client = GetClientWithMockAuth(SeedTestUsers);
 
         // Act
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
         var user = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        // Default mock user is EMP001 (Admin User)
+        // Default mock user is EMP001 (Test Employee 1)
         Assert.Equal("EMP001", user.GetProperty("employeeNumber").GetString());
-        Assert.Equal("Admin", user.GetProperty("role").GetString());
+        Assert.Equal("Employee", user.GetProperty("role").GetString());
     }
 
     [Fact]
@@ -163,11 +179,11 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             employeeNumber = "EMP002",
             roles = new[] { "Employee" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -192,23 +208,23 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange
         var client = GetClientWithMockAuth(SeedTestUsers);
 
-        // Set impersonation to EMP003 (Test Manager - Employee + Manager roles)
+        // Set impersonation to MGR001 (Test Manager - Employee + Manager roles)
         var impersonationRequest = new
         {
-            employeeNumber = "EMP003",
+            employeeNumber = "MGR001",
             roles = new[] { "Employee", "Manager" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
         var user = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal("EMP003", user.GetProperty("employeeNumber").GetString());
+        Assert.Equal("MGR001", user.GetProperty("employeeNumber").GetString());
         Assert.Equal("Manager", user.GetProperty("role").GetString()); // Highest priority role
         Assert.True(user.GetProperty("isApprover").GetBoolean());
 
@@ -226,23 +242,23 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange
         var client = GetClientWithMockAuth(SeedTestUsers);
 
-        // Set impersonation to EMP004 (Test Approver - Employee + Approver roles)
+        // Set impersonation to APR001 (Test Approver - Employee + Approver roles)
         var impersonationRequest = new
         {
-            employeeNumber = "EMP004",
+            employeeNumber = "APR001",
             roles = new[] { "Employee", "Approver" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
         var user = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal("EMP004", user.GetProperty("employeeNumber").GetString());
+        Assert.Equal("APR001", user.GetProperty("employeeNumber").GetString());
         Assert.Equal("Approver", user.GetProperty("role").GetString());
         Assert.True(user.GetProperty("isApprover").GetBoolean());
 
@@ -260,23 +276,23 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange
         var client = GetClientWithMockAuth(SeedTestUsers);
 
-        // Set impersonation to EMP001 (Development User - all roles including Admin)
+        // Set impersonation to ADMIN001 (Administrator - all roles including Admin)
         var impersonationRequest = new
         {
-            employeeNumber = "EMP001",
+            employeeNumber = "ADMIN001",
             roles = new[] { "Employee", "Manager", "Approver", "Admin" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
         var user = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal("EMP001", user.GetProperty("employeeNumber").GetString());
+        Assert.Equal("ADMIN001", user.GetProperty("employeeNumber").GetString());
         Assert.Equal("Admin", user.GetProperty("role").GetString()); // Admin is highest priority
         Assert.True(user.GetProperty("isApprover").GetBoolean());
 
@@ -312,7 +328,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 new AbsenceRequest
                 {
                     Id = Guid.NewGuid(),
-                    EmployeeId = 3, // EMP003's absence (pending - should NOT see)
+                    EmployeeId = 3, // MGR001's absence (pending - should NOT see)
                     Start = DateTime.UtcNow,
                     End = DateTime.UtcNow.AddDays(1),
                     Reason = "Manager's pending absence",
@@ -321,7 +337,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 new AbsenceRequest
                 {
                     Id = Guid.NewGuid(),
-                    EmployeeId = 3, // EMP003's absence (approved - SHOULD see)
+                    EmployeeId = 3, // MGR001's absence (approved - SHOULD see)
                     Start = DateTime.UtcNow.AddDays(2),
                     End = DateTime.UtcNow.AddDays(3),
                     Reason = "Manager's approved absence",
@@ -337,11 +353,11 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             employeeNumber = "EMP002",
             roles = new[] { "Employee" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act - Get absences
-        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow.AddDays(-1):yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}");
+        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow.AddDays(-1):yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -399,17 +415,17 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             db.SaveChanges();
         });
 
-        // Impersonate as EMP003 (Manager)
+        // Impersonate as MGR001 (Manager)
         var impersonationRequest = new
         {
-            employeeNumber = "EMP003",
+            employeeNumber = "MGR001",
             roles = new[] { "Employee", "Manager" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act - Get absences
-        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow:yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}");
+        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow:yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}", GetTimeoutToken());
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -430,27 +446,27 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         var client = GetClientWithMockAuth(SeedTestUsers);
 
         // Test Admin has highest priority
-        var adminRequest = new { employeeNumber = "EMP001", roles = new[] { "Employee", "Manager", "Approver", "Admin" } };
-        var adminResponse = await client.PostAsJsonAsync("/api/impersonation", adminRequest);
+        var adminRequest = new { employeeNumber = "ADMIN001", roles = new[] { "Employee", "Manager", "Approver", "Admin" } };
+        var adminResponse = await client.PostAsJsonAsync("/api/impersonation", adminRequest, GetTimeoutToken());
         adminResponse.EnsureSuccessStatusCode();
 
-        var adminUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
+        var adminUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Admin", adminUser.GetProperty("role").GetString());
 
         // Test Manager priority over Approver and Employee
-        var managerRequest = new { employeeNumber = "EMP003", roles = new[] { "Employee", "Manager" } };
-        var managerResponse = await client.PostAsJsonAsync("/api/impersonation", managerRequest);
+        var managerRequest = new { employeeNumber = "MGR001", roles = new[] { "Employee", "Manager" } };
+        var managerResponse = await client.PostAsJsonAsync("/api/impersonation", managerRequest, GetTimeoutToken());
         managerResponse.EnsureSuccessStatusCode();
 
-        var managerUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
+        var managerUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Manager", managerUser.GetProperty("role").GetString());
 
         // Test Approver priority over Employee
-        var approverRequest = new { employeeNumber = "EMP004", roles = new[] { "Employee", "Approver" } };
-        var approverResponse = await client.PostAsJsonAsync("/api/impersonation", approverRequest);
+        var approverRequest = new { employeeNumber = "APR001", roles = new[] { "Employee", "Approver" } };
+        var approverResponse = await client.PostAsJsonAsync("/api/impersonation", approverRequest, GetTimeoutToken());
         approverResponse.EnsureSuccessStatusCode();
 
-        var approverUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
+        var approverUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Approver", approverUser.GetProperty("role").GetString());
     }
     [Fact]
@@ -461,30 +477,30 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Start as Employee
         var empRequest = new { employeeNumber = "EMP002", roles = new[] { "Employee" } };
-        var empResponse = await client.PostAsJsonAsync("/api/impersonation", empRequest);
+        var empResponse = await client.PostAsJsonAsync("/api/impersonation", empRequest, GetTimeoutToken());
         empResponse.EnsureSuccessStatusCode();
 
-        var empUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
+        var empUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("EMP002", empUser.GetProperty("employeeNumber").GetString());
         Assert.Equal("Employee", empUser.GetProperty("role").GetString());
 
         // Switch to Manager
-        var mgrRequest = new { employeeNumber = "EMP003", roles = new[] { "Employee", "Manager" } };
-        var mgrResponse = await client.PostAsJsonAsync("/api/impersonation", mgrRequest);
+        var mgrRequest = new { employeeNumber = "MGR001", roles = new[] { "Employee", "Manager" } };
+        var mgrResponse = await client.PostAsJsonAsync("/api/impersonation", mgrRequest, GetTimeoutToken());
         mgrResponse.EnsureSuccessStatusCode();
 
-        var mgrUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("EMP003", mgrUser.GetProperty("employeeNumber").GetString());
+        var mgrUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("MGR001", mgrUser.GetProperty("employeeNumber").GetString());
         Assert.Equal("Manager", mgrUser.GetProperty("role").GetString());
         Assert.True(mgrUser.GetProperty("isApprover").GetBoolean());
 
         // Switch to Admin
-        var adminRequest = new { employeeNumber = "EMP001", roles = new[] { "Employee", "Manager", "Approver", "Admin" } };
-        var adminResponse = await client.PostAsJsonAsync("/api/impersonation", adminRequest);
+        var adminRequest = new { employeeNumber = "ADMIN001", roles = new[] { "Employee", "Manager", "Approver", "Admin" } };
+        var adminResponse = await client.PostAsJsonAsync("/api/impersonation", adminRequest, GetTimeoutToken());
         adminResponse.EnsureSuccessStatusCode();
 
-        var adminUser = await (await client.GetAsync("/api/currentuser")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("EMP001", adminUser.GetProperty("employeeNumber").GetString());
+        var adminUser = await (await client.GetAsync("/api/currentuser", GetTimeoutToken())).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("ADMIN001", adminUser.GetProperty("employeeNumber").GetString());
         Assert.Equal("Admin", adminUser.GetProperty("role").GetString());
     }
 
@@ -500,24 +516,24 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             employeeNumber = "EMP002",
             roles = new[] { "Employee" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Verify impersonation is active
-        var impersonatedResponse = await client.GetAsync("/api/currentuser");
+        var impersonatedResponse = await client.GetAsync("/api/currentuser", GetTimeoutToken());
         var impersonatedUser = await impersonatedResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("EMP002", impersonatedUser.GetProperty("employeeNumber").GetString());
 
         // Act - Clear impersonation
-        var clearResponse = await client.DeleteAsync("/api/impersonation");
+        var clearResponse = await client.DeleteAsync("/api/impersonation", GetTimeoutToken());
         clearResponse.EnsureSuccessStatusCode();
 
         // Assert - Should return to default user
-        var response = await client.GetAsync("/api/currentuser");
+        var response = await client.GetAsync("/api/currentuser", GetTimeoutToken());
         var user = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal("EMP001", user.GetProperty("employeeNumber").GetString());
-        Assert.Equal("Admin", user.GetProperty("role").GetString());
+        Assert.Equal("Employee", user.GetProperty("role").GetString());
     }
 
     [Fact]
@@ -528,26 +544,26 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
 
         var impersonationRequest = new
         {
-            employeeNumber = "EMP003",
+            employeeNumber = "MGR001",
             roles = new[] { "Employee", "Manager" }
         };
-        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var setResponse = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
         setResponse.EnsureSuccessStatusCode();
 
         // Act - Make multiple requests
-        var response1 = await client.GetAsync("/api/currentuser");
+        var response1 = await client.GetAsync("/api/currentuser", GetTimeoutToken());
         var user1 = await response1.Content.ReadFromJsonAsync<JsonElement>();
 
-        var response2 = await client.GetAsync("/api/currentuser");
+        var response2 = await client.GetAsync("/api/currentuser", GetTimeoutToken());
         var user2 = await response2.Content.ReadFromJsonAsync<JsonElement>();
 
-        var response3 = await client.GetAsync("/api/currentuser");
+        var response3 = await client.GetAsync("/api/currentuser", GetTimeoutToken());
         var user3 = await response3.Content.ReadFromJsonAsync<JsonElement>();
 
         // Assert - All requests should return the same impersonated user
-        Assert.Equal("EMP003", user1.GetProperty("employeeNumber").GetString());
-        Assert.Equal("EMP003", user2.GetProperty("employeeNumber").GetString());
-        Assert.Equal("EMP003", user3.GetProperty("employeeNumber").GetString());
+        Assert.Equal("MGR001", user1.GetProperty("employeeNumber").GetString());
+        Assert.Equal("MGR001", user2.GetProperty("employeeNumber").GetString());
+        Assert.Equal("MGR001", user3.GetProperty("employeeNumber").GetString());
 
         Assert.Equal("Manager", user1.GetProperty("role").GetString());
         Assert.Equal("Manager", user2.GetProperty("role").GetString());
@@ -589,7 +605,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
             employeeNumber = "EMP002",
             roles = new[] { "Employee" }
         };
-        var response = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest);
+        var response = await client.PostAsJsonAsync("/api/impersonation", impersonationRequest, GetTimeoutToken());
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

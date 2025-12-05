@@ -6,6 +6,14 @@
 
 <script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
 
+<style>
+    .disabled-row {
+        background-color: #eeeeee !important;
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
+</style>
+
 <div class="left">
     <div id="datepicker"></div>
 </div>
@@ -55,7 +63,10 @@
         isUserManagerOrApprover,
         canCreateAbsenceForResource,
         getResourceSelectionMessage,
-        buildContextMenuItems
+        buildContextMenuItems,
+        getSchedulerRowColor,
+        shouldAllowSelection,
+        getCellCssClass
     } from '/js/calendar-functions.mjs';
 
     const scheduler = new DayPilot.Scheduler("scheduler", {
@@ -74,31 +85,85 @@
         eventResizeHandling: "Disabled",
         treeEnabled: true,
         timeRangeSelectedHandling: "Enabled",
+        onBeforeRowHeaderRender: args => {
+            if (typeof app === 'undefined' || !app.state || !app.state.currentUser) return;
+            const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
+            const isManager = app.state.isManager || false;
+            const isApprover = app.state.currentUser?.isApprover || false;
+
+            if (!shouldAllowSelection(app.state.currentEmployeeId, args.row.id, isManager, isAdmin, isApprover)) {
+                args.row.cssClass = "disabled-row";
+            }
+        },
+        onBeforeCellRender: args => {
+            if (typeof app === 'undefined' || !app.state || !app.state.currentUser) return;
+            
+            const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
+            const isManager = app.state.isManager || false;
+            const isApprover = app.state.currentUser?.isApprover || false;
+
+            const cssClass = getCellCssClass(
+                args.cell.start, 
+                DayPilot.Date.today(), 
+                app.state.currentEmployeeId, 
+                args.cell.resource, 
+                isManager, 
+                isAdmin, 
+                isApprover
+            );
+
+            if (cssClass) {
+                args.cell.cssClass = cssClass;
+            }
+        },
         onTimeRangeSelected: async (args) => {
+            // Prevent selection of past dates
+            if (args.start < DayPilot.Date.today()) {
+                scheduler.clearSelection();
+                return;
+            }
+
             // Check if employee can create absence for this resource
             const isAdmin = app.state.currentUser?.roles?.includes("Admin") || false;
             const isManager = app.state.isManager || false;
             const isApprover = app.state.currentUser?.isApprover || false;
 
-            if (!canCreateAbsenceForResource(app.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover)) {
+            if (!shouldAllowSelection(app.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover)) {
                 scheduler.clearSelection();
-                await DayPilot.Modal.alert("You can only create absence requests for yourself. Please select your own row in the scheduler.");
                 return;
             }
 
             // Calculate the date range
             const startDate = args.start;
             const endDate = args.end;
-            const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            // Generate time slots for working hours (08:00 - 18:00)
+            const timeSlots = [];
+            for (let h = 8; h <= 18; h++) {
+                const hour = h < 10 ? `0${h}` : `${h}`;
+                timeSlots.push({ name: `${hour}:00`, id: `${hour}:00` });
+                if (h < 18) {
+                    timeSlots.push({ name: `${hour}:30`, id: `${hour}:30` });
+                }
+            }
 
             const form = [
-                { name: "Date Range", id: "dateInfo", type: "text", disabled: true, value: `${daysDiff} day(s): ${startDate.toString("M/d/yyyy")} - ${endDate.addDays(-1).toString("M/d/yyyy")}` },
-                { name: "Start Time (first day)", id: "startTime", type: "time", value: "08:00" },
-                { name: "End Time (last day)", id: "endTime", type: "time", value: "17:00" },
+                { name: "Start Date", id: "start", type: "date", dateFormat: "M/d/yyyy" },
+                { name: "End Date", id: "end", type: "date", dateFormat: "M/d/yyyy" },
+                { name: "Start Time (first day)", id: "startTime", type: "select", options: timeSlots },
+                { name: "End Time (last day)", id: "endTime", type: "select", options: timeSlots },
                 { name: "Reason", id: "reason", type: "textarea" }
             ];
 
-            const modal = await DayPilot.Modal.form(form);
+            const data = {
+                start: startDate,
+                end: endDate.addDays(-1),
+                startTime: "08:00",
+                endTime: "17:00",
+                reason: ""
+            };
+
+            const modal = await DayPilot.Modal.form(form, data);
             scheduler.clearSelection();
             if (modal.canceled) {
                 return;
@@ -108,8 +173,11 @@
             const [startHour, startMinute] = modal.result.startTime.split(':');
             const [endHour, endMinute] = modal.result.endTime.split(':');
 
-            const absenceStart = startDate.addHours(parseInt(startHour)).addMinutes(parseInt(startMinute));
-            const absenceEnd = endDate.addDays(-1).addHours(parseInt(endHour)).addMinutes(parseInt(endMinute));
+            const modalStart = new DayPilot.Date(modal.result.start);
+            const modalEnd = new DayPilot.Date(modal.result.end);
+
+            const absenceStart = modalStart.addHours(parseInt(startHour)).addMinutes(parseInt(startMinute));
+            const absenceEnd = modalEnd.addHours(parseInt(endHour)).addMinutes(parseInt(endMinute));
 
             const absence = {
                 start: absenceStart.toString(),
@@ -162,23 +230,23 @@
                 onClick: async args => {
                     const e = args.source;
                     const absence = e.data.data || e.data;
-                    
+
                     const userContext = {
                         currentEmployeeId: app.state.currentEmployeeId,
-                        isAdmin: app.state.currentUser?.role?.toLowerCase() === 'admin' || 
-                                 app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'admin') || false,
+                        isAdmin: app.state.currentUser?.role?.toLowerCase() === 'admin' ||
+                            app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'admin') || false,
                         isManager: app.state.currentUser?.role?.toLowerCase() === 'manager' ||
-                                   app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'manager') || false,
-                        isApprover: app.state.currentUser?.isApprover || 
-                                    app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'approver') || false
+                            app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'manager') || false,
+                        isApprover: app.state.currentUser?.isApprover ||
+                            app.state.currentUser?.roles?.some(r => r.toLowerCase() === 'approver') || false
                     };
-                    
+
                     // Build menu items and wire up action handlers
                     const menuItems = buildContextMenuItems(absence, userContext, e);
                     menuItems.forEach(item => {
                         if (item.onClick) {
                             const originalOnClick = item.onClick;
-                            item.onClick = async function(args) {
+                            item.onClick = async function (args) {
                                 const result = originalOnClick();
                                 if (result && result.action) {
                                     await app.handleMenuAction(result.action, result.absence, e);
@@ -186,7 +254,7 @@
                             };
                         }
                     });
-                    
+
                     const menu = new DayPilot.Menu({
                         items: menuItems
                     });
@@ -198,10 +266,10 @@
             });
         },
     });
-    scheduler.init();
+    // scheduler.init() moved to bottom to ensure app is defined
 
     const datepicker = new DayPilot.Navigator("datepicker", {
-        selectMode: "Week", // Select by week
+        selectMode: "Day", // Select by day
         showMonths: 3,
         skipMonths: 3,
         weekStarts: 1, // Start on Monday
@@ -215,7 +283,7 @@
             app.loadDatePickerData();
         }
     });
-    datepicker.init();
+    // datepicker.init() moved to bottom to ensure app is defined
 
     const app = {
         elements: {
@@ -338,28 +406,33 @@
             const promiseAbsences = DayPilot.Http.get(absencesUrl);
             const promiseResources = DayPilot.Http.get("/api/resources");
 
-            const [{ data: resources }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
+            try {
+                const [{ data: resources }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
 
-            console.log("loadSchedulerData - API returned", absences.length, "absences");
-            console.log("loadSchedulerData - Absence statuses:", absences.map(a => a.status));
+                console.log("loadSchedulerData - API returned", absences.length, "absences");
+                console.log("loadSchedulerData - Absence statuses:", absences.map(a => a.status));
 
-            // Map absences to scheduler events
-            const events = absences.map(a => ({
-                id: a.id,
-                start: a.start,
-                end: a.end,
-                text: a.reason,
-                resource: a.employeeId,
-                barColor: getStatusColor(a.status),
-                data: a
-            }));
+                // Map absences to scheduler events
+                const events = absences.map(a => ({
+                    id: a.id,
+                    start: a.start,
+                    end: a.end,
+                    text: a.reason,
+                    resource: a.employeeId,
+                    barColor: getStatusColor(a.status),
+                    data: a
+                }));
 
-            console.log("loadSchedulerData - Updating scheduler with", events.length, "events");
+                console.log("loadSchedulerData - Updating scheduler with", events.length, "events");
 
-            scheduler.update({
-                resources,
-                events
-            });
+                scheduler.update({
+                    resources,
+                    events
+                });
+            } catch (error) {
+                console.error("Error loading scheduler data:", error);
+                await DayPilot.Modal.alert("Failed to load data. Please check the console for details.");
+            }
         },
         async loadDatePickerData() {
             const start = datepicker.visibleStart();
@@ -552,4 +625,6 @@
         }
     };
 
+    scheduler.init();
+    datepicker.init();
     app.init();</script>

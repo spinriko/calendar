@@ -98,7 +98,17 @@ public class ResourceService : IResourceService
         var resources = await _context.Resources
             .AsNoTracking()
             .Where(r => r.IsActive)
-            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
+            .Select(r => new ResourceDto(
+                r.Id,
+                r.Name,
+                r.Email,
+                r.EmployeeNumber,
+                r.Role,
+                r.IsApprover,
+                r.IsActive,
+                r.Department,
+                r.GroupId
+            ))
             .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetActiveResourcesAsync: Found {Count} active resources", resources.Count);
         return resources;
@@ -111,7 +121,17 @@ public class ResourceService : IResourceService
         var approvers = await _context.Resources
             .AsNoTracking()
             .Where(r => r.IsApprover && r.IsActive)
-            .ProjectTo<ResourceDto>(_mapper.ConfigurationProvider)
+            .Select(r => new ResourceDto(
+                r.Id,
+                r.Name,
+                r.Email,
+                r.EmployeeNumber,
+                r.Role,
+                r.IsApprover,
+                r.IsActive,
+                r.Department,
+                r.GroupId
+            ))
             .ToListAsync(cancellationToken);
         _logger.LogDebug("ResourceService.GetApproversAsync: Found {Count} approvers", approvers.Count);
         return approvers;
