@@ -39,7 +39,7 @@ graph LR
     end
 
     subgraph "pto.track.tests.js"
-        JSTEST[JavaScript Tests]
+        JSTEST[TypeScript Tests]
     end
 
     PC --> AS
