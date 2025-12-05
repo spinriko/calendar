@@ -6,7 +6,7 @@ import { jest } from '@jest/globals';
 import {
     applyImpersonation,
     getRolesForUser
-} from '../../../pto.track/wwwroot/js/impersonation-panel.mjs';
+} from '../../../pto.track/wwwroot/js/impersonation-panel';
 
 describe('Impersonation Flow Integration', () => {
     beforeEach(() => {
@@ -16,7 +16,7 @@ describe('Impersonation Flow Integration', () => {
                 ok: true,
                 text: () => Promise.resolve('OK')
             })
-        );
+        ) as any;
     }); afterEach(() => {
         jest.clearAllMocks();
     });
@@ -36,7 +36,7 @@ describe('Impersonation Flow Integration', () => {
                 <option value="MGR001">Manager</option>
             </select>
         `;
-        const select = document.getElementById('impersonateUser');
+        const select = document.getElementById('impersonateUser') as HTMLSelectElement;
         select.value = 'MGR001';
 
         // 2. Apply impersonation
@@ -68,7 +68,7 @@ describe('Impersonation Flow Integration', () => {
                 <option value="ADMIN001">Admin</option>
             </select>
         `;
-        const select = document.getElementById('impersonateUser');
+        const select = document.getElementById('impersonateUser') as HTMLSelectElement;
         select.value = 'ADMIN001';
 
         // 2. Apply impersonation
@@ -94,7 +94,7 @@ describe('Impersonation Flow Integration', () => {
                 <option value="EMP002">Employee 2</option>
             </select>
         `;
-        const select = document.getElementById('impersonateUser');
+        const select = document.getElementById('impersonateUser') as HTMLSelectElement;
         select.value = 'EMP002';
 
         const mockReload = jest.fn();

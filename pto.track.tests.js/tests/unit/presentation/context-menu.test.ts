@@ -1,4 +1,4 @@
-import { buildContextMenuItems } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { buildContextMenuItems } from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('buildContextMenuItems', () => {
     describe('Pending status', () => {
@@ -163,8 +163,8 @@ describe('buildContextMenuItems', () => {
             const absence = { status: 'Pending', employeeId: '1' };
             const userContext = { currentEmployeeId: '1', isAdmin: false, isManager: false, isApprover: false };
             const items = buildContextMenuItems(absence, userContext, {});
-            const viewItem = items.find(i => i.text === 'View Details');
-            const result = viewItem.onClick();
+            const viewItem = items.find(i => i.text === 'View Details')!;
+            const result = viewItem.onClick!();
             expect(result.action).toBe('viewDetails');
             expect(result.absence).toBe(absence);
         });
@@ -173,8 +173,8 @@ describe('buildContextMenuItems', () => {
             const absence = { status: 'Pending', employeeId: '1' };
             const userContext = { currentEmployeeId: '1', isAdmin: true, isManager: false, isApprover: false };
             const items = buildContextMenuItems(absence, userContext, {});
-            const editItem = items.find(i => i.text === 'Edit Reason');
-            const result = editItem.onClick();
+            const editItem = items.find(i => i.text === 'Edit Reason')!;
+            const result = editItem.onClick!();
             expect(result.action).toBe('editReason');
         });
 
@@ -182,8 +182,8 @@ describe('buildContextMenuItems', () => {
             const absence = { status: 'Pending', employeeId: '1' };
             const userContext = { currentEmployeeId: '1', isAdmin: false, isManager: true, isApprover: false };
             const items = buildContextMenuItems(absence, userContext, {});
-            const approveItem = items.find(i => i.text === 'Approve');
-            const result = approveItem.onClick();
+            const approveItem = items.find(i => i.text === 'Approve')!;
+            const result = approveItem.onClick!();
             expect(result.action).toBe('approve');
         });
 
@@ -191,8 +191,8 @@ describe('buildContextMenuItems', () => {
             const absence = { status: 'Pending', employeeId: '1' };
             const userContext = { currentEmployeeId: '1', isAdmin: false, isManager: true, isApprover: false };
             const items = buildContextMenuItems(absence, userContext, {});
-            const rejectItem = items.find(i => i.text === 'Reject');
-            const result = rejectItem.onClick();
+            const rejectItem = items.find(i => i.text === 'Reject')!;
+            const result = rejectItem.onClick!();
             expect(result.action).toBe('reject');
         });
 
@@ -200,8 +200,8 @@ describe('buildContextMenuItems', () => {
             const absence = { status: 'Cancelled', employeeId: '1' };
             const userContext = { currentEmployeeId: '1', isAdmin: true, isManager: false, isApprover: false };
             const items = buildContextMenuItems(absence, userContext, {});
-            const deleteItem = items.find(i => i.text === 'Delete');
-            const result = deleteItem.onClick();
+            const deleteItem = items.find(i => i.text === 'Delete')!;
+            const result = deleteItem.onClick!();
             expect(result.action).toBe('delete');
         });
     });
