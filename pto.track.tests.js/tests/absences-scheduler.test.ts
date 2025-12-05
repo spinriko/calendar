@@ -1,6 +1,14 @@
 
 import { jest } from '@jest/globals';
-import { AbsenceSchedulerApp } from '../../pto.track/wwwroot/js/absences-scheduler.mjs';
+import { AbsenceSchedulerApp } from '../../pto.track/wwwroot/js/absences-scheduler';
+
+// Mock bootstrap
+(global as any).bootstrap = {
+    Modal: jest.fn().mockImplementation(() => ({
+        show: jest.fn(),
+        hide: jest.fn()
+    }))
+};
 
 // Mock DayPilot
 const mockDayPilot = {

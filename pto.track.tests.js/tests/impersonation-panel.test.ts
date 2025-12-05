@@ -10,7 +10,7 @@ import {
     applyImpersonation,
     loadSavedImpersonation,
     initImpersonationPanel
-} from '../../pto.track/wwwroot/js/impersonation-panel.mjs';
+} from '../../pto.track/wwwroot/js/impersonation-panel';
 
 describe('Impersonation Panel', () => {
     let mockPanel: any;
