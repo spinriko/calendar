@@ -161,7 +161,7 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - Inheritance depth analysis
 - Comprehensive summary dashboard
 
-See [TESTING.md](docs/TESTING.md) for detailed C# test documentation and code metrics, and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
+See [TESTING.md](docs/run/TESTING.md) for detailed C# test documentation and code metrics, and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
 
 ## Getting Started
 
@@ -276,7 +276,7 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 - Install recommended extensions (C# Dev Kit, .NET Test Explorer)
 - Use `F5` to start debugging
 - Test Explorer available via beaker icon 🧪
-- See [TESTING_VSCODE.md](TESTING_VSCODE.md) for detailed VS Code testing instructions
+- See [TESTING_VSCODE.md](docs/run/TESTING_VSCODE.md) for detailed VS Code testing instructions
 
 ### Project Dependencies
 ```
