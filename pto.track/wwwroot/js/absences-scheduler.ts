@@ -207,6 +207,15 @@ export class AbsenceSchedulerApp {
         const isAllDay = (start.toString("HH:mm") === "00:00" && end.toString("HH:mm") === "00:00");
         this.elements.chkAllDay.checked = isAllDay;
 
+        if (isAllDay) {
+            // Set default business hours if All Day is checked, so unchecking it reveals nice defaults
+            this.elements.inpStartTime.value = "08:00";
+            this.elements.inpEndTime.value = "17:00";
+        } else {
+            this.elements.inpStartTime.value = start.toString("HH:mm");
+            this.elements.inpEndTime.value = end.toString("HH:mm");
+        }
+
         // Trigger change event to update UI state (disable time inputs if all day)
         this.elements.chkAllDay.dispatchEvent(new Event('change'));
 
