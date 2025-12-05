@@ -1,5 +1,5 @@
-import { getVisibleFilters, getDefaultStatusFilters } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
-
+import { getVisibleFilters, getDefaultStatusFilters, buildAbsencesUrl } from "../../../../pto.track/wwwroot/js/calendar-functions";
+// ...existing code from impersonation.test.js...
 describe('getVisibleFilters', () => {
     it('returns correct visible filters for each role', () => {
         expect(getVisibleFilters('Admin')).toEqual(['Pending', 'Approved', 'Rejected', 'Cancelled']);
@@ -15,6 +15,15 @@ describe('getDefaultStatusFilters', () => {
         expect(getDefaultStatusFilters('Manager')).toEqual(['Pending', 'Approved']);
         expect(getDefaultStatusFilters('Approver')).toEqual(['Pending', 'Approved']);
         expect(getDefaultStatusFilters('Employee')).toEqual(['Pending']);
+    });
+});
+
+describe('buildAbsencesUrl', () => {
+    it('builds URL for manager', () => {
+        const url = buildAbsencesUrl('/api/absences?start=2025-01-01', ['Pending', 'Approved'], true, false, 123);
+        expect(url).toContain('status[]=Pending');
+        expect(url).toContain('status[]=Approved');
+        expect(url).not.toContain('employeeId=123');
     });
 });
 

@@ -7,7 +7,7 @@ import {
     canCreateAbsenceForResource,
     getResourceSelectionMessage,
     buildContextMenuItems
-} from "../../../pto.track/wwwroot/js/calendar-functions.mjs";
+} from "../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('Integration/Cross-Function Tests', () => {
     describe('Complete workflow: determineUserRole → getDefaultStatusFilters → buildAbsencesUrl', () => {
