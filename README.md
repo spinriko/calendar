@@ -1,6 +1,6 @@
 # PTO Track - Resource Scheduling Calendar
 
-A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features two interactive calendar interfaces powered by DayPilot for managing events across multiple resources.
+A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive scheduler interface powered by DayPilot for managing employee absences and time-off requests.
 
 ## Features
 
