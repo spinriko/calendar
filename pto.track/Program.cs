@@ -95,7 +95,10 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 app.MapHealthChecks("/health/live");
 
 // Ensure the database is migrated/created at startup.
-app.Services.MigrateDatabase();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.Services.MigrateDatabase();
+}
 
 app.Run();
 

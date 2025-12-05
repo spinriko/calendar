@@ -185,6 +185,18 @@ function getCellCssClass(cellStart, today, currentEmployeeId, resourceId, isMana
     return null;
 }
 
+function updateViewButtons(buttons, activeView) {
+    buttons.forEach(btn => {
+        btn.style.fontWeight = 'normal';
+        btn.style.backgroundColor = '';
+    });
+    const activeBtn = buttons.find(b => b.id === `view${activeView}`);
+    if (activeBtn) {
+        activeBtn.style.fontWeight = 'bold';
+        activeBtn.style.backgroundColor = '#ddd';
+    }
+}
+
 export {
     getStatusColor,
     buildAbsencesUrl,
@@ -198,5 +210,6 @@ export {
     buildContextMenuItems,
     getSchedulerRowColor,
     shouldAllowSelection,
-    getCellCssClass
+    getCellCssClass,
+    updateViewButtons
 };

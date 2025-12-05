@@ -34,63 +34,79 @@ public class UserSyncService : IUserSyncService
             return null;
         }
 
-        // Try to find existing user by Email, AD ID, or Employee Number
-        Resource? resource = null;
-
-        if (!string.IsNullOrEmpty(email))
-        {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.Email == email, cancellationToken);
-        }
-
-        if (resource == null && !string.IsNullOrEmpty(adId))
-        {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.ActiveDirectoryId == adId, cancellationToken);
-        }
-
-        if (resource == null && !string.IsNullOrEmpty(employeeNumber))
-        {
-            resource = await _context.Resources.FirstOrDefaultAsync(r => r.EmployeeNumber == employeeNumber, cancellationToken);
-        }
-
+        var resource = await FindExistingUserAsync(email, adId, employeeNumber, cancellationToken);
         var displayName = _claimsProvider.GetDisplayName() ?? email ?? "Unknown User";
         var roles = _claimsProvider.GetRoles().ToList();
 
         if (resource == null)
         {
-            // Create new user
-            resource = new Resource
-            {
-                Name = displayName,
-                Email = email,
-                EmployeeNumber = employeeNumber,
-                ActiveDirectoryId = adId,
-                Role = DetermineRole(roles),
-                IsApprover = roles.Contains("Approver", StringComparer.OrdinalIgnoreCase)
-                    || roles.Contains("Manager", StringComparer.OrdinalIgnoreCase),
-                IsActive = true,
-                LastSyncDate = DateTime.UtcNow,
-                CreatedDate = DateTime.UtcNow,
-                ModifiedDate = DateTime.UtcNow
-            };
-
+            resource = CreateNewUser(displayName, email, employeeNumber, adId, roles);
             _context.Resources.Add(resource);
         }
         else
         {
-            // Update existing user
-            resource.Name = displayName;
-            resource.Email = email;
-            resource.EmployeeNumber = employeeNumber;
-            resource.ActiveDirectoryId = adId;
-            resource.Role = DetermineRole(roles);
-            resource.IsApprover = roles.Contains("Approver", StringComparer.OrdinalIgnoreCase)
-                || roles.Contains("Manager", StringComparer.OrdinalIgnoreCase);
-            resource.LastSyncDate = DateTime.UtcNow;
-            resource.ModifiedDate = DateTime.UtcNow;
+            UpdateExistingUser(resource, displayName, email, employeeNumber, adId, roles);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return resource;
+    }
+
+    private async Task<Resource?> FindExistingUserAsync(string? email, string? adId, string? employeeNumber, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(email))
+        {
+            var resource = await _context.Resources.FirstOrDefaultAsync(r => r.Email == email, cancellationToken);
+            if (resource != null) return resource;
+        }
+
+        if (!string.IsNullOrEmpty(adId))
+        {
+            var resource = await _context.Resources.FirstOrDefaultAsync(r => r.ActiveDirectoryId == adId, cancellationToken);
+            if (resource != null) return resource;
+        }
+
+        if (!string.IsNullOrEmpty(employeeNumber))
+        {
+            return await _context.Resources.FirstOrDefaultAsync(r => r.EmployeeNumber == employeeNumber, cancellationToken);
+        }
+
+        return null;
+    }
+
+    private Resource CreateNewUser(string displayName, string? email, string? employeeNumber, string? adId, List<string> roles)
+    {
+        return new Resource
+        {
+            Name = displayName,
+            Email = email,
+            EmployeeNumber = employeeNumber,
+            ActiveDirectoryId = adId,
+            Role = DetermineRole(roles),
+            IsApprover = IsApproverOrManager(roles),
+            IsActive = true,
+            LastSyncDate = DateTime.UtcNow,
+            CreatedDate = DateTime.UtcNow,
+            ModifiedDate = DateTime.UtcNow
+        };
+    }
+
+    private void UpdateExistingUser(Resource resource, string displayName, string? email, string? employeeNumber, string? adId, List<string> roles)
+    {
+        resource.Name = displayName;
+        resource.Email = email;
+        resource.EmployeeNumber = employeeNumber;
+        resource.ActiveDirectoryId = adId;
+        resource.Role = DetermineRole(roles);
+        resource.IsApprover = IsApproverOrManager(roles);
+        resource.LastSyncDate = DateTime.UtcNow;
+        resource.ModifiedDate = DateTime.UtcNow;
+    }
+
+    private bool IsApproverOrManager(List<string> roles)
+    {
+        return roles.Contains("Approver", StringComparer.OrdinalIgnoreCase)
+            || roles.Contains("Manager", StringComparer.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />
