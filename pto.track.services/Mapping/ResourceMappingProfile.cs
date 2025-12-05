@@ -12,6 +12,6 @@ public class ResourceMappingProfile : Profile
     public ResourceMappingProfile()
     {
         CreateMap<Resource, ResourceDto>()
-            .ForMember(dest => dest.GroupId, opt => opt.MapFrom(src => src.GroupId));
+            .ForCtorParam("GroupId", opt => opt.MapFrom(src => src.GroupId));
     }
 }

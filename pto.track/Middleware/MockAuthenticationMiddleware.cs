@@ -98,14 +98,11 @@ public class MockAuthenticationMiddleware
         return new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, "EMP001"),
-            new Claim(ClaimTypes.Email, "developer@example.com"),
-            new Claim(ClaimTypes.Name, "Development User"),
+            new Claim(ClaimTypes.Email, "employee@example.com"),
+            new Claim(ClaimTypes.Name, "Test Employee 1"),
             new Claim("employeeNumber", "EMP001"),
-            new Claim("objectGUID", "mock-ad-guid-12345"),
-            new Claim(ClaimTypes.Role, "Employee"),
-            new Claim(ClaimTypes.Role, "Manager"),
-            new Claim(ClaimTypes.Role, "Approver"),
-            new Claim(ClaimTypes.Role, "Admin")
+            new Claim("objectGUID", "mock-ad-guid-employee"),
+            new Claim(ClaimTypes.Role, "Employee")
         };
     }
 
@@ -132,11 +129,11 @@ public class MockAuthenticationMiddleware
     {
         return employeeNumber switch
         {
-            "EMP001" => "Development User",
-            "EMP002" => "Test Employee",
-            "EMP003" => "Test Manager",
-            "EMP004" => "Test Approver",
-            "EMP005" => "Administrator",
+            "EMP001" => "Test Employee 1",
+            "EMP002" => "Test Employee 2",
+            "MGR001" => "Test Manager",
+            "APR001" => "Test Approver",
+            "ADMIN001" => "Administrator",
             _ => $"User {employeeNumber}"
         };
     }
