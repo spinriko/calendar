@@ -1,28 +1,39 @@
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 export default {
-    testEnvironment: "jsdom",
-    testTimeout: 30000,
-    transform: {}, // disables Babel, use native ESM
-    testMatch: ["**/*.test.mjs"],
+  preset: "ts-jest",
+  testEnvironment: "jsdom",
+  testTimeout: 30000,
+  testMatch: ["**/tests/**/*.test.ts"],
+  
+  transform: {
+    "^.+\\.m?[tj]sx?$": ["ts-jest", {
+      useESM: true,
+    }],
+  },
+  
+  collectCoverageFrom: [
+      "<rootDir>/../pto.track/wwwroot/js/calendar-functions.mjs",
+      "!**/node_modules/**"
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "lcov", "html", "json-summary"],
 
-    // Coverage configuration
-    collectCoverageFrom: [
-        "<rootDir>/../pto.track/wwwroot/js/calendar-functions.mjs",
-        "!**/node_modules/**"
-    ],
-    coverageDirectory: "coverage",
-    coverageReporters: ["text", "lcov", "html", "json-summary"],
-
-    // Reporters configuration
-    reporters: [
-        "default",
-        ["jest-junit", {
-            outputDirectory: "./test-results",
-            outputName: "jest-junit.xml",
-            ancestorSeparator: " › ",
-            uniqueOutputName: false,
-            suiteNameTemplate: "{filepath}",
-            classNameTemplate: "{classname}",
-            titleTemplate: "{title}"
-        }]
-    ]
+  reporters: [
+      "default",
+      ["jest-junit", {
+          outputDirectory: "./test-results",
+          outputName: "jest-junit.xml",
+          ancestorSeparator: " › ",
+          uniqueOutputName: false,
+          suiteNameTemplate: "{filepath}",
+          classNameTemplate: "{classname}",
+          titleTemplate: "{title}"
+      }]
+  ],
+  
+  extensionsToTreatAsEsm: [".ts"],
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^(\\.{1,2}/.*)\\.mjs$": "$1"
+  }
 };

@@ -1,6 +1,6 @@
-# JavaScript Tests for PTO Track
+# TypeScript Tests for PTO Track
 
-Pure JavaScript tests using Jest with ES Modules - Node.js 20+ required!
+TypeScript tests using Jest with ts-jest - Node.js 20+ required!
 
 ## Running Tests
 
@@ -85,6 +85,7 @@ pto.track.tests.js/
 ├── eslint.config.js          # ESLint configuration
 ├── .c8rc.json               # Coverage configuration
 ├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript configuration
 ├── test-results/             # JUnit XML reports
 │   └── jest-junit.xml
 ├── coverage/                 # Coverage reports (HTML)
@@ -92,27 +93,27 @@ pto.track.tests.js/
 └── tests/
     ├── unit/                         # Unit tests (148 tests)
     │   ├── core/                     # Core business logic (58 tests)
-    │   │   ├── role-detection.test.mjs      # 54 tests
-    │   │   ├── url-builder.test.mjs         # 15 tests
-    │   │   └── calendar-functions.test.mjs  # 3 tests
+    │   │   ├── role-detection.test.ts       # 54 tests
+    │   │   ├── url-builder.test.ts          # 15 tests
+    │   │   └── calendar-functions.test.ts   # 3 tests
     │   ├── filters/                  # Filter management (18 tests)
-    │   │   ├── checkbox-filters.test.mjs
-    │   │   └── checkbox-visibility.test.mjs
+    │   │   ├── checkbox-filters.test.ts
+    │   │   └── checkbox-visibility.test.ts
     │   ├── permissions/              # Access control (26 tests)
-    │   │   ├── employee-restrictions.test.mjs
-    │   │   └── impersonation.test.mjs
+    │   │   ├── employee-restrictions.test.ts
+    │   │   └── impersonation.test.ts
     │   └── presentation/             # UI presentation (37 tests)
-    │       ├── context-menu.test.mjs
-    │       └── status-color.test.mjs
+    │       ├── context-menu.test.ts
+    │       └── status-color.test.ts
     └── integration/                  # Integration tests (16 tests)
-        └── workflows.test.mjs
+        └── workflows.test.ts
 
 Production code: ../pto.track/wwwroot/js/calendar-functions.mjs
 ```
 
 ## Test Coverage
 
-**Total: 164 JavaScript tests** (all passing ✓)
+**Total: 164 TypeScript tests** (all passing ✓)
 
 See `TEST-STRUCTURE.md` for detailed breakdown by category.
 
@@ -125,6 +126,7 @@ See `TEST-STRUCTURE.md` for detailed breakdown by category.
 
 ## Benefits
 
+- **TypeScript**: Strong typing and better IDE support
 - **ES Modules**: Modern JavaScript with native import/export
 - **No Build Step**: Direct Node.js execution with `--experimental-vm-modules`
 - **Fast**: ~1.5s execution time for all 164 tests
@@ -136,7 +138,7 @@ See `TEST-STRUCTURE.md` for detailed breakdown by category.
 ## Adding New Tests
 
 1. Create a new test file in appropriate `tests/` subdirectory:
-```javascript
+```typescript
 import { myFunction } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
 
 describe('My Feature', () => {
@@ -152,13 +154,13 @@ describe('My Feature', () => {
 npm test
 ```
 
-Jest automatically discovers `*.test.mjs` files.
+Jest automatically discovers `*.test.ts` files.
 
 ## Integration with CI/CD
 
 ### GitHub Actions
 ```yaml
-- name: Run JavaScript Tests
+- name: Run TypeScript Tests
   run: |
     cd pto.track.tests.js
     npm ci
