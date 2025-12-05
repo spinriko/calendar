@@ -290,7 +290,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Contains("Admin", roles);
     }
 
-    [Fact(Skip = "Data filtering by employee role not yet implemented in test environment")]
+    [Fact]
     public async Task Impersonation_EmployeeCanOnlyViewOwnAbsences()
     {
         // Arrange
@@ -303,7 +303,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 new AbsenceRequest
                 {
                     Id = Guid.NewGuid(),
-                    EmployeeId = 2, // EMP002's absence
+                    EmployeeId = 2, // EMP002's absence (pending)
                     Start = DateTime.UtcNow,
                     End = DateTime.UtcNow.AddDays(1),
                     Reason = "Employee's own absence",
@@ -312,11 +312,20 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                 new AbsenceRequest
                 {
                     Id = Guid.NewGuid(),
-                    EmployeeId = 3, // EMP003's absence (someone else)
+                    EmployeeId = 3, // EMP003's absence (pending - should NOT see)
                     Start = DateTime.UtcNow,
                     End = DateTime.UtcNow.AddDays(1),
-                    Reason = "Manager's absence",
+                    Reason = "Manager's pending absence",
                     Status = AbsenceStatus.Pending
+                },
+                new AbsenceRequest
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = 3, // EMP003's absence (approved - SHOULD see)
+                    Start = DateTime.UtcNow.AddDays(2),
+                    End = DateTime.UtcNow.AddDays(3),
+                    Reason = "Manager's approved absence",
+                    Status = AbsenceStatus.Approved
                 }
             );
             db.SaveChanges();
@@ -332,16 +341,22 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         setResponse.EnsureSuccessStatusCode();
 
         // Act - Get absences
-        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow:yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}");
+        var response = await client.GetAsync($"/api/absences?start={DateTime.UtcNow.AddDays(-1):yyyy-MM-dd}&end={DateTime.UtcNow.AddDays(7):yyyy-MM-dd}");
 
         // Assert
         response.EnsureSuccessStatusCode();
         var absences = await response.Content.ReadFromJsonAsync<JsonElement>();
         var absenceArray = absences.EnumerateArray().ToList();
 
-        // Employee should only see their own absence (EmployeeId = 2)
-        Assert.Single(absenceArray);
-        Assert.Equal(2, absenceArray[0].GetProperty("employeeId").GetInt32());
+        // Employee should see:
+        // 1. Their own pending absence (EmployeeId = 2)
+        // 2. Manager's approved absence (EmployeeId = 3, Status = Approved)
+        // NOT: Manager's pending absence
+        Assert.Equal(2, absenceArray.Count);
+        Assert.Contains(absenceArray, a => a.GetProperty("employeeId").GetInt32() == 2);
+        Assert.Contains(absenceArray, a =>
+            a.GetProperty("employeeId").GetInt32() == 3 &&
+            a.GetProperty("status").GetString() == "Approved");
     }
 
     [Fact]
@@ -359,7 +374,7 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                     EmployeeId = 2,
                     Start = DateTime.UtcNow,
                     End = DateTime.UtcNow.AddDays(1),
-                    Reason = "Employee absence",
+                    Reason = "Employee pending absence",
                     Status = AbsenceStatus.Pending
                 },
                 new AbsenceRequest
@@ -368,8 +383,17 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                     EmployeeId = 3,
                     Start = DateTime.UtcNow,
                     End = DateTime.UtcNow.AddDays(1),
-                    Reason = "Manager absence",
-                    Status = AbsenceStatus.Pending
+                    Reason = "Manager approved absence",
+                    Status = AbsenceStatus.Approved
+                },
+                new AbsenceRequest
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = 4,
+                    Start = DateTime.UtcNow,
+                    End = DateTime.UtcNow.AddDays(1),
+                    Reason = "Approver rejected absence",
+                    Status = AbsenceStatus.Rejected
                 }
             );
             db.SaveChanges();
@@ -392,8 +416,11 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         var absences = await response.Content.ReadFromJsonAsync<JsonElement>();
         var absenceArray = absences.EnumerateArray().ToList();
 
-        // Manager should see all absences
-        Assert.Equal(2, absenceArray.Count);
+        // Manager should see all absences (Pending, Approved, Rejected)
+        Assert.Equal(3, absenceArray.Count);
+        Assert.Contains(absenceArray, a => a.GetProperty("status").GetString() == "Pending");
+        Assert.Contains(absenceArray, a => a.GetProperty("status").GetString() == "Approved");
+        Assert.Contains(absenceArray, a => a.GetProperty("status").GetString() == "Rejected");
     }
 
     [Fact]
@@ -532,6 +559,9 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange - Create client with Authentication:Mode != Mock
         var factory = _factory.WithWebHostBuilder(builder =>
         {
+            // Set environment to Testing to prevent Program.cs from registering SQL Server
+            builder.UseSetting("environment", "Testing");
+
             builder.ConfigureAppConfiguration((context, config) =>
             {
                 var dict = new Dictionary<string, string?>
@@ -539,6 +569,15 @@ public class ImpersonationTests : IClassFixture<WebApplicationFactory<Program>>
                     ["Authentication:Mode"] = "Production" // Not Mock
                 };
                 config.AddInMemoryCollection(dict);
+            });
+
+            // Configure InMemory DB
+            builder.ConfigureServices(services =>
+            {
+                services.AddDbContext<PtoTrackDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase("ImpersonationTestDb_ProdMode_" + Guid.NewGuid().ToString());
+                });
             });
         });
 
