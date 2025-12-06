@@ -122,9 +122,9 @@ function buildContextMenuItems(absence, userContext, event) {
     });
     if (status === "Pending" && canEdit) {
         items.push({
-            text: "Edit Reason",
+            text: "Edit",
             onClick: function () {
-                return { action: 'editReason', absence };
+                return { action: 'edit', absence };
             }
         });
     }

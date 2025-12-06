@@ -12,7 +12,8 @@ export class AbsenceSchedulerApp {
             currentView: "Week",
             isManager: false,
             currentUser: null,
-            isMockMode: false
+            isMockMode: false,
+            editingAbsenceId: null
         };
         this.elements = {};
     }
@@ -111,6 +112,9 @@ export class AbsenceSchedulerApp {
             this.scheduler.clearSelection();
             return;
         }
+        // Reset edit state
+        this.state.editingAbsenceId = null;
+        this.elements.modalTitle.textContent = "Create Absence";
         // Store the selected resource ID for saving later
         this.state.selectedResourceId = args.resource;
         const start = new this.DayPilot.Date(args.start);
@@ -153,7 +157,7 @@ export class AbsenceSchedulerApp {
         const isAllDay = this.elements.chkAllDay.checked;
         if (!startDate || !endDate) {
             this.elements.durationDisplay.textContent = "Please select dates";
-            this.elements.durationDisplay.className = "alert alert-warning";
+            this.elements.durationDisplay.className = "alert alert-warning border-warning-subtle";
             return;
         }
         let start, end;
@@ -164,7 +168,7 @@ export class AbsenceSchedulerApp {
         else {
             if (!startTime || !endTime) {
                 this.elements.durationDisplay.textContent = "Please select times";
-                this.elements.durationDisplay.className = "alert alert-warning";
+                this.elements.durationDisplay.className = "alert alert-warning border-warning-subtle";
                 return;
             }
             start = new this.DayPilot.Date(`${startDate}T${startTime}`);
@@ -172,7 +176,7 @@ export class AbsenceSchedulerApp {
         }
         if (end <= start) {
             this.elements.durationDisplay.textContent = "End time must be after start time";
-            this.elements.durationDisplay.className = "alert alert-danger";
+            this.elements.durationDisplay.className = "alert alert-danger border-danger-subtle";
             return;
         }
         const diff = end.getTime() - start.getTime();
@@ -190,7 +194,7 @@ export class AbsenceSchedulerApp {
         if (durationText === "")
             durationText = "0 mins";
         this.elements.durationDisplay.textContent = `Duration: ${durationText}`;
-        this.elements.durationDisplay.className = "alert alert-info";
+        this.elements.durationDisplay.className = "alert alert-secondary border-secondary-subtle";
     }
     async saveAbsence() {
         const startDate = this.elements.inpStartDate.value;
@@ -223,7 +227,12 @@ export class AbsenceSchedulerApp {
             end: end,
             reason: reason
         };
-        await this.submitAbsence(absence);
+        if (this.state.editingAbsenceId) {
+            await this.updateAbsence(this.state.editingAbsenceId, absence);
+        }
+        else {
+            await this.submitAbsence(absence);
+        }
         this.elements.modal.hide();
     }
     validateSelection(args) {
@@ -298,6 +307,49 @@ export class AbsenceSchedulerApp {
             console.error("Error details:", errorMsg);
             await this.DayPilot.Modal.alert(`Failed to create absence: ${errorMsg}`);
         }
+    }
+    async updateAbsence(id, absence) {
+        console.log("Updating absence request:", id, absence);
+        try {
+            await this.DayPilot.Http.put(`/api/absences/${id}`, absence);
+            await this.loadSchedulerData();
+        }
+        catch (error) {
+            console.error("Error updating absence:", error);
+            const errorMsg = error.request?.responseText || error.message || "Unknown error";
+            await this.DayPilot.Modal.alert(`Failed to update absence: ${errorMsg}`);
+        }
+    }
+    async editAbsence(absence, event) {
+        this.state.editingAbsenceId = absence.id;
+        this.state.selectedResourceId = absence.employeeId;
+        this.elements.modalTitle.textContent = "Edit Absence";
+        const start = new this.DayPilot.Date(absence.start);
+        const end = new this.DayPilot.Date(absence.end);
+        // Populate Modal
+        this.elements.inpStartDate.value = start.toString("yyyy-MM-dd");
+        this.elements.inpStartTime.value = start.toString("HH:mm");
+        // Check if it looks like an all-day event
+        // Logic: start time 00:00 and end time 00:00
+        const isAllDay = (start.toString("HH:mm") === "00:00" && end.toString("HH:mm") === "00:00");
+        this.elements.chkAllDay.checked = isAllDay;
+        if (isAllDay) {
+            this.elements.inpStartTime.value = "08:00";
+            this.elements.inpEndTime.value = "17:00";
+            // Adjust end date to be inclusive
+            this.elements.inpEndDate.value = end.addDays(-1).toString("yyyy-MM-dd");
+        }
+        else {
+            this.elements.inpEndDate.value = end.toString("yyyy-MM-dd");
+            this.elements.inpEndTime.value = end.toString("HH:mm");
+        }
+        this.elements.inpReason.value = absence.reason;
+        // Trigger change event to update UI state
+        this.elements.chkAllDay.dispatchEvent(new Event('change'));
+        // Calculate duration
+        this.calculateDuration();
+        // Show Modal
+        this.elements.modal.show();
     }
     handleBeforeEventRender(args) {
         const status = args.data.status || args.data.data?.status;
@@ -525,8 +577,8 @@ export class AbsenceSchedulerApp {
             case 'viewDetails':
                 await this.viewDetails(absence);
                 break;
-            case 'editReason':
-                await this.editReason(absence, event);
+            case 'edit':
+                await this.editAbsence(absence, event);
                 break;
             case 'approve':
                 await this.approveAbsence(absence);
@@ -567,23 +619,6 @@ export class AbsenceSchedulerApp {
             approvalComments: absence.approvalComments
         };
         await this.DayPilot.Modal.form(form, formData);
-    }
-    async editReason(absence, event) {
-        const modal = await this.DayPilot.Modal.prompt("Edit reason:", absence.reason);
-        if (modal.canceled)
-            return;
-        const updateData = {
-            start: absence.start,
-            end: absence.end,
-            reason: modal.result
-        };
-        await this.DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
-        this.scheduler.events.update({
-            ...event.data,
-            reason: modal.result,
-            text: modal.result
-        });
-        await this.loadSchedulerData();
     }
     async approveAbsence(absence) {
         const modal = await this.DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
