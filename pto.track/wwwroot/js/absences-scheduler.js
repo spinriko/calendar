@@ -1,4 +1,5 @@
-import { getStatusColor, buildContextMenuItems, shouldAllowSelection, getCellCssClass, updateViewButtons } from './calendar-functions.js';
+import { getStatusColor, updateViewButtons } from './calendar-functions.js';
+import { createPermissionStrategy } from './strategies/permission-strategies.js';
 export class AbsenceSchedulerApp {
     constructor(dayPilot, schedulerId, datepickerId) {
         this.DayPilot = dayPilot;
@@ -6,6 +7,7 @@ export class AbsenceSchedulerApp {
         this.datepickerId = datepickerId;
         this.scheduler = null;
         this.datepicker = null;
+        this.permissionStrategy = null;
         this.state = {
             selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
             currentEmployeeId: null,
@@ -87,22 +89,16 @@ export class AbsenceSchedulerApp {
         this.scheduler.init();
     }
     handleBeforeRowHeaderRender(args) {
-        if (!this.state.currentUser)
+        if (!this.permissionStrategy)
             return;
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
-        if (!shouldAllowSelection(this.state.currentEmployeeId, args.row.id, isManager, isAdmin, isApprover)) {
+        if (!this.permissionStrategy.canCreateFor(args.row.id)) {
             args.row.cssClass = "disabled-row";
         }
     }
     handleBeforeCellRender(args) {
-        if (!this.state.currentUser)
+        if (!this.permissionStrategy)
             return;
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
-        const cssClass = getCellCssClass(args.cell.start, this.DayPilot.Date.today(), this.state.currentEmployeeId, args.cell.resource, isManager, isAdmin, isApprover);
+        const cssClass = this.permissionStrategy.getCellCssClass(args.cell.start, this.DayPilot.Date.today(), args.cell.resource);
         if (cssClass) {
             args.cell.cssClass = cssClass;
         }
@@ -240,11 +236,9 @@ export class AbsenceSchedulerApp {
         if (args.start < this.DayPilot.Date.today()) {
             return false;
         }
-        // Check if employee can create absence for this resource
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
-        return shouldAllowSelection(this.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover);
+        if (!this.permissionStrategy)
+            return false;
+        return this.permissionStrategy.canCreateFor(args.resource);
     }
     getAbsenceFormConfig(startDate, endDate) {
         // Generate time slots for working hours (08:00 - 18:00)
@@ -368,17 +362,43 @@ export class AbsenceSchedulerApp {
             onClick: async (args) => {
                 const e = args.source;
                 const absence = e.data.data || e.data;
-                const userContext = {
-                    currentEmployeeId: this.state.currentEmployeeId,
-                    isAdmin: this.state.currentUser?.role?.toLowerCase() === 'admin' ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'admin') || false,
-                    isManager: this.state.currentUser?.role?.toLowerCase() === 'manager' ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'manager') || false,
-                    isApprover: this.state.currentUser?.isApprover ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'approver') || false
-                };
-                // Build menu items and wire up action handlers
-                const menuItems = buildContextMenuItems(absence, userContext, e);
+                if (!this.permissionStrategy)
+                    return;
+                // Build menu items using strategy
+                const menuItems = [];
+                menuItems.push({
+                    text: "View Details",
+                    onClick: () => { return { action: 'viewDetails', absence }; }
+                });
+                if (this.permissionStrategy.canEdit(absence)) {
+                    menuItems.push({
+                        text: "Edit",
+                        onClick: () => { return { action: 'edit', absence }; }
+                    });
+                }
+                if (this.permissionStrategy.canApprove(absence)) {
+                    if (this.permissionStrategy.canEdit(absence)) {
+                        menuItems.push({ text: "-" });
+                    }
+                    menuItems.push({
+                        text: "Approve",
+                        onClick: () => { return { action: 'approve', absence }; }
+                    });
+                    menuItems.push({
+                        text: "Reject",
+                        onClick: () => { return { action: 'reject', absence }; }
+                    });
+                }
+                if (this.permissionStrategy.canDelete(absence)) {
+                    if (this.permissionStrategy.canEdit(absence) || this.permissionStrategy.canApprove(absence)) {
+                        menuItems.push({ text: "-" });
+                    }
+                    menuItems.push({
+                        text: "Delete",
+                        onClick: () => { return { action: 'delete', absence }; }
+                    });
+                }
+                // Wire up action handlers
                 menuItems.forEach(item => {
                     if (item.onClick) {
                         const originalOnClick = item.onClick;
@@ -446,53 +466,33 @@ export class AbsenceSchedulerApp {
                 console.log("Current user:", this.state.currentUser);
                 console.log("Is manager/approver:", this.state.isManager);
                 console.log("Mock mode:", this.state.isMockMode);
+                // Initialize permission strategy
+                this.permissionStrategy = createPermissionStrategy(this.state.currentUser);
             }
         }
         catch (error) {
             console.warn("Could not load current user, using defaults:", error);
             // Fallback for development without authentication
             this.state.currentEmployeeId = 1;
+            this.permissionStrategy = createPermissionStrategy({ id: 1, roles: [] });
         }
     }
     initializeCheckboxes() {
-        // Determine which checkboxes should be available based on role
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin");
-        const isManagerOrApprover = this.state.isManager;
-        const isEmployee = !isAdmin && !isManagerOrApprover;
-        // First, ensure all checkboxes are visible (reset state)
-        this.elements.filterPending.parentElement.style.display = "flex";
-        this.elements.filterApproved.parentElement.style.display = "flex";
-        this.elements.filterRejected.parentElement.style.display = "flex";
-        this.elements.filterCancelled.parentElement.style.display = "flex";
-        // Hide/show checkboxes based on role
-        if (isEmployee) {
-            // Employees can see ALL approved absences, but only their own pending/rejected/cancelled
-            this.elements.filterPending.checked = false;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = false;
-            this.elements.filterCancelled.checked = false;
-            this.state.selectedStatuses = ["Approved"];
-        }
-        else if (isManagerOrApprover && !isAdmin) {
-            // Managers/Approvers mainly care about Pending (to approve) and Approved (to verify)
-            this.elements.filterPending.checked = true;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = false;
-            this.elements.filterCancelled.checked = false;
-            // Hide rejected and cancelled for managers/approvers
-            this.elements.filterRejected.parentElement.style.display = "none";
-            this.elements.filterCancelled.parentElement.style.display = "none";
-            this.state.selectedStatuses = ["Pending", "Approved"];
-        }
-        else if (isAdmin) {
-            // Admins see everything by default
-            this.elements.filterPending.checked = true;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = true;
-            this.elements.filterCancelled.checked = true;
-            this.state.selectedStatuses = ["Pending", "Approved", "Rejected", "Cancelled"];
-            console.log("initializeCheckboxes - Admin mode, selectedStatuses:", this.state.selectedStatuses);
-        }
+        if (!this.permissionStrategy)
+            return;
+        const visibleFilters = this.permissionStrategy.getVisibleFilters();
+        const defaultFilters = this.permissionStrategy.getDefaultFilters();
+        // Reset visibility
+        this.elements.filterPending.parentElement.style.display = visibleFilters.includes("Pending") ? "flex" : "none";
+        this.elements.filterApproved.parentElement.style.display = visibleFilters.includes("Approved") ? "flex" : "none";
+        this.elements.filterRejected.parentElement.style.display = visibleFilters.includes("Rejected") ? "flex" : "none";
+        this.elements.filterCancelled.parentElement.style.display = visibleFilters.includes("Cancelled") ? "flex" : "none";
+        // Set checked state
+        this.elements.filterPending.checked = defaultFilters.includes("Pending");
+        this.elements.filterApproved.checked = defaultFilters.includes("Approved");
+        this.elements.filterRejected.checked = defaultFilters.includes("Rejected");
+        this.elements.filterCancelled.checked = defaultFilters.includes("Cancelled");
+        this.state.selectedStatuses = [...defaultFilters];
     }
     async loadSchedulerData() {
         const start = this.scheduler.visibleStart();
