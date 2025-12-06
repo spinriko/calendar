@@ -125,6 +125,17 @@ export class AbsenceSchedulerApp {
         // Or if start/end times are 00:00
         const isAllDay = (start.toString("HH:mm") === "00:00" && end.toString("HH:mm") === "00:00");
         this.elements.chkAllDay.checked = isAllDay;
+        if (isAllDay) {
+            // Set default business hours if All Day is checked, so unchecking it reveals nice defaults
+            this.elements.inpStartTime.value = "08:00";
+            this.elements.inpEndTime.value = "17:00";
+            // Adjust end date to be inclusive for the date picker (DayPilot returns exclusive end date for ranges)
+            this.elements.inpEndDate.value = end.addDays(-1).toString("yyyy-MM-dd");
+        }
+        else {
+            this.elements.inpStartTime.value = start.toString("HH:mm");
+            this.elements.inpEndTime.value = end.toString("HH:mm");
+        }
         // Trigger change event to update UI state (disable time inputs if all day)
         this.elements.chkAllDay.dispatchEvent(new Event('change'));
         // Calculate initial duration
@@ -199,7 +210,8 @@ export class AbsenceSchedulerApp {
             // If user selects Mon-Mon, they mean all day Monday.
             // Start: Mon 00:00
             // End: Tue 00:00
-            end = new this.DayPilot.Date(endDate).addDays(1).toString("yyyy-MM-ddTHH:mm:ss");
+            // Since we adjusted inpEndDate to be inclusive (Mon), we need to add 1 day to get exclusive end (Tue)
+            end = new this.DayPilot.Date(endDate).addDays(1).toString("yyyy-MM-dd") + "T00:00:00";
         }
         else {
             start = `${startDate}T${startTime}:00`;
@@ -625,6 +637,14 @@ export class AbsenceSchedulerApp {
                 if (this.elements.timeSelectionRow) {
                     this.elements.timeSelectionRow.style.display = isAllDay ? 'none' : 'flex';
                 }
+                if (!isAllDay) {
+                    if (this.elements.inpStartTime.value === "00:00" || !this.elements.inpStartTime.value) {
+                        this.elements.inpStartTime.value = "08:00";
+                    }
+                    if (this.elements.inpEndTime.value === "00:00" || !this.elements.inpEndTime.value) {
+                        this.elements.inpEndTime.value = "17:00";
+                    }
+                }
                 this.calculateDuration();
             });
             const dateInputs = [
@@ -634,11 +654,19 @@ export class AbsenceSchedulerApp {
                 this.elements.inpEndTime
             ];
             dateInputs.forEach(input => {
-                if (input)
+                if (input) {
                     input.addEventListener('change', () => this.calculateDuration());
+                    input.addEventListener('input', () => this.calculateDuration());
+                }
             });
             // Smart Date Logic
             this.elements.inpStartDate.addEventListener('change', () => {
+                if (!this.elements.inpEndDate.value || this.elements.inpEndDate.value < this.elements.inpStartDate.value) {
+                    this.elements.inpEndDate.value = this.elements.inpStartDate.value;
+                }
+                this.calculateDuration();
+            });
+            this.elements.inpStartDate.addEventListener('input', () => {
                 if (!this.elements.inpEndDate.value || this.elements.inpEndDate.value < this.elements.inpStartDate.value) {
                     this.elements.inpEndDate.value = this.elements.inpStartDate.value;
                 }
