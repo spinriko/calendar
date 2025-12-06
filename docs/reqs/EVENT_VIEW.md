@@ -45,3 +45,6 @@ This document outlines the requirements for improving the User Interface (UI) of
 ### 8. Time Picker Granularity
 - **Step**: Use **15 or 30 minute** increments for the time picker.
 - **Benefit**: Faster selection than free-text input for standard PTO requests.
+
+## Bug list
+
