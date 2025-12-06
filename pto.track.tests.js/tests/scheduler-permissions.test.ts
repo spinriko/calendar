@@ -1,64 +1,43 @@
-import {
-    getSchedulerRowColor,
-    shouldAllowSelection
-} from '../../pto.track/wwwroot/js/calendar-functions';
+import { createPermissionStrategy } from "../../pto.track/wwwroot/js/strategies/permission-strategies";
 
-describe('Scheduler Permissions', () => {
+describe('PermissionStrategy Scheduler UI', () => {
     const EMPLOYEE_ID = 100;
     const OTHER_EMPLOYEE_ID = 200;
-    const GRAY_COLOR = "#eeeeee";
+    const DISABLED_CLASS = "disabled-row";
+    const TODAY = new Date();
+    const FUTURE = new Date(TODAY.getTime() + 86400000);
 
-    describe('getSchedulerRowColor', () => {
-        test('should return null (default color) for own row', () => {
-            const color = getSchedulerRowColor(EMPLOYEE_ID, EMPLOYEE_ID, false, false, false);
-            expect(color).toBeNull();
+    describe('getCellCssClass (Row Color)', () => {
+        test('should return null for own row', () => {
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Employee'] });
+            expect(strategy.getCellCssClass(FUTURE, TODAY, EMPLOYEE_ID)).toBeNull();
         });
 
-        test('should return gray color for other employee row when regular employee', () => {
-            const color = getSchedulerRowColor(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, false, false);
-            expect(color).toBe(GRAY_COLOR);
+        test('should return disabled class for other employee row when regular employee', () => {
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Employee'] });
+            expect(strategy.getCellCssClass(FUTURE, TODAY, OTHER_EMPLOYEE_ID)).toBe(DISABLED_CLASS);
         });
 
         test('should return null for other employee row when Manager', () => {
-            const color = getSchedulerRowColor(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, true, false, false);
-            expect(color).toBeNull();
-        });
-
-        test('should return null for other employee row when Admin', () => {
-            const color = getSchedulerRowColor(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, true, false);
-            expect(color).toBeNull();
-        });
-
-        test('should return null for other employee row when Approver', () => {
-            const color = getSchedulerRowColor(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, false, true);
-            expect(color).toBeNull();
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Manager'] });
+            expect(strategy.getCellCssClass(FUTURE, TODAY, OTHER_EMPLOYEE_ID)).toBeNull();
         });
     });
 
-    describe('shouldAllowSelection', () => {
+    describe('canCreateFor (Selection)', () => {
         test('should allow selection for own row', () => {
-            const allowed = shouldAllowSelection(EMPLOYEE_ID, EMPLOYEE_ID, false, false, false);
-            expect(allowed).toBe(true);
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Employee'] });
+            expect(strategy.canCreateFor(EMPLOYEE_ID)).toBe(true);
         });
 
         test('should NOT allow selection for other employee row when regular employee', () => {
-            const allowed = shouldAllowSelection(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, false, false);
-            expect(allowed).toBe(false);
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Employee'] });
+            expect(strategy.canCreateFor(OTHER_EMPLOYEE_ID)).toBe(false);
         });
 
         test('should allow selection for other employee row when Manager', () => {
-            const allowed = shouldAllowSelection(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, true, false, false);
-            expect(allowed).toBe(true);
-        });
-
-        test('should allow selection for other employee row when Admin', () => {
-            const allowed = shouldAllowSelection(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, true, false);
-            expect(allowed).toBe(true);
-        });
-
-        test('should allow selection for other employee row when Approver', () => {
-            const allowed = shouldAllowSelection(EMPLOYEE_ID, OTHER_EMPLOYEE_ID, false, false, true);
-            expect(allowed).toBe(true);
+            const strategy = createPermissionStrategy({ id: EMPLOYEE_ID, roles: ['Manager'] });
+            expect(strategy.canCreateFor(OTHER_EMPLOYEE_ID)).toBe(true);
         });
     });
 });
