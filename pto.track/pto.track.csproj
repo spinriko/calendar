@@ -26,4 +26,9 @@
     <ProjectReference Include="..\pto.track.services\pto.track.services.csproj" />
   </ItemGroup>
 
+  <Target Name="NpmBuild" BeforeTargets="Build">
+    <Message Text="Running npm build..." Importance="high" />
+    <Exec Command="npm run build" WorkingDirectory=".." />
+  </Target>
+
 </Project>
