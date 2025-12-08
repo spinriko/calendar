@@ -47,4 +47,4 @@ This document outlines the requirements for improving the User Interface (UI) of
 - **Benefit**: Faster selection than free-text input for standard PTO requests.
 
 ## Bug list
-
+- duration not updating correctly in any day/week/month view if time component introduced.  Day duration seems to function ok
