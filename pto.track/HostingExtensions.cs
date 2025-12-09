@@ -26,6 +26,12 @@ public static class HostingExtensions
         return builder;
     }
 
+    // Allow calling ConfigureAppConfiguration from a built WebApplication in test shims.
+    public static WebApplication ConfigureAppConfiguration(this WebApplication app)
+    {
+        return app;
+    }
+
     public static WebApplication ConfigurePipeline(this WebApplication app)
     {
         // Compose smaller pipeline steps for clarity

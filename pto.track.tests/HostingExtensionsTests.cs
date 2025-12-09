@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Microsoft.Extensions.FileProviders;
 
 namespace pto.track.tests
 {
@@ -58,7 +59,7 @@ namespace pto.track.tests
     }
 
     // Minimal shims to create builders and apps without running a real server
-    internal class TestHostEnvironment : IHostEnvironment
+    internal class TestHostEnvironment : Microsoft.AspNetCore.Hosting.IWebHostEnvironment
     {
         public TestHostEnvironment(string envName)
         {
@@ -71,6 +72,18 @@ namespace pto.track.tests
         public string ApplicationName { get; set; }
         public string ContentRootPath { get; set; }
         public string? WebRootPath { get; set; }
+        private IFileProvider? _contentRootFileProvider;
+        public IFileProvider ContentRootFileProvider
+        {
+            get => _contentRootFileProvider ??= new PhysicalFileProvider(ContentRootPath);
+            set => _contentRootFileProvider = value;
+        }
+        private IFileProvider? _webRootFileProvider;
+        public IFileProvider WebRootFileProvider
+        {
+            get => _webRootFileProvider ??= new PhysicalFileProvider(WebRootPath ?? ContentRootPath);
+            set => _webRootFileProvider = value;
+        }
     }
 
     internal class WebApplicationFactoryShim
@@ -88,14 +101,29 @@ namespace pto.track.tests
 
         public WebApplicationBuilder CreateBuilder()
         {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = Array.Empty<string>(), ContentRootPath = AppContext.BaseDirectory });
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                Args = Array.Empty<string>(),
+                ContentRootPath = AppContext.BaseDirectory,
+                EnvironmentName = _environment.EnvironmentName,
+                ApplicationName = _environment.ApplicationName
+            });
 
-            // Replace environment and configuration using reflection hacks
-            var envField = typeof(WebApplicationBuilder).GetProperty("Environment");
-            var configField = typeof(WebApplicationBuilder).GetProperty("Configuration");
+            // Add the supplied configuration into the builder's configuration
+            builder.Host.ConfigureAppConfiguration((context, cfg) =>
+            {
+                try
+                {
+                    cfg.AddConfiguration(_configuration);
+                }
+                catch
+                {
+                    // Best-effort: some configuration implementations may not merge cleanly.
+                }
+            });
 
-            envField?.SetValue(builder, _environment);
-            configField?.SetValue(builder, _configuration);
+            // Ensure the host resolves the provided environment instance from DI
+            builder.Services.AddSingleton<IHostEnvironment>(_environment);
 
             return builder;
         }
@@ -105,9 +133,6 @@ namespace pto.track.tests
             var builder = CreateBuilder();
             builder.ConfigureServices();
             var app = builder.Build();
-            // Set environment on app
-            var envProp = typeof(WebApplication).GetProperty("Environment");
-            envProp?.SetValue(app, _environment);
             return app;
         }
     }
