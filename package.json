@@ -1,0 +1,20 @@
+{
+  "name": "pto",
+  "version": "1.0.0",
+  "description": "A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive scheduler interface powered by DayPilot for managing employee absences and time-off requests.",
+  "type": "module",
+  "main": "pto.track.tests.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.10",
+    "typescript": "^5.9.3"
+  }
+}

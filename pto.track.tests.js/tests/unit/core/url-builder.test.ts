@@ -1,4 +1,4 @@
-import { buildAbsencesUrl } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { buildAbsencesUrl } from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('buildAbsencesUrl', () => {
     describe('Manager role', () => {

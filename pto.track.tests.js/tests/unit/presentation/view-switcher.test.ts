@@ -1,7 +1,7 @@
-import { updateViewButtons } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { updateViewButtons } from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('updateViewButtons', () => {
-    let buttons;
+    let buttons: any[];
 
     beforeEach(() => {
         // Mock buttons

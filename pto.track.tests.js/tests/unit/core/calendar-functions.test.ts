@@ -9,7 +9,7 @@ import {
     canCreateAbsenceForResource,
     getResourceSelectionMessage,
     buildContextMenuItems
-} from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+} from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('getStatusColor', () => {
     it('returns correct color for each status', () => {

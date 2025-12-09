@@ -13,12 +13,12 @@ dotnet test --logger "trunit;LogFileName=csharp-test-results.xml"
 
 **Output:** `../../pto.track.tests/TestResults/csharp-test-results.xml`
 
-### 2. JavaScript Tests (43 tests)
-Run using the headless test script:
+### 2. TypeScript Tests (164 tests)
+Run using `npm test`:
 
-**Linux/WSL:**
 ```bash
 cd ../../pto.track.tests.js
+<<<<<<< HEAD:docs/run/DEPLOY.md
 ./run-headless.sh
 ```
 
@@ -29,9 +29,15 @@ cd ../../pto.track.tests.js
 ```
 
 **Output:** `../../pto.track.tests.js/test-results.xml`
+=======
+npm test
+```
+
+**Output:** `../../pto.track.tests.js/test-results/jest-junit.xml`
+>>>>>>> cdf607bf611f4c99b4a153a0abc255ac735ac5d9:docs/run/DEPLOY.md
 
 ### Total Test Coverage
-- **131 tests total** (90 C# + 43 JavaScript)
+- **254 tests total** (90 C# + 164 TypeScript)
 - Both produce JUnit XML format for CI/CD integration
 
 ## CI/CD Pipeline Example
@@ -64,10 +70,11 @@ jobs:
     - name: Run C# tests
       run: dotnet test --no-build --logger "trunit;LogFileName=csharp-test-results.xml"
     
-    - name: Run JavaScript tests
+    - name: Run TypeScript tests
       run: |
         cd pto.track.tests.js
-        ./run-headless.sh
+        npm ci
+        npm test
     
     - name: Publish test results
       uses: dorny/test-reporter@v1
@@ -76,7 +83,7 @@ jobs:
         name: Test Results
         path: |
           **/csharp-test-results.xml
-          **/test-results.xml
+          **/test-results/jest-junit.xml
         reporter: java-junit
 ```
 

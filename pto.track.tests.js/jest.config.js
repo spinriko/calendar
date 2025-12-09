@@ -1,18 +1,24 @@
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 export default {
+    preset: "ts-jest",
     testEnvironment: "jsdom",
     testTimeout: 30000,
-    transform: {}, // disables Babel, use native ESM
-    testMatch: ["**/*.test.mjs"],
+    testMatch: ["**/tests/**/*.test.ts"],
 
-    // Coverage configuration
+    transform: {
+        "^.+\\.m?[tj]sx?$": ["ts-jest", {
+            useESM: true,
+        }],
+    },
+
     collectCoverageFrom: [
-        "<rootDir>/../pto.track/wwwroot/js/calendar-functions.mjs",
+        "<rootDir>/../pto.track/wwwroot/js/calendar-functions.ts",
+        "<rootDir>/../pto.track/wwwroot/js/absences-scheduler.ts",
         "!**/node_modules/**"
     ],
     coverageDirectory: "coverage",
     coverageReporters: ["text", "lcov", "html", "json-summary"],
 
-    // Reporters configuration
     reporters: [
         "default",
         ["jest-junit", {
@@ -24,5 +30,11 @@ export default {
             classNameTemplate: "{classname}",
             titleTemplate: "{title}"
         }]
-    ]
+    ],
+
+    extensionsToTreatAsEsm: [".ts"],
+    moduleNameMapper: {
+        "^(\\.{1,2}/.*)\\.js$": "$1",
+        "^(\\.{1,2}/.*)\\.mjs$": "$1"
+    }
 };

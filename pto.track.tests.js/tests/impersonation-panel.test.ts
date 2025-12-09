@@ -10,10 +10,10 @@ import {
     applyImpersonation,
     loadSavedImpersonation,
     initImpersonationPanel
-} from '../../pto.track/wwwroot/js/impersonation-panel.mjs';
+} from '../../pto.track/wwwroot/js/impersonation-panel';
 
 describe('Impersonation Panel', () => {
-    let mockPanel;
+    let mockPanel: any;
 
     beforeEach(() => {
         // Set up DOM
@@ -38,9 +38,11 @@ describe('Impersonation Panel', () => {
             Promise.resolve({
                 ok: true,
                 text: () => Promise.resolve('OK')
-            })
+            } as Response)
         );
-    }); afterEach(() => {
+    });
+
+    afterEach(() => {
         localStorage.clear();
         jest.clearAllMocks();
     });
@@ -83,7 +85,7 @@ describe('Impersonation Panel', () => {
 
     describe('getImpersonationData', () => {
         test('returns data for selected user', () => {
-            document.getElementById('impersonateUser').value = 'MGR001';
+            (document.getElementById('impersonateUser') as HTMLInputElement).value = 'MGR001';
 
             const data = getImpersonationData();
 
@@ -106,7 +108,7 @@ describe('Impersonation Panel', () => {
 
     describe('applyImpersonation', () => {
         test('sends correct data to API and reloads', async () => {
-            document.getElementById('impersonateUser').value = 'MGR001';
+            (document.getElementById('impersonateUser') as HTMLInputElement).value = 'MGR001';
             const reloadMock = jest.fn();
 
             await applyImpersonation(reloadMock);
@@ -121,7 +123,7 @@ describe('Impersonation Panel', () => {
             }));
 
             // Verify localStorage update
-            const saved = JSON.parse(localStorage.getItem('impersonatedUser'));
+            const saved = JSON.parse(localStorage.getItem('impersonatedUser') || '{}');
             expect(saved.employeeNumber).toBe('MGR001');
 
             // Verify reload
@@ -129,11 +131,11 @@ describe('Impersonation Panel', () => {
         });
 
         test('handles API failure', async () => {
-            global.fetch.mockImplementationOnce(() =>
+            (global.fetch as jest.Mock).mockImplementationOnce(() =>
                 Promise.resolve({
                     ok: false,
                     text: () => Promise.resolve('Error')
-                })
+                } as Response)
             );
 
             const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => { });
@@ -160,16 +162,16 @@ describe('Impersonation Panel', () => {
 
             loadSavedImpersonation();
 
-            const select = document.getElementById('impersonateUser');
+            const select = document.getElementById('impersonateUser') as HTMLInputElement;
             expect(select.value).toBe('MGR001');
         });
 
         test('does nothing if no saved data', () => {
-            document.getElementById('impersonateUser').value = 'EMP001';
+            (document.getElementById('impersonateUser') as HTMLInputElement).value = 'EMP001';
 
             loadSavedImpersonation();
 
-            const select = document.getElementById('impersonateUser');
+            const select = document.getElementById('impersonateUser') as HTMLInputElement;
             expect(select.value).toBe('EMP001');
         });
     });
