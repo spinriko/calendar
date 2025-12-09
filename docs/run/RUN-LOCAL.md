@@ -227,4 +227,39 @@ dotnet test pto.track.tests/pto.track.tests.csproj
 
 The VS Code content previously lived in a separate `TESTING_VSCODE.md` file; it has been consolidated here to keep run/debug guidance in one place.
 
+Artifacts produced by local runs
+- **Analyzer logs**: `artifacts/analyzers/` — plaintext logs and SARIF (if diagnostics present). Use `pwsh ./scripts/run-analyzers.ps1 -Execute` to run analyzers locally; the script writes both a `.log` and a `.sarif` (or an empty SARIF skeleton) into that folder.
+- **Code metrics**: `artifacts/metrics/` — the `CodeMetricsAnalyzer` tests write two files when run:
+  - `code-metrics.json` — full machine-readable metrics (cyclomatic complexity, maintainability index, LOC, etc.)
+  - `code-metrics-summary.json` — compact KPI summary useful for CI gating
+
+To generate metrics locally (runs the analyzer-style tests that compute metrics):
+
+```powershell
+# Run the metrics tests (writes artifacts/metrics/*.json)
+dotnet test pto.track.tests/pto.track.tests.csproj -c Release
+```
+
+These artifacts are suitable for uploading as CI build artifacts and for automated gating.
+
+Per-project metrics
+- The `code-metrics.json` output now includes a top-level `Projects` object containing per-project metrics keyed by project name (the csproj filename without extension).
+- Each project entry contains the same metrics as the solution summary (Files, Lines, Classes, Methods, CyclomaticComplexity, Maintainability, Parameters). This makes it straightforward to implement per-project gates or track trends per package.
+- Note: we intentionally do not enforce strict gates yet. Some projects' current averages (e.g. maintainability) are below conservative thresholds — raise the thresholds to appropriate values for your team before converting these metrics into blocking CI gates.
+
+Quick PowerShell snippet — show per-project average maintainability:
+
+```powershell
+Get-Content artifacts/metrics/code-metrics.json -Raw |
+  ConvertFrom-Json | Select-Object -ExpandProperty Projects | ConvertTo-Json -Depth 5
+
+# Or a compact table view:
+($p = (Get-Content artifacts/metrics/code-metrics.json -Raw | ConvertFrom-Json).Projects) |
+  Get-Member -MemberType NoteProperty | ForEach-Object { $name = $_.Name; $avg = $p.$name.Maintainability.Average; '{0,-30} {1,6:N1}' -f $name, $avg }
+```
+
+Recommended next step before gating
+- Review per-project `AvgMaintainability` and `AvgCyclomatic` values in `code-metrics-summary.json` and pick conservative thresholds that match your desired pace (for example, start with permissive thresholds and tighten gradually).
+- Once thresholds are chosen, implement CI gating in the `Analyzers` stage (see `docs/run/RUN-CI.md`) and fail the job if any project exceeds the thresholds. I can help generate a small script to evaluate `code-metrics-summary.json` and return a non-zero exit code when thresholds are exceeded.
+
 ````
