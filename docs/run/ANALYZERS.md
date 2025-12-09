@@ -1,3 +1,4 @@
+````markdown
 # Analyzer runner and CI guidance
 
 This repository intentionally separates Roslyn/IDE analyzers from the functional test runs to avoid analyzers blocking or hanging the test pipeline.
@@ -30,3 +31,5 @@ Recommended CI job (CI-agnostic)
   - Upload the generated `artifacts/analyzers/*.log` as build artifacts
 
 Running analyzers separately prevents intermittent analyzer hangs from slowing or failing the functional test jobs. Keep analyzer runs on PRs, nightly schedules, or as a gated quality gate depending on team preference.
+
+````

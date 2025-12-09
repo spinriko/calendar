@@ -1,3 +1,4 @@
+````markdown
 # Runbook — Run & Debug Locally
 
 This runbook helps developers run the app locally, run tests, run/inspect analyzers, and troubleshoot common JS manifest and bundling problems.
@@ -130,7 +131,7 @@ Tips for when things go awry
 Where to find more
 - Bundling details and reasoning: `docs/arch/BUNDLING.md`.
 - Vendor/library policies: `docs/VENDOR.md`.
-- Analyzer run guidance: `docs/ANALYZERS.md`.
+- Analyzer run guidance: `docs/run/ANALYZERS.md`.
 
 If you'd like, I can add a small CLI helper (`Makefile` or `ps1` entry point) that implements the common flows above (build+fixtures, test, analyzers, clean). Want that next?
 A developer helper script is provided at `scripts/dev.ps1` that implements the most common developer flows.
@@ -169,3 +170,5 @@ pwsh ./scripts/dev.ps1 all
 ```
 
 The helper wraps the same commands described above and is intended as a convenience for common developer tasks.
+
+````
