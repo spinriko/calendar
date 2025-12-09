@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
@@ -53,7 +55,16 @@ public static class HostingExtensions
 
     public static WebApplication ConfigureExceptionHandling(this WebApplication app)
     {
-        app.UseExceptionHandler();
+        // In development/local environments show full exception details to aid debugging.
+        if (app.Environment.IsLocalOrDev())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+        else
+        {
+            app.UseExceptionHandler();
+        }
+
         return app;
     }
 
@@ -82,7 +93,15 @@ public static class HostingExtensions
         if (app.Environment.IsLocalOrDev())
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+
+            // Temporary guard: allow disabling Swagger UI via configuration when
+            // investigating static web assets or running in constrained dev envs.
+            // Default behavior: enabled unless explicitly disabled in config
+            var disableSwaggerUi = app.Configuration.GetValue<bool>("DisableSwaggerUI", false);
+            if (!disableSwaggerUi)
+            {
+                app.UseSwaggerUI();
+            }
         }
         return app;
     }
@@ -102,9 +121,37 @@ public static class HostingExtensions
                 }
             });
         }
+        // Serve bundled frontend assets from /dist with correct content-type mappings
+        try
+        {
+            var distPath = Path.Combine(app.Environment.ContentRootPath ?? string.Empty, "wwwroot", "dist");
+            if (Directory.Exists(distPath))
+            {
+                var provider = new FileExtensionContentTypeProvider();
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(distPath),
+                    RequestPath = "/dist",
+                    ContentTypeProvider = provider
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogDebug(ex, "Could not configure /dist static files mapping");
+        }
 
         // Always map application static assets
-        app.MapStaticAssets();
+        /*
+        try
+        {
+            app.MapStaticAssets();
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Skipping static web assets mapping (disabled or manifest missing).");
+        }
+        */
         return app;
     }
 

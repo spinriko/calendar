@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bcfe46fb-b8ec-491b-b5bf-dc0e8dd4fbca</UserSecretsId>
+        <!-- Static Web Assets generation: default enabled. Removed temporary disable. -->
   </PropertyGroup>
 
   <ItemGroup>
