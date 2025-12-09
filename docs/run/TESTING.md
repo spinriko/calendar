@@ -7,17 +7,17 @@ This solution includes comprehensive test coverage across multiple test projects
 ### Summary Statistics
 - **Total Tests**: 340 (337 passing ✓, 3 skipped)
 - **C# Test Projects**: 3 projects with 157 tests
-- **JavaScript Test Suites**: 13 suites with 183 tests
+- **TypeScript Test Suites**: 13 suites with 183 tests
 - **Code Coverage**: 67.9% overall (C# code)
-- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation, User management, Status filtering, Authorization & Role-based access control, Transaction management, User synchronization, JavaScript business logic
+- **Test Coverage**: Controllers, Services, Integration workflows, JSON serialization, Entity validation, User management, Status filtering, Authorization & Role-based access control, Transaction management, User synchronization, TypeScript business logic
 
-## JavaScript Tests
+## TypeScript Tests
 
-### pto.track.tests.js (Jest/ES Modules)
+### pto.track.tests.js (Jest/TypeScript)
 **Total Tests**: 164  
-**Technology**: Jest 30.2.0, jsdom environment, ES Modules, ESLint validation
+**Technology**: Jest 30.2.0, jsdom environment, TypeScript, ESLint validation
 
-Comprehensive JavaScript unit and integration tests for client-side calendar business logic. All tests run with ESLint pre-validation to ensure code quality.
+Comprehensive TypeScript unit and integration tests for client-side calendar business logic. All tests run with ESLint pre-validation to ensure code quality.
 
 #### Test Structure
 
@@ -26,30 +26,31 @@ pto.track.tests.js/
 ├── tests/
 │   ├── unit/                           # Unit tests (148 tests)
 │   │   ├── core/                       # Core business logic (58 tests)
-│   │   │   ├── role-detection.test.mjs      # 54 tests - User role determination & permissions
-│   │   │   ├── url-builder.test.mjs         # 15 tests - API URL construction
-│   │   │   └── calendar-functions.test.mjs  #  3 tests - Basic function tests
+│   │   │   ├── role-detection.test.ts       # 54 tests - User role determination & permissions
+│   │   │   ├── url-builder.test.ts          # 15 tests - API URL construction
+│   │   │   └── calendar-functions.test.ts   #  3 tests - Basic function tests
 │   │   │
 │   │   ├── filters/                    # Filter management (18 tests)
-│   │   │   ├── checkbox-filters.test.mjs         #  9 tests - Status checkbox state
-│   │   │   └── checkbox-visibility.test.mjs      #  9 tests - Role-based filter visibility
+│   │   │   ├── checkbox-filters.test.ts          #  9 tests - Status checkbox state
+│   │   │   └── checkbox-visibility.test.ts       #  9 tests - Role-based filter visibility
 │   │   │
 │   │   ├── permissions/                # Access control (26 tests)
-│   │   │   ├── employee-restrictions.test.mjs    # 20 tests - Resource creation permissions
-│   │   │   └── impersonation.test.mjs            #  6 tests - Role switching behavior
+│   │   │   ├── employee-restrictions.test.ts     # 20 tests - Resource creation permissions
+│   │   │   └── impersonation.test.ts             #  6 tests - Role switching behavior
 │   │   │
 │   │   └── presentation/               # UI presentation (37 tests)
-│   │       ├── context-menu.test.mjs        # 24 tests - Context menu item generation
-│   │       └── status-color.test.mjs        # 13 tests - Status color mapping
+│   │       ├── context-menu.test.ts         # 24 tests - Context menu item generation
+│   │       └── status-color.test.ts         # 13 tests - Status color mapping
 │   │
 │   └── integration/                    # Integration tests (19 tests)
-│       ├── workflows.test.mjs               # 16 tests - Cross-function workflows
-│       └── impersonation-flow.test.mjs      #  3 tests - Full impersonation flow verification
+│       ├── workflows.test.ts                # 16 tests - Cross-function workflows
+│       └── impersonation-flow.test.ts       #  3 tests - Full impersonation flow verification
 │
-├── tests/scheduler-permissions.test.mjs     # 10 tests - Scheduler row coloring & selection
-├── tests/date-validation.test.mjs           #  6 tests - Retroactive date prevention
+├── tests/scheduler-permissions.test.ts      # 10 tests - Scheduler row coloring & selection
+├── tests/date-validation.test.ts            #  6 tests - Retroactive date prevention
 ├── package.json                        # Test runner configuration
-├── jest.config.js                      # Jest ES module setup
+├── jest.config.js                      # Jest TypeScript setup
+├── tsconfig.json                       # TypeScript configuration
 ├── eslint.config.js                    # Linting rules
 └── TEST-STRUCTURE.md                   # Detailed test documentation
 ```
@@ -141,7 +142,7 @@ Tests for the enhanced scheduler UI:
   - Integration test for the impersonation panel
   - Verifies role mapping and API calls
 
-#### Running JavaScript Tests
+#### Running TypeScript Tests
 
 ```bash
 # Run all tests with linting
@@ -153,7 +154,8 @@ npm run test:only
 ```
 
 **Key Testing Features**:
-- ES module support with --experimental-vm-modules
+- TypeScript support via ts-jest
+- ES module support
 - ESLint validation runs before tests
 - Fresh jsdom environment per test
 - Tests pure functions in isolation

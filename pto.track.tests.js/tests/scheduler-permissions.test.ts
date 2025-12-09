@@ -1,7 +1,7 @@
 import {
     getSchedulerRowColor,
     shouldAllowSelection
-} from '../../pto.track/wwwroot/js/calendar-functions.mjs';
+} from '../../pto.track/wwwroot/js/calendar-functions';
 
 describe('Scheduler Permissions', () => {
     const EMPLOYEE_ID = 100;

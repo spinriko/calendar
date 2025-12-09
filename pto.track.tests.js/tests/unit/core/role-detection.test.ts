@@ -3,7 +3,7 @@ import {
     getDefaultStatusFilters,
     isUserManagerOrApprover,
     determineUserRole
-} from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+} from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('Role-based filter visibility', () => {
     describe('Standard roles', () => {

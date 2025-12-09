@@ -1,6 +1,6 @@
 import {
     getCellCssClass
-} from '../../pto.track/wwwroot/js/calendar-functions.mjs';
+} from '../../pto.track/wwwroot/js/calendar-functions';
 
 describe('Date Validation', () => {
     const EMPLOYEE_ID = 100;

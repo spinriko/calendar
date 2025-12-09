@@ -1,4 +1,4 @@
-import { updateSelectedStatusesFromCheckboxes } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { updateSelectedStatusesFromCheckboxes } from "../../../../pto.track/wwwroot/js/calendar-functions";
 
 describe('updateSelectedStatusesFromCheckboxes', () => {
     describe('Multiple checkboxes', () => {
