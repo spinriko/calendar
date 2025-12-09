@@ -53,6 +53,12 @@ builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+var pathBase = builder.Configuration.GetValue<string>("PathBase");
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
+
 app.UseExceptionHandler();
 
 if (!app.Environment.IsDevelopment())

@@ -124,11 +124,11 @@
 </div>
 
 <script type="module">
-    import { AbsenceSchedulerApp } from '/js/absences-scheduler.js';
+    import { AbsenceSchedulerApp } from '@Url.Content("~/js/absences-scheduler.js")';
 
     // Ensure DayPilot is loaded
     if (typeof DayPilot !== 'undefined') {
-        const app = new AbsenceSchedulerApp(DayPilot, "scheduler", "datepicker");
+        const app = new AbsenceSchedulerApp(DayPilot, "scheduler", "datepicker", '@Url.Content("~/")');
         app.init();
     } else {
         console.error("DayPilot library not loaded.");
