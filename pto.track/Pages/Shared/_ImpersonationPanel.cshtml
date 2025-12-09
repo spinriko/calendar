@@ -26,16 +26,17 @@
         toggleImpersonationPanel,
         applyImpersonation,
         initImpersonationPanel
-    } from '/js/impersonation-panel.js';
+    } from '@Url.Content("~/js/impersonation-panel.js")';
 
     // Make functions available globally for onclick handlers
     window.toggleImpersonationPanel = toggleImpersonationPanel;
 
     // Initialize the panel when DOM is ready
+    const baseUrl = '@Url.Content("~/")';
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initImpersonationPanel);
+        document.addEventListener('DOMContentLoaded', () => initImpersonationPanel(baseUrl));
     } else {
-        initImpersonationPanel();
+        initImpersonationPanel(baseUrl);
     }
 
     // Apply impersonation immediately when dropdown changes
