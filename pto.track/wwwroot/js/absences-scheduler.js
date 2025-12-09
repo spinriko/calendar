@@ -1,9 +1,10 @@
 import { getStatusColor, buildContextMenuItems, shouldAllowSelection, getCellCssClass, updateViewButtons } from './calendar-functions.js';
 export class AbsenceSchedulerApp {
-    constructor(dayPilot, schedulerId, datepickerId) {
+    constructor(dayPilot, schedulerId, datepickerId, baseUrl = "/") {
         this.DayPilot = dayPilot;
         this.schedulerId = schedulerId;
         this.datepickerId = datepickerId;
+        this.baseUrl = baseUrl;
         this.scheduler = null;
         this.datepicker = null;
         this.state = {
@@ -269,7 +270,7 @@ export class AbsenceSchedulerApp {
     async submitAbsence(absence) {
         console.log("Sending absence request:", absence);
         try {
-            const { data } = await this.DayPilot.Http.post(`/api/absences`, absence);
+            const { data } = await this.DayPilot.Http.post(`${this.baseUrl}api/absences`, absence);
             this.scheduler.events.add({
                 start: data.start,
                 end: data.end,
@@ -371,7 +372,7 @@ export class AbsenceSchedulerApp {
     }
     async loadCurrentUser() {
         try {
-            const response = await this.DayPilot.Http.get("/api/currentuser");
+            const response = await this.DayPilot.Http.get(`${this.baseUrl}api/currentuser`);
             if (response.data) {
                 this.state.currentUser = response.data;
                 this.state.currentEmployeeId = response.data.id;
@@ -434,7 +435,7 @@ export class AbsenceSchedulerApp {
         const start = this.scheduler.visibleStart();
         const end = this.scheduler.visibleEnd();
         console.log("loadSchedulerData - selectedStatuses:", this.state.selectedStatuses);
-        let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+        let absencesUrl = `${this.baseUrl}api/absences?start=${start}&end=${end}`;
         // Add all selected statuses to the query (using array notation for ASP.NET Core)
         this.state.selectedStatuses.forEach(status => {
             absencesUrl += `&status[]=${status}`;
@@ -453,7 +454,7 @@ export class AbsenceSchedulerApp {
             // If viewing ONLY approved, don't add employeeId filter (show everyone's)
         }
         const promiseAbsences = this.DayPilot.Http.get(absencesUrl);
-        const promiseResources = this.DayPilot.Http.get("/api/resources");
+        const promiseResources = this.DayPilot.Http.get(`${this.baseUrl}api/resources`);
         try {
             const [{ data: resources }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
             console.log("loadSchedulerData - API returned", absences.length, "absences");
@@ -482,7 +483,7 @@ export class AbsenceSchedulerApp {
     async loadDatePickerData() {
         const start = this.datepicker.visibleStart();
         const end = this.datepicker.visibleEnd();
-        let absencesUrl = `/api/absences?start=${start}&end=${end}`;
+        let absencesUrl = `${this.baseUrl}api/absences?start=${start}&end=${end}`;
         // Add all selected statuses to the query (using array notation for ASP.NET Core)
         this.state.selectedStatuses.forEach(status => {
             absencesUrl += `&status[]=${status}`;
@@ -565,7 +566,7 @@ export class AbsenceSchedulerApp {
             end: absence.end,
             reason: modal.result
         };
-        await this.DayPilot.Http.put(`/api/absences/${absence.id}`, updateData);
+        await this.DayPilot.Http.put(`${this.baseUrl}api/absences/${absence.id}`, updateData);
         this.scheduler.events.update({
             ...event.data,
             reason: modal.result,
@@ -581,7 +582,7 @@ export class AbsenceSchedulerApp {
             approverId: this.state.currentEmployeeId,
             comments: modal.result
         };
-        await this.DayPilot.Http.post(`/api/absences/${absence.id}/approve`, approvalData);
+        await this.DayPilot.Http.post(`${this.baseUrl}api/absences/${absence.id}/approve`, approvalData);
         await this.loadSchedulerData();
     }
     async rejectAbsence(absence) {
@@ -592,14 +593,14 @@ export class AbsenceSchedulerApp {
             approverId: this.state.currentEmployeeId,
             reason: modal.result
         };
-        await this.DayPilot.Http.post(`/api/absences/${absence.id}/reject`, rejectionData);
+        await this.DayPilot.Http.post(`${this.baseUrl}api/absences/${absence.id}/reject`, rejectionData);
         await this.loadSchedulerData();
     }
     async deleteAbsence(absence, event) {
         const modal = await this.DayPilot.Modal.confirm("Delete this absence request?");
         if (modal.canceled)
             return;
-        await this.DayPilot.Http.delete(`/api/absences/${absence.id}`);
+        await this.DayPilot.Http.delete(`${this.baseUrl}api/absences/${absence.id}`);
         this.scheduler.events.remove(event);
         await this.loadSchedulerData();
     }

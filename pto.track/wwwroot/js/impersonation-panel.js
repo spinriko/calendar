@@ -2,6 +2,7 @@
  * Impersonation Panel - Allows developers to test different user roles
  * @module impersonation-panel
  */
+let baseUrl = "/";
 /**
  * Toggle the visibility of the impersonation panel
  */
@@ -58,7 +59,7 @@ export function reloadPage(reloadFn = null) {
 export async function applyImpersonation(reloadFn = null) {
     const data = getImpersonationData();
     try {
-        const response = await fetch('/api/impersonation', {
+        const response = await fetch(`${baseUrl}api/impersonation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -100,14 +101,12 @@ export function loadSavedImpersonation() {
 }
 /**
  * Initialize the impersonation panel on page load
+ * @param {string} url - Base URL for API calls
  */
-export function initImpersonationPanel() {
+export function initImpersonationPanel(url = "/") {
+    baseUrl = url;
     loadSavedImpersonation();
     // Make functions available globally for onclick handlers
     window.toggleImpersonationPanel = toggleImpersonationPanel;
     window.applyImpersonation = applyImpersonation;
-}
-// Auto-initialize on DOM content loaded
-if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', initImpersonationPanel);
 }
