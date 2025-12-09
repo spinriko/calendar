@@ -1,4 +1,4 @@
-import { canCreateAbsenceForResource, getResourceSelectionMessage } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { canCreateAbsenceForResource, getResourceSelectionMessage } from "../../../../pto.track/wwwroot/js/calendar-functions";
 // ...existing code from employee-restrictions.test.js...
 describe('canCreateAbsenceForResource', () => {
     describe('Admin/Manager/Approver permissions', () => {

@@ -1,6 +1,14 @@
 
 import { jest } from '@jest/globals';
-import { AbsenceSchedulerApp } from '../../pto.track/wwwroot/js/absences-scheduler.mjs';
+import { AbsenceSchedulerApp } from '../../pto.track/wwwroot/js/absences-scheduler';
+
+// Mock bootstrap
+(global as any).bootstrap = {
+    Modal: jest.fn().mockImplementation(() => ({
+        show: jest.fn(),
+        hide: jest.fn()
+    }))
+};
 
 // Mock DayPilot
 const mockDayPilot = {
@@ -39,10 +47,10 @@ const mockDayPilot = {
         })
     },
     Http: {
-        get: jest.fn().mockResolvedValue({ data: [] }),
-        post: jest.fn().mockResolvedValue({ data: {} }),
-        put: jest.fn().mockResolvedValue({ data: {} }),
-        delete: jest.fn().mockResolvedValue({ data: {} })
+        get: jest.fn<() => Promise<any>>().mockResolvedValue({ data: [] }),
+        post: jest.fn<() => Promise<any>>().mockResolvedValue({ data: {} }),
+        put: jest.fn<() => Promise<any>>().mockResolvedValue({ data: {} }),
+        delete: jest.fn<() => Promise<any>>().mockResolvedValue({ data: {} })
     },
     Modal: {
         alert: jest.fn(),
@@ -56,7 +64,7 @@ const mockDayPilot = {
 };
 
 describe('AbsenceSchedulerApp', () => {
-    let app;
+    let app: any;
     let documentBody;
 
     beforeEach(() => {
@@ -95,7 +103,9 @@ describe('AbsenceSchedulerApp', () => {
 
         // Check if checkboxes are initialized
         expect(document.getElementById('filterPending')).not.toBeNull();
-    }); test('should load scheduler data', async () => {
+    });
+
+    test('should load scheduler data', async () => {
         await app.init();
 
         // Verify API calls for data
@@ -108,7 +118,7 @@ describe('AbsenceSchedulerApp', () => {
 
         // Simulate clicking Day view
         const dayBtn = document.getElementById('viewDay');
-        dayBtn.click();
+        dayBtn?.click();
 
         expect(app.state.currentView).toBe("Day");
         expect(app.scheduler.update).toHaveBeenCalledWith(expect.objectContaining({
@@ -118,7 +128,7 @@ describe('AbsenceSchedulerApp', () => {
 
         // Simulate clicking Month view
         const monthBtn = document.getElementById('viewMonth');
-        monthBtn.click();
+        monthBtn?.click();
 
         expect(app.state.currentView).toBe("Month");
         expect(app.scheduler.update).toHaveBeenCalledWith(expect.objectContaining({

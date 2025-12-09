@@ -3,11 +3,18 @@
  * @module impersonation-panel
  */
 
+declare global {
+    interface Window {
+        toggleImpersonationPanel: () => void;
+        applyImpersonation: (reloadFn?: any) => Promise<void>;
+    }
+}
+
 /**
  * Toggle the visibility of the impersonation panel
  */
 export function toggleImpersonationPanel() {
-    const panel = document.querySelector('.impersonation-panel');
+    const panel = document.querySelector('.impersonation-panel') as HTMLElement;
     if (panel) {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
@@ -36,7 +43,7 @@ export function getRolesForUser(employeeNumber) {
  * @returns {{employeeNumber: string, roles: string[]}}
  */
 export function getImpersonationData() {
-    const employeeNumber = document.getElementById('impersonateUser')?.value || 'EMP001';
+    const employeeNumber = (document.getElementById('impersonateUser') as HTMLInputElement)?.value || 'EMP001';
     const roles = getRolesForUser(employeeNumber);
 
     return {
@@ -61,7 +68,7 @@ export function reloadPage(reloadFn = null) {
  * Apply impersonation by saving to server and reloading
  * @param {Function} reloadFn - Optional reload function for testing
  */
-export async function applyImpersonation(reloadFn = null) {
+export async function applyImpersonation(reloadFn: any = null) {
     const data = getImpersonationData();
 
     try {
@@ -98,7 +105,7 @@ export function loadSavedImpersonation() {
         const data = JSON.parse(saved);
 
         // Update user select
-        const userSelect = document.getElementById('impersonateUser');
+        const userSelect = document.getElementById('impersonateUser') as HTMLInputElement;
         if (userSelect && data.employeeNumber) {
             userSelect.value = data.employeeNumber;
         }

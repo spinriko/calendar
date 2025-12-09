@@ -18,7 +18,7 @@ mindmap
             Bootstrap 5
         Testing
             xUnit
-            Jest
+            Jest (TypeScript)
             Moq
             WebApplicationFactory
             ESLint

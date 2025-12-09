@@ -1,4 +1,4 @@
-import { getStatusColor } from "../../../../pto.track/wwwroot/js/calendar-functions.mjs";
+import { getStatusColor } from "../../../../pto.track/wwwroot/js/calendar-functions";
 // ...existing code from status-color.test.js...
 describe('getStatusColor', () => {
     describe('Standard statuses', () => {
