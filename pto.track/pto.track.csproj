@@ -27,7 +27,7 @@
     <ProjectReference Include="..\pto.track.services\pto.track.services.csproj" />
   </ItemGroup>
 
-  <Target Name="NpmBuild" BeforeTargets="Build">
+  <Target Name="NpmBuild" BeforeTargets="Build" Condition="'$(SkipNpm)' != 'true'">
     <Message Text="Running npm build..." Importance="high" />
     <Exec Command="npm run build" WorkingDirectory=".." />
   </Target>
