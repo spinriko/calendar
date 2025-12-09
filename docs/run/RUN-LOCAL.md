@@ -171,4 +171,60 @@ pwsh ./scripts/dev.ps1 all
 
 The helper wraps the same commands described above and is intended as a convenience for common developer tasks.
 
+## VS Code — Testing & Debugging
+
+If you use Visual Studio Code, the editor provides a convenient Test Explorer UI, debug integration, and keyboard shortcuts. The key items below collect the most useful VS Code-specific tips so you don't have to keep a separate file.
+
+- **Recommended extensions**:
+  - `ms-dotnettools.csharp` (C# Dev Kit / OmniSharp)
+  - `formulahendry.dotnet-test-explorer` (Test Explorer integration)
+  - `hbenl.vscode-test-explorer` (Test Explorer UI enhancements)
+
+- **Test Explorer quickstart**:
+  - Open the Test Explorer (beaker icon) to discover tests from the three test projects.
+  - Run tests using the ▶️ controls beside a project, class, or individual test.
+  - Debug tests using the 🐛 icon next to a test (sets breakpoints and attaches the debugger).
+
+- **Useful keyboard shortcuts**:
+  - `Ctrl+Shift+P` → `Test: Run All Tests`
+  - `Ctrl+Shift+P` → `Test: Run Test at Cursor`
+  - `Ctrl+Shift+P` → `Test: Debug Test at Cursor`
+  - `F5` to start debugging the app; `Ctrl+F5` to start without debugger
+
+- **Command Palette / Tasks**:
+  - `Tasks: Run Task` → choose `build`, `test`, `watch`, or `publish` (these map to the tasks in the workspace).
+  - Use `Test: Show Output` from the command palette to view the `.NET Test Log` channel.
+
+- **.vscode config tips**:
+  - `launch.json` should include a `preLaunchTask` that runs the `build` task so the app compiles before hitting breakpoints.
+  - `tasks.json` can be used to expose the existing workspace `build`/`test` tasks to the Command Palette.
+  - Settings snippet you may find useful:
+
+```json
+{
+  "dotnet-test-explorer.testProjectPath": "**/*tests.csproj",
+  "dotnet-test-explorer.enableTelemetry": false
+}
+```
+
+- **VS Code troubleshooting**:
+  - If tests don't appear: `Ctrl+Shift+P` → `Developer: Reload Window`, ensure the Test Explorer extension is enabled, and build the solution.
+  - If the debugger doesn't stop at breakpoints: make sure you launched the test with the debug action (🐛), the code is built in `Debug` configuration, and `launch.json` has the correct `program`/`cwd`.
+  - If OmniSharp is misbehaving: `Ctrl+Shift+P` → `OmniSharp: Restart OmniSharp`.
+
+- **Terminal commands (from VS Code terminal)**
+  - Run all tests:
+
+```powershell
+dotnet test
+```
+
+  - Run a single project:
+
+```powershell
+dotnet test pto.track.tests/pto.track.tests.csproj
+```
+
+The VS Code content previously lived in a separate `TESTING_VSCODE.md` file; it has been consolidated here to keep run/debug guidance in one place.
+
 ````
