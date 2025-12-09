@@ -1,30 +1,23 @@
 # PTO Track - Resource Scheduling Calendar
 
-A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features two interactive calendar interfaces powered by DayPilot for managing events across multiple resources.
+A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive scheduler interface powered by DayPilot for managing employee absences and time-off requests.
 
 ## Features
 
-### 🗓️ Dual Calendar System
+### 🗓️ Absence Scheduler
 
-The application provides two specialized calendar views:
+The application features a comprehensive **Absence Scheduler** (`/AbsencesScheduler`) for managing employee time-off requests:
 
-1. **Scheduling Calendar** (`/Scheduling`)
-   - Resource-based event scheduling across multiple resources
-   - Interactive drag-and-drop interface for event management
-   - Color-coded events with customizable attributes
-   - Real-time event creation, editing, and deletion
-   - Date range filtering and navigation
-   - Perfect for managing equipment, rooms, or personnel schedules
+- **Interactive Timeline**: Visual timeline view of all employee absences
+- **Request Management**: Drag-and-drop interface for creating new absence requests
+- **Approval Workflow**: Built-in workflow with four states: Pending, Approved, Rejected, Cancelled
+- **Role-Based Access**:
+  - **Employees**: View team availability and manage their own requests
+  - **Managers/Approvers**: Review and approve/reject requests
+  - **Admins**: Full system oversight
+- **Real-time Updates**: Immediate feedback on request status changes
 
-2. **Absence Calendar** (`/Absences`)
-   - Employee PTO (Paid Time Off) and absence request management
-   - Approval workflow with four states: Pending, Approved, Rejected, Cancelled
-   - Request submission and approval interface
-   - Manager approval actions with comments
-   - Employee-specific absence tracking
-   - Comprehensive absence request history
-
-Both calendars share the same clean architecture and provide seamless navigation through an intuitive landing page.
+The system is built with clean architecture principles and provides a seamless user experience for both employees and managers.
 
 ## Architecture Overview
 
@@ -45,13 +38,13 @@ pto.track.data         → Data access layer (EF Core + Entities)
   - `Controllers/EventsController.cs` - Event CRUD operations API
   - `Controllers/ResourcesController.cs` - Resource management API
   - `Controllers/AbsenceController.cs` - Absence request approval workflow API
-  - `Pages/Index.cshtml` - Landing page with navigation to both calendars
-  - `Pages/Scheduling.cshtml` - Interactive scheduling calendar UI using DayPilot
-  - `Pages/Absences.cshtml` - Absence request calendar UI with approval actions
-  - `Pages/AbsencesScheduler.cshtml` - Enhanced scheduler view for absence management
+  - `Pages/Index.cshtml` - Landing page with navigation
+  - `Pages/AbsencesScheduler.cshtml` - Main absence management interface (Scheduler view)
+  - `Pages/Scheduling.cshtml` - Legacy resource scheduling view
+  - `Pages/Absences.cshtml` - Legacy absence list view
   - `Program.cs` - Application configuration and service registration
 - **Features**:
-  - Dual calendar system (Scheduling + Absences)
+  - Absence Scheduler (Main Interface)
   - Interactive drag-and-drop calendar interface
   - Date range filtering for events
   - Resource-based event scheduling
@@ -161,7 +154,7 @@ pto.track.data         → Data access layer (EF Core + Entities)
 - Inheritance depth analysis
 - Comprehensive summary dashboard
 
-See [TESTING.md](docs/TESTING.md) for detailed C# test documentation and code metrics, and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
+See [TESTING.md](docs/run/TESTING.md) for detailed C# test documentation and code metrics, and [pto.track.tests.js/README.md](pto.track.tests.js/README.md) for JavaScript test documentation.
 
 ## Getting Started
 
@@ -211,7 +204,7 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 ## Key Features
 
 ### Calendar Functionality
-- **Resource-based Scheduling**: Organize events by resources (employees, rooms, equipment)
+- **Absence Scheduler**: Visual timeline for managing team absences
 - **Drag & Drop**: Move events between resources or adjust time ranges
 - **Date Range Navigation**: Previous/Today/Next day navigation
 - **Multi-month Date Picker**: 3-month view for quick date selection
@@ -276,7 +269,7 @@ dotnet publish pto.track/pto.track.csproj -c Release -o ./publish
 - Install recommended extensions (C# Dev Kit, .NET Test Explorer)
 - Use `F5` to start debugging
 - Test Explorer available via beaker icon 🧪
-- See [TESTING_VSCODE.md](TESTING_VSCODE.md) for detailed VS Code testing instructions
+- See [TESTING_VSCODE.md](docs/run/TESTING_VSCODE.md) for detailed VS Code testing instructions
 
 ### Project Dependencies
 ```
