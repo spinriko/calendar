@@ -24,9 +24,11 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <button class="btn btn-primary" id="btnCreateGroup">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle me-1" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-plus-circle me-1" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                     </svg>
                     Create New Group
                 </button>
@@ -37,7 +39,8 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <label for="groupSelect">Select Group:</label>
-                <select id="groupSelect" class="form-select w-auto d-inline-block" style="min-width:200px;" onchange="groupsApp.fetchResourcesForGroup()">
+                <select id="groupSelect" class="form-select w-auto d-inline-block" style="min-width:200px;"
+                    onchange="groupsApp.fetchResourcesForGroup()">
                     <option value="">-- Select Group --</option>
                 </select>
             </div>
@@ -57,7 +60,8 @@
                             <!-- Populated by JS -->
                         </tbody>
                     </table>
-                    <div id="noResources" class="text-muted" style="display:none;">No resources found for this group.</div>
+                    <div id="noResources" class="text-muted" style="display:none;">No resources found for this group.
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,7 +139,8 @@
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete the group "<strong id="deleteGroupName"></strong>"?</p>
-                <p class="text-muted small">This action cannot be undone. Groups with associated resources cannot be deleted.</p>
+                <p class="text-muted small">This action cannot be undone. Groups with associated resources cannot be
+                    deleted.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -147,4 +152,11 @@
 
 @section Scripts {
     <script src="~/js/groups-app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.groupsApp) {
+                window.groupsApp.init('@Url.Content("~/")');
+            }
+        });
+    </script>
 }

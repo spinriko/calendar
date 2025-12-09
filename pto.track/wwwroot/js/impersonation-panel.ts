@@ -3,6 +3,8 @@
  * @module impersonation-panel
  */
 
+let baseUrl = "/";
+
 declare global {
     interface Window {
         toggleImpersonationPanel: () => void;
@@ -72,7 +74,7 @@ export async function applyImpersonation(reloadFn: any = null) {
     const data = getImpersonationData();
 
     try {
-        const response = await fetch('/api/impersonation', {
+        const response = await fetch(`${baseUrl}api/impersonation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -116,8 +118,10 @@ export function loadSavedImpersonation() {
 
 /**
  * Initialize the impersonation panel on page load
+ * @param {string} url - Base URL for API calls
  */
-export function initImpersonationPanel() {
+export function initImpersonationPanel(url: string = "/") {
+    baseUrl = url;
     loadSavedImpersonation();
 
     // Make functions available globally for onclick handlers
@@ -125,7 +129,3 @@ export function initImpersonationPanel() {
     window.applyImpersonation = applyImpersonation;
 }
 
-// Auto-initialize on DOM content loaded
-if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', initImpersonationPanel);
-}
