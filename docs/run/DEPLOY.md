@@ -11,24 +11,24 @@ Run using `dotnet test`:
 dotnet test --logger "trunit;LogFileName=csharp-test-results.xml"
 ```
 
-**Output:** `pto.track.tests/TestResults/csharp-test-results.xml`
+**Output:** `../../pto.track.tests/TestResults/csharp-test-results.xml`
 
 ### 2. JavaScript Tests (43 tests)
 Run using the headless test script:
 
 **Linux/WSL:**
 ```bash
-cd pto.track.tests.js
+cd ../../pto.track.tests.js
 ./run-headless.sh
 ```
 
 **Windows:**
 ```powershell
-cd pto.track.tests.js
+cd ../../pto.track.tests.js
 .\run-headless.ps1
 ```
 
-**Output:** `pto.track.tests.js/test-results.xml`
+**Output:** `../../pto.track.tests.js/test-results.xml`
 
 ### Total Test Coverage
 - **131 tests total** (90 C# + 43 JavaScript)

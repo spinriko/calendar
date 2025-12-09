@@ -230,9 +230,9 @@
 ## Related Documentation
 
 - See `ABSENCES_REQUIREMENTS.md` for overall absence management requirements
-- See `pto.track/wwwroot/js/calendar-functions.mjs` for current calendar implementation
-- See `pto.track/Pages/Absences.cshtml` for current absence request UI
-- See `AbsenceRequest` entity in `pto.track.data/Models/`
+- See `../../pto.track/wwwroot/js/calendar-functions.mjs` for current calendar implementation
+- See `../../pto.track/Pages/Absences.cshtml` for current absence request UI
+- See `AbsenceRequest` entity in `../../pto.track.data/Models/`
 
 ## Notes
 
