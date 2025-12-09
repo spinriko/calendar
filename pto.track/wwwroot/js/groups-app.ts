@@ -40,8 +40,10 @@ interface GroupsApp {
 
 // Remove the global augmentation block and just declare the property on Window interface
 // This works because this file is treated as a script (no imports/exports)
-interface Window {
-    groupsApp: GroupsApp;
+declare global {
+    interface Window {
+        groupsApp: GroupsApp;
+    }
 }
 
 window.groupsApp = {
