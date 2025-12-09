@@ -1,19 +1,9 @@
 import {
     getStatusColor,
     buildAbsencesUrl,
-    determineUserRole,
-    getDefaultStatusFilters,
-    getVisibleFilters,
-    updateSelectedStatusesFromCheckboxes,
-    isUserManagerOrApprover,
-    canCreateAbsenceForResource,
-    getResourceSelectionMessage,
-    buildContextMenuItems,
-    getSchedulerRowColor,
-    shouldAllowSelection,
-    getCellCssClass,
     updateViewButtons
 } from './calendar-functions.js';
+import { IPermissionStrategy, createPermissionStrategy } from './strategies/permission-strategies.js';
 
 declare var bootstrap: any;
 
@@ -25,6 +15,7 @@ interface AppState {
     currentUser: any;
     isMockMode: boolean;
     selectedResourceId?: string | number;
+    editingAbsenceId?: number | null;
 }
 
 interface AppElements {
@@ -58,6 +49,7 @@ export class AbsenceSchedulerApp {
     state: AppState;
     elements: AppElements;
     baseUrl: string;
+    permissionStrategy: IPermissionStrategy;
 
     constructor(dayPilot: any, schedulerId: string, datepickerId: string, baseUrl: string = "/") {
         this.DayPilot = dayPilot;
@@ -66,6 +58,7 @@ export class AbsenceSchedulerApp {
         this.baseUrl = baseUrl;
         this.scheduler = null;
         this.datepicker = null;
+        this.permissionStrategy = null;
 
         this.state = {
             selectedStatuses: ["Pending", "Approved", "Rejected", "Cancelled"],
@@ -73,7 +66,8 @@ export class AbsenceSchedulerApp {
             currentView: "Week",
             isManager: false,
             currentUser: null,
-            isMockMode: false
+            isMockMode: false,
+            editingAbsenceId: null
         };
 
         this.elements = {} as AppElements;
@@ -153,31 +147,20 @@ export class AbsenceSchedulerApp {
     }
 
     handleBeforeRowHeaderRender(args) {
-        if (!this.state.currentUser) return;
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
+        if (!this.permissionStrategy) return;
 
-        if (!shouldAllowSelection(this.state.currentEmployeeId, args.row.id, isManager, isAdmin, isApprover)) {
+        if (!this.permissionStrategy.canCreateFor(args.row.id)) {
             args.row.cssClass = "disabled-row";
         }
     }
 
     handleBeforeCellRender(args) {
-        if (!this.state.currentUser) return;
+        if (!this.permissionStrategy) return;
 
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
-
-        const cssClass = getCellCssClass(
+        const cssClass = this.permissionStrategy.getCellCssClass(
             args.cell.start,
             this.DayPilot.Date.today(),
-            this.state.currentEmployeeId,
-            args.cell.resource,
-            isManager,
-            isAdmin,
-            isApprover
+            args.cell.resource
         );
 
         if (cssClass) {
@@ -190,6 +173,10 @@ export class AbsenceSchedulerApp {
             this.scheduler.clearSelection();
             return;
         }
+
+        // Reset edit state
+        this.state.editingAbsenceId = null;
+        this.elements.modalTitle.textContent = "Create Absence";
 
         // Store the selected resource ID for saving later
         this.state.selectedResourceId = args.resource;
@@ -208,6 +195,18 @@ export class AbsenceSchedulerApp {
         // Or if start/end times are 00:00
         const isAllDay = (start.toString("HH:mm") === "00:00" && end.toString("HH:mm") === "00:00");
         this.elements.chkAllDay.checked = isAllDay;
+
+        if (isAllDay) {
+            // Set default business hours if All Day is checked, so unchecking it reveals nice defaults
+            this.elements.inpStartTime.value = "08:00";
+            this.elements.inpEndTime.value = "17:00";
+
+            // Adjust end date to be inclusive for the date picker (DayPilot returns exclusive end date for ranges)
+            this.elements.inpEndDate.value = end.addDays(-1).toString("yyyy-MM-dd");
+        } else {
+            this.elements.inpStartTime.value = start.toString("HH:mm");
+            this.elements.inpEndTime.value = end.toString("HH:mm");
+        }
 
         // Trigger change event to update UI state (disable time inputs if all day)
         this.elements.chkAllDay.dispatchEvent(new Event('change'));
@@ -231,7 +230,7 @@ export class AbsenceSchedulerApp {
 
         if (!startDate || !endDate) {
             this.elements.durationDisplay.textContent = "Please select dates";
-            this.elements.durationDisplay.className = "alert alert-warning";
+            this.elements.durationDisplay.className = "alert alert-warning border-warning-subtle";
             return;
         }
 
@@ -243,7 +242,7 @@ export class AbsenceSchedulerApp {
         } else {
             if (!startTime || !endTime) {
                 this.elements.durationDisplay.textContent = "Please select times";
-                this.elements.durationDisplay.className = "alert alert-warning";
+                this.elements.durationDisplay.className = "alert alert-warning border-warning-subtle";
                 return;
             }
             start = new this.DayPilot.Date(`${startDate}T${startTime}`);
@@ -252,7 +251,7 @@ export class AbsenceSchedulerApp {
 
         if (end <= start) {
             this.elements.durationDisplay.textContent = "End time must be after start time";
-            this.elements.durationDisplay.className = "alert alert-danger";
+            this.elements.durationDisplay.className = "alert alert-danger border-danger-subtle";
             return;
         }
 
@@ -270,7 +269,7 @@ export class AbsenceSchedulerApp {
         if (durationText === "") durationText = "0 mins";
 
         this.elements.durationDisplay.textContent = `Duration: ${durationText}`;
-        this.elements.durationDisplay.className = "alert alert-info";
+        this.elements.durationDisplay.className = "alert alert-secondary border-secondary-subtle";
     }
 
     async saveAbsence() {
@@ -293,7 +292,8 @@ export class AbsenceSchedulerApp {
             // If user selects Mon-Mon, they mean all day Monday.
             // Start: Mon 00:00
             // End: Tue 00:00
-            end = new this.DayPilot.Date(endDate).addDays(1).toString("yyyy-MM-ddTHH:mm:ss");
+            // Since we adjusted inpEndDate to be inclusive (Mon), we need to add 1 day to get exclusive end (Tue)
+            end = new this.DayPilot.Date(endDate).addDays(1).toString("yyyy-MM-dd") + "T00:00:00";
         } else {
             start = `${startDate}T${startTime}:00`;
             end = `${endDate}T${endTime}:00`;
@@ -306,7 +306,11 @@ export class AbsenceSchedulerApp {
             reason: reason
         };
 
-        await this.submitAbsence(absence);
+        if (this.state.editingAbsenceId) {
+            await this.updateAbsence(this.state.editingAbsenceId, absence);
+        } else {
+            await this.submitAbsence(absence);
+        }
         this.elements.modal.hide();
     }
 
@@ -316,12 +320,9 @@ export class AbsenceSchedulerApp {
             return false;
         }
 
-        // Check if employee can create absence for this resource
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin") || false;
-        const isManager = this.state.isManager || false;
-        const isApprover = this.state.currentUser?.isApprover || false;
+        if (!this.permissionStrategy) return false;
 
-        return shouldAllowSelection(this.state.currentEmployeeId, args.resource, isManager, isAdmin, isApprover);
+        return this.permissionStrategy.canCreateFor(args.resource);
     }
 
     getAbsenceFormConfig(startDate, endDate) {
@@ -396,6 +397,58 @@ export class AbsenceSchedulerApp {
         }
     }
 
+    async updateAbsence(id, absence) {
+        console.log("Updating absence request:", id, absence);
+
+        try {
+            await this.DayPilot.Http.put(`${this.baseUrl}api/absences/${id}`, absence);
+            await this.loadSchedulerData();
+        } catch (error) {
+            console.error("Error updating absence:", error);
+            const errorMsg = error.request?.responseText || error.message || "Unknown error";
+            await this.DayPilot.Modal.alert(`Failed to update absence: ${errorMsg}`);
+        }
+    }
+
+    async editAbsence(absence, event) {
+        this.state.editingAbsenceId = absence.id;
+        this.state.selectedResourceId = absence.employeeId;
+        this.elements.modalTitle.textContent = "Edit Absence";
+
+        const start = new this.DayPilot.Date(absence.start);
+        const end = new this.DayPilot.Date(absence.end);
+
+        // Populate Modal
+        this.elements.inpStartDate.value = start.toString("yyyy-MM-dd");
+        this.elements.inpStartTime.value = start.toString("HH:mm");
+
+        // Check if it looks like an all-day event
+        // Logic: start time 00:00 and end time 00:00
+        const isAllDay = (start.toString("HH:mm") === "00:00" && end.toString("HH:mm") === "00:00");
+        this.elements.chkAllDay.checked = isAllDay;
+
+        if (isAllDay) {
+            this.elements.inpStartTime.value = "08:00";
+            this.elements.inpEndTime.value = "17:00";
+            // Adjust end date to be inclusive
+            this.elements.inpEndDate.value = end.addDays(-1).toString("yyyy-MM-dd");
+        } else {
+            this.elements.inpEndDate.value = end.toString("yyyy-MM-dd");
+            this.elements.inpEndTime.value = end.toString("HH:mm");
+        }
+
+        this.elements.inpReason.value = absence.reason;
+
+        // Trigger change event to update UI state
+        this.elements.chkAllDay.dispatchEvent(new Event('change'));
+
+        // Calculate duration
+        this.calculateDuration();
+
+        // Show Modal
+        this.elements.modal.show();
+    }
+
     handleBeforeEventRender(args) {
         const status = args.data.status || args.data.data?.status;
         args.data.backColor = getStatusColor(status);
@@ -415,18 +468,48 @@ export class AbsenceSchedulerApp {
                 const e = args.source;
                 const absence = e.data.data || e.data;
 
-                const userContext = {
-                    currentEmployeeId: this.state.currentEmployeeId,
-                    isAdmin: this.state.currentUser?.role?.toLowerCase() === 'admin' ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'admin') || false,
-                    isManager: this.state.currentUser?.role?.toLowerCase() === 'manager' ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'manager') || false,
-                    isApprover: this.state.currentUser?.isApprover ||
-                        this.state.currentUser?.roles?.some(r => r.toLowerCase() === 'approver') || false
-                };
+                if (!this.permissionStrategy) return;
 
-                // Build menu items and wire up action handlers
-                const menuItems = buildContextMenuItems(absence, userContext, e);
+                // Build menu items using strategy
+                const menuItems = [];
+
+                menuItems.push({
+                    text: "View Details",
+                    onClick: () => { return { action: 'viewDetails', absence }; }
+                });
+
+                if (this.permissionStrategy.canEdit(absence)) {
+                    menuItems.push({
+                        text: "Edit",
+                        onClick: () => { return { action: 'edit', absence }; }
+                    });
+                }
+
+                if (this.permissionStrategy.canApprove(absence)) {
+                    if (this.permissionStrategy.canEdit(absence)) {
+                        menuItems.push({ text: "-" });
+                    }
+                    menuItems.push({
+                        text: "Approve",
+                        onClick: () => { return { action: 'approve', absence }; }
+                    });
+                    menuItems.push({
+                        text: "Reject",
+                        onClick: () => { return { action: 'reject', absence }; }
+                    });
+                }
+
+                if (this.permissionStrategy.canDelete(absence)) {
+                    if (this.permissionStrategy.canEdit(absence) || this.permissionStrategy.canApprove(absence)) {
+                        menuItems.push({ text: "-" });
+                    }
+                    menuItems.push({
+                        text: "Delete",
+                        onClick: () => { return { action: 'delete', absence }; }
+                    });
+                }
+
+                // Wire up action handlers
                 menuItems.forEach(item => {
                     if (item.onClick) {
                         const originalOnClick = item.onClick;
@@ -500,53 +583,37 @@ export class AbsenceSchedulerApp {
                 console.log("Current user:", this.state.currentUser);
                 console.log("Is manager/approver:", this.state.isManager);
                 console.log("Mock mode:", this.state.isMockMode);
+
+                // Initialize permission strategy
+                this.permissionStrategy = createPermissionStrategy(this.state.currentUser);
             }
         } catch (error) {
             console.warn("Could not load current user, using defaults:", error);
             // Fallback for development without authentication
             this.state.currentEmployeeId = 1;
+            this.permissionStrategy = createPermissionStrategy({ id: 1, roles: [] });
         }
     }
 
     initializeCheckboxes() {
-        // Determine which checkboxes should be available based on role
-        const isAdmin = this.state.currentUser?.roles?.includes("Admin");
-        const isManagerOrApprover = this.state.isManager;
-        const isEmployee = !isAdmin && !isManagerOrApprover;
+        if (!this.permissionStrategy) return;
 
-        // First, ensure all checkboxes are visible (reset state)
-        this.elements.filterPending.parentElement.style.display = "flex";
-        this.elements.filterApproved.parentElement.style.display = "flex";
-        this.elements.filterRejected.parentElement.style.display = "flex";
-        this.elements.filterCancelled.parentElement.style.display = "flex";
+        const visibleFilters = this.permissionStrategy.getVisibleFilters();
+        const defaultFilters = this.permissionStrategy.getDefaultFilters();
 
-        // Hide/show checkboxes based on role
-        if (isEmployee) {
-            // Employees can see ALL approved absences, but only their own pending/rejected/cancelled
-            this.elements.filterPending.checked = false;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = false;
-            this.elements.filterCancelled.checked = false;
-            this.state.selectedStatuses = ["Approved"];
-        } else if (isManagerOrApprover && !isAdmin) {
-            // Managers/Approvers mainly care about Pending (to approve) and Approved (to verify)
-            this.elements.filterPending.checked = true;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = false;
-            this.elements.filterCancelled.checked = false;
-            // Hide rejected and cancelled for managers/approvers
-            this.elements.filterRejected.parentElement.style.display = "none";
-            this.elements.filterCancelled.parentElement.style.display = "none";
-            this.state.selectedStatuses = ["Pending", "Approved"];
-        } else if (isAdmin) {
-            // Admins see everything by default
-            this.elements.filterPending.checked = true;
-            this.elements.filterApproved.checked = true;
-            this.elements.filterRejected.checked = true;
-            this.elements.filterCancelled.checked = true;
-            this.state.selectedStatuses = ["Pending", "Approved", "Rejected", "Cancelled"];
-            console.log("initializeCheckboxes - Admin mode, selectedStatuses:", this.state.selectedStatuses);
-        }
+        // Reset visibility
+        this.elements.filterPending.parentElement.style.display = visibleFilters.includes("Pending") ? "flex" : "none";
+        this.elements.filterApproved.parentElement.style.display = visibleFilters.includes("Approved") ? "flex" : "none";
+        this.elements.filterRejected.parentElement.style.display = visibleFilters.includes("Rejected") ? "flex" : "none";
+        this.elements.filterCancelled.parentElement.style.display = visibleFilters.includes("Cancelled") ? "flex" : "none";
+
+        // Set checked state
+        this.elements.filterPending.checked = defaultFilters.includes("Pending");
+        this.elements.filterApproved.checked = defaultFilters.includes("Approved");
+        this.elements.filterRejected.checked = defaultFilters.includes("Rejected");
+        this.elements.filterCancelled.checked = defaultFilters.includes("Cancelled");
+
+        this.state.selectedStatuses = [...defaultFilters];
     }
 
     async loadSchedulerData() {
@@ -650,8 +717,8 @@ export class AbsenceSchedulerApp {
             case 'viewDetails':
                 await this.viewDetails(absence);
                 break;
-            case 'editReason':
-                await this.editReason(absence, event);
+            case 'edit':
+                await this.editAbsence(absence, event);
                 break;
             case 'approve':
                 await this.approveAbsence(absence);
@@ -697,27 +764,6 @@ export class AbsenceSchedulerApp {
         };
 
         await this.DayPilot.Modal.form(form, formData);
-    }
-
-    async editReason(absence, event) {
-        const modal = await this.DayPilot.Modal.prompt("Edit reason:", absence.reason);
-        if (modal.canceled) return;
-
-        const updateData = {
-            start: absence.start,
-            end: absence.end,
-            reason: modal.result
-        };
-
-        await this.DayPilot.Http.put(`${this.baseUrl}api/absences/${absence.id}`, updateData);
-
-        this.scheduler.events.update({
-            ...event.data,
-            reason: modal.result,
-            text: modal.result
-        });
-
-        await this.loadSchedulerData();
     }
 
     async approveAbsence(absence) {
@@ -780,6 +826,16 @@ export class AbsenceSchedulerApp {
                 if (this.elements.timeSelectionRow) {
                     this.elements.timeSelectionRow.style.display = isAllDay ? 'none' : 'flex';
                 }
+
+                if (!isAllDay) {
+                    if (this.elements.inpStartTime.value === "00:00" || !this.elements.inpStartTime.value) {
+                        this.elements.inpStartTime.value = "08:00";
+                    }
+                    if (this.elements.inpEndTime.value === "00:00" || !this.elements.inpEndTime.value) {
+                        this.elements.inpEndTime.value = "17:00";
+                    }
+                }
+
                 this.calculateDuration();
             });
 
@@ -791,11 +847,20 @@ export class AbsenceSchedulerApp {
             ];
 
             dateInputs.forEach(input => {
-                if (input) input.addEventListener('change', () => this.calculateDuration());
+                if (input) {
+                    input.addEventListener('change', () => this.calculateDuration());
+                    input.addEventListener('input', () => this.calculateDuration());
+                }
             });
 
             // Smart Date Logic
             this.elements.inpStartDate.addEventListener('change', () => {
+                if (!this.elements.inpEndDate.value || this.elements.inpEndDate.value < this.elements.inpStartDate.value) {
+                    this.elements.inpEndDate.value = this.elements.inpStartDate.value;
+                }
+                this.calculateDuration();
+            });
+            this.elements.inpStartDate.addEventListener('input', () => {
                 if (!this.elements.inpEndDate.value || this.elements.inpEndDate.value < this.elements.inpStartDate.value) {
                     this.elements.inpEndDate.value = this.elements.inpStartDate.value;
                 }

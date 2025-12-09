@@ -1,3 +1,4 @@
+import { } from './calendar-functions.js'; // Ensure module treatment if needed, or just rely on tsc
 
 declare var bootstrap: any;
 
@@ -48,7 +49,7 @@ window.groupsApp = {
     currentGroupId: null,
     groupModal: null,
     deleteModal: null,
-    baseUrl: "/",
+    baseUrl: '/',
 
     escapeHtml(str: string): string {
         return str.replace(/[&<>'"]/g, function (c) {
@@ -124,40 +125,30 @@ window.groupsApp = {
         }
     },
 
-    async init(baseUrl: string = "/") {
+    async init(baseUrl: string = '/') {
         this.baseUrl = baseUrl;
         this.groupModal = new bootstrap.Modal(document.getElementById('groupModal'));
         this.deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 
-        // Check if user is admin
+        document.getElementById('btnCreateGroup')?.addEventListener('click', () => this.openCreateModal());
+        document.getElementById('btnSaveGroup')?.addEventListener('click', () => this.saveGroup());
+        document.getElementById('btnConfirmDelete')?.addEventListener('click', () => this.confirmDelete());
+
         await this.checkAccess();
-
-        // Set up event listeners
-        const btnCreateGroup = document.getElementById('btnCreateGroup');
-        if (btnCreateGroup) btnCreateGroup.addEventListener('click', () => this.openCreateModal());
-
-        const btnSaveGroup = document.getElementById('btnSaveGroup');
-        if (btnSaveGroup) btnSaveGroup.addEventListener('click', () => this.saveGroup());
-
-        const btnConfirmDelete = document.getElementById('btnConfirmDelete');
-        if (btnConfirmDelete) btnConfirmDelete.addEventListener('click', () => this.confirmDelete());
     },
 
     async checkAccess() {
         try {
             const response = await fetch(`${this.baseUrl}api/currentuser`);
-            if (!response.ok) {
-                this.showAccessDenied();
-                return;
-            }
-
-            this.currentUser = await response.json();
-            const isAdmin = this.currentUser?.roles && this.currentUser.roles.includes('Admin');
-
-            if (isAdmin) {
-                const adminContent = document.getElementById('adminContent');
-                if (adminContent) adminContent.style.display = 'block';
-                await this.loadGroups();
+            if (response.ok) {
+                this.currentUser = await response.json();
+                if (this.currentUser?.roles.includes('Admin')) {
+                    const adminContent = document.getElementById('adminContent');
+                    if (adminContent) adminContent.style.display = 'block';
+                    this.loadGroups();
+                } else {
+                    this.showAccessDenied();
+                }
             } else {
                 this.showAccessDenied();
             }
@@ -170,81 +161,64 @@ window.groupsApp = {
     showAccessDenied() {
         const accessDenied = document.getElementById('accessDenied');
         if (accessDenied) accessDenied.style.display = 'block';
+        const adminContent = document.getElementById('adminContent');
+        if (adminContent) adminContent.style.display = 'none';
     },
 
     renderGroups(groups: Group[]) {
         const tbody = document.getElementById('groupsTableBody') as HTMLElement;
+        const container = document.getElementById('groupsTableContainer') as HTMLElement;
         tbody.innerHTML = '';
 
-        const noGroups = document.getElementById('noGroups') as HTMLElement;
-        const groupsTable = document.getElementById('groupsTable') as HTMLElement;
-        const groupsTableContainer = document.getElementById('groupsTableContainer') as HTMLElement;
-
-        if (groups.length === 0) {
-            noGroups.style.display = 'block';
-            groupsTable.style.display = 'none';
-        } else {
-            noGroups.style.display = 'none';
-            groupsTable.style.display = 'table';
-
-            groups.forEach(group => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                                <td>${group.groupId}</td>
-                                <td>${this.escapeHtml(group.name)}</td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="groupsApp.openEditModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
-                                        Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="groupsApp.openDeleteModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
-                                        Delete
-                                    </button>
-                                </td>
-                            `;
-                tbody.appendChild(row);
-            });
-        }
-
-        groupsTableContainer.style.display = 'block';
+        groups.forEach(group => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${this.escapeHtml(group.name)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="groupsApp.openEditModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="groupsApp.openDeleteModal(${group.groupId}, '${this.escapeHtml(group.name)}')">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        container.style.display = 'block';
     },
 
     openCreateModal() {
         this.currentGroupId = null;
-        const title = document.getElementById('groupModalTitle');
-        if (title) title.textContent = 'Create Group';
-
-        const nameInput = document.getElementById('groupName') as HTMLInputElement;
-        nameInput.value = '';
-        nameInput.classList.remove('is-invalid');
+        const title = document.getElementById('groupModalLabel');
+        const input = document.getElementById('groupName') as HTMLInputElement;
+        if (title) title.textContent = 'Create New Group';
+        if (input) input.value = '';
         this.groupModal.show();
     },
 
     openEditModal(groupId: number, groupName: string) {
         this.currentGroupId = groupId;
-        const title = document.getElementById('groupModalTitle');
+        const title = document.getElementById('groupModalLabel');
+        const input = document.getElementById('groupName') as HTMLInputElement;
         if (title) title.textContent = 'Edit Group';
-
-        const nameInput = document.getElementById('groupName') as HTMLInputElement;
-        nameInput.value = groupName;
-        nameInput.classList.remove('is-invalid');
+        if (input) input.value = groupName;
         this.groupModal.show();
     },
 
     async saveGroup() {
         const nameInput = document.getElementById('groupName') as HTMLInputElement;
         const name = nameInput.value.trim();
-
         if (!name) {
-            nameInput.classList.add('is-invalid');
+            alert('Please enter a group name');
             return;
         }
-        nameInput.classList.remove('is-invalid');
 
         try {
             let response;
             if (this.currentGroupId) {
                 // Update existing group
-                response = await fetch(`/api/groups/${this.currentGroupId}`, {
+                response = await fetch(`${this.baseUrl}api/groups/${this.currentGroupId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
@@ -299,4 +273,3 @@ window.groupsApp = {
         }
     }
 };
-
