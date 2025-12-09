@@ -132,7 +132,37 @@ public static class HostingExtensions
                 {
                     FileProvider = new PhysicalFileProvider(distPath),
                     RequestPath = "/dist",
-                    ContentTypeProvider = provider
+                    ContentTypeProvider = provider,
+                    OnPrepareResponse = ctx =>
+                    {
+                        try
+                        {
+                            var requestPath = ctx.Context.Request.Path.Value ?? string.Empty;
+                            var fileName = ctx.File?.Name ?? string.Empty;
+
+                            // Manifest should be no-cache so the app picks up new mappings quickly
+                            if (fileName.Equals("asset-manifest.json", StringComparison.OrdinalIgnoreCase)
+                                || requestPath.EndsWith("/asset-manifest.json", StringComparison.OrdinalIgnoreCase))
+                            {
+                                ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
+                                ctx.Context.Response.Headers["Pragma"] = "no-cache";
+                                ctx.Context.Response.Headers["Expires"] = "-1";
+                            }
+                            else
+                            {
+                                // Hashed assets are immutable — allow long caching in browsers/CDNs
+                                ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Be conservative on error: don't set long cache headers
+                            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
+                            ctx.Context.Response.Headers["Pragma"] = "no-cache";
+                            ctx.Context.Response.Headers["Expires"] = "-1";
+                            app.Logger.LogDebug(ex, "Error while preparing response headers for /dist assets");
+                        }
+                    }
                 });
             }
         }
@@ -157,7 +187,7 @@ public static class HostingExtensions
 
     public static WebApplication ConfigureEndpoints(this WebApplication app)
     {
-        app.MapRazorPages().WithStaticAssets();
+        app.MapRazorPages();
         app.MapControllers();
         return app;
     }

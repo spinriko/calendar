@@ -6,7 +6,8 @@
         "esbuild": "^0.27.1"
     },
     "scripts": {
-        "build:js": "esbuild ./wwwroot/js/*.ts --bundle --outdir=./wwwroot/dist --minify --sourcemap --target=es2020 --platform=browser --format=esm",
-        "watch:js": "esbuild ./wwwroot/js/*.ts --bundle --outdir=./wwwroot/dist --sourcemap --watch --target=es2020 --platform=browser --format=esm"
+        "build:js": "esbuild ./wwwroot/js/*.ts --bundle --outdir=./wwwroot/dist --minify --sourcemap --target=es2020 --platform=browser --format=esm && node ./scripts/generate-manifest.js",
+        "watch:js": "esbuild ./wwwroot/js/*.ts --bundle --outdir=./wwwroot/dist --sourcemap --watch --target=es2020 --platform=browser --format=esm && node ./scripts/generate-manifest.js",
+        "validate:manifest": "node ./scripts/validate-manifest.js"
     }
 }

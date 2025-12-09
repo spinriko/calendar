@@ -4,7 +4,7 @@
     ViewData["Title"] = "Absence Scheduler View";
 }
 
-<script src="~/lib/daypilot/daypilot-all.min.js" asp-append-version="true"></script>
+<!-- DayPilot is provided as a vendor script under /lib/daypilot/. Include it so it's available globally before the module runs -->
 
 <style>
     .disabled-row {
@@ -57,6 +57,9 @@
     </div>
     <div id="scheduler"></div>
 </div>
+
+<!-- Ensure DayPilot vendor is loaded globally before the module bundle runs -->
+<script src="@Url.Content("~/lib/daypilot/daypilot-all.min.js")"></script>
 
 <!-- Create/Edit Absence Modal -->
 <div class="modal fade" id="absenceModal" tabindex="-1" aria-labelledby="absenceModalLabel" aria-hidden="true">
@@ -124,13 +127,32 @@
 </div>
 
 <script type="module">
-    import { AbsenceSchedulerApp } from '@Url.Content("~/dist/absences-scheduler.js")';
+    (async () => {
+        // Try to load the fingerprinted filename from the manifest, fall back to the unhashed path
+        let moduleUrl = '/dist/absences-scheduler.js';
+        try {
+            const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-store' });
+            if (resp && resp.ok) {
+                const manifest = await resp.json();
+                if (manifest && manifest['absences-scheduler.js']) {
+                    moduleUrl = manifest['absences-scheduler.js'];
+                }
+            }
+        } catch (e) {
+            // ignore manifest errors and fall back
+        }
 
-    // Ensure DayPilot is loaded
-    if (typeof DayPilot !== 'undefined') {
-        const app = new AbsenceSchedulerApp(DayPilot, "scheduler", "datepicker", '@Url.Content("~/")');
-        app.init();
-    } else {
-        console.error("DayPilot library not loaded.");
-    }
+        try {
+            const mod = await import(moduleUrl);
+            const AbsenceSchedulerApp = mod.AbsenceSchedulerApp || mod.default?.AbsenceSchedulerApp || mod.default;
+            if (typeof DayPilot !== 'undefined' && AbsenceSchedulerApp) {
+                const app = new AbsenceSchedulerApp(DayPilot, "scheduler", "datepicker", '@Url.Content("~/")');
+                app.init();
+            } else {
+                console.error('DayPilot library not loaded or AbsenceSchedulerApp missing.');
+            }
+        } catch (err) {
+            console.error('Failed to load Absences Scheduler module', err);
+        }
+    })();
 </script>

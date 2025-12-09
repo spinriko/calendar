@@ -1,3 +1,8 @@
+// Include DayPilot runtime into the bundle so we can avoid SDK static web assets.
+// This imports the distributed DayPilot script from `wwwroot/lib/daypilot` and
+// ensures `DayPilot` is available as a global when the module runs.
+import '../lib/daypilot/daypilot-all.min.js';
+
 import {
     getStatusColor,
     buildAbsencesUrl,
@@ -992,3 +997,19 @@ export class AbsenceSchedulerApp {
         this.loadDatePickerData();
     }
 }
+
+// Ensure the class is available on the global object for cases where bundlers
+// inline/flatten the module and don't preserve named exports at runtime.
+// This gives consumers a reliable global fallback: `globalThis.AbsenceSchedulerApp`.
+try {
+    // @ts-ignore
+    if (typeof globalThis !== 'undefined') {
+        // @ts-ignore
+        globalThis.AbsenceSchedulerApp = AbsenceSchedulerApp;
+    }
+} catch (e) {
+    // ignore
+}
+
+// Default export to help ESM consumers that expect a default
+export default AbsenceSchedulerApp;
