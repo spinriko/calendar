@@ -20,6 +20,13 @@ public static class ServiceCollectionExtensions
         // Configure DB provider - use SQL Server
         var connStr = configuration.GetConnectionString("PtoTrackDbContext");
 
+        // Fail fast in local environment if connection string is missing to avoid accidentally
+        // connecting to a real database when running locally without proper config.
+        if (environment.IsEnvironment("local") && string.IsNullOrWhiteSpace(connStr))
+        {
+            throw new InvalidOperationException("Connection string 'PtoTrackDbContext' is missing. Add it to appsettings.local.json or user secrets before running locally.");
+        }
+
         if (!environment.IsEnvironment("Testing"))
         {
             services.AddDbContext<PtoTrackDbContext>(options =>

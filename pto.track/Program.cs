@@ -1,5 +1,6 @@
 using pto.track.Middleware;
 using pto.track.services;
+using pto.track;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
 var options = new WebApplicationOptions
@@ -9,7 +10,11 @@ var options = new WebApplicationOptions
 };
 var builder = WebApplication.CreateBuilder(options);
 
-builder.Services.AddWindowsService();
+// centralize minor configuration differences (local user-secrets, etc.)
+builder.ConfigureAppConfiguration();
+
+// centralize service registrations
+builder.ConfigureServices();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -52,67 +57,8 @@ builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-var pathBase = builder.Configuration.GetValue<string>("PathBase");
-if (!string.IsNullOrEmpty(pathBase))
-{
-    app.UsePathBase(pathBase);
-}
-
-app.UseExceptionHandler();
-
-if (!app.Environment.IsDevelopment())
-{
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-    app.UseHttpsRedirection();
-}
-
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseMockAuthentication(); // Auto-login for mock authentication in development
-app.UseAuthorization();
-
-// Enable Swagger in development
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-// Configure static files with no caching in development
-if (app.Environment.IsDevelopment())
-{
-    app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
-    {
-        OnPrepareResponse = ctx =>
-        {
-            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
-            ctx.Context.Response.Headers["Pragma"] = "no-cache";
-            ctx.Context.Response.Headers["Expires"] = "-1";
-        }
-    });
-}
-
-app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
-app.MapControllers();
-
-// Map health check endpoints
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("ready")
-});
-app.MapHealthChecks("/health/live");
-
-// Ensure the database is migrated/created at startup.
-if (!app.Environment.IsEnvironment("Testing"))
-{
-    app.Services.MigrateDatabase();
-}
+// Configure pipeline and map endpoints using centralized helpers
+app.ConfigurePipeline();
 
 app.Run();
 
