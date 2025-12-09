@@ -1,69 +1,124 @@
-// groups-app.js: Extracted from Groups.cshtml for testability and linting
+
+declare var bootstrap: any;
+
+interface Group {
+    groupId: number;
+    name: string;
+}
+
+interface Resource {
+    name: string;
+    isActive: boolean;
+    isApprover: boolean;
+    role: string;
+}
+
+interface CurrentUser {
+    roles: string[];
+}
+
+interface GroupsApp {
+    currentUser: CurrentUser | null;
+    currentGroupId: number | null;
+    groupModal: any;
+    deleteModal: any;
+    escapeHtml(str: string): string;
+    fetchResourcesForGroup(): Promise<void>;
+    loadGroups(): Promise<void>;
+    init(): Promise<void>;
+    checkAccess(): Promise<void>;
+    showAccessDenied(): void;
+    renderGroups(groups: Group[]): void;
+    openCreateModal(): void;
+    openEditModal(groupId: number, groupName: string): void;
+    saveGroup(): Promise<void>;
+    openDeleteModal(groupId: number, groupName: string): void;
+    confirmDelete(): Promise<void>;
+}
+
+// Remove the global augmentation block and just declare the property on Window interface
+// This works because this file is treated as a script (no imports/exports)
+interface Window {
+    groupsApp: GroupsApp;
+}
+
 window.groupsApp = {
     currentUser: null,
     currentGroupId: null,
     groupModal: null,
     deleteModal: null,
 
-    escapeHtml(str) {
+    escapeHtml(str: string): string {
         return str.replace(/[&<>'"]/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' }[c];
+            const map: { [key: string]: string } = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' };
+            return map[c];
         });
     },
 
     async fetchResourcesForGroup() {
-        const groupId = document.getElementById('groupSelect').value;
+        const select = document.getElementById('groupSelect') as HTMLSelectElement;
+        const groupId = select.value;
+        const resourcesPanel = document.getElementById('resourcesPanel') as HTMLElement;
+
         if (!groupId) {
-            document.getElementById('resourcesPanel').style.display = 'none';
+            resourcesPanel.style.display = 'none';
             return;
         }
         const response = await fetch(`/api/groups/${groupId}/resources`);
         if (!response.ok) {
-            document.getElementById('resourcesPanel').style.display = 'none';
+            resourcesPanel.style.display = 'none';
             return;
         }
-        const resources = await response.json();
-        const tbody = document.getElementById('resourcesTableBody');
+        const resources: Resource[] = await response.json();
+        const tbody = document.getElementById('resourcesTableBody') as HTMLElement;
         tbody.innerHTML = '';
+
+        const noResources = document.getElementById('noResources') as HTMLElement;
         if (resources.length === 0) {
-            document.getElementById('noResources').style.display = 'block';
+            noResources.style.display = 'block';
         } else {
-            document.getElementById('noResources').style.display = 'none';
+            noResources.style.display = 'none';
             resources.forEach(resource => {
-                const roles = [];
+                const roles: string[] = [];
                 if (resource.isActive) roles.push('<span class="badge bg-success">Active</span>');
                 if (resource.isApprover) roles.push('<span class="badge bg-info">Approver</span>');
                 if (resource.role === 'Admin') roles.push('<span class="badge bg-primary">Admin</span>');
                 if (resource.role === 'Manager') roles.push('<span class="badge bg-warning text-dark">Manager</span>');
                 if (resource.role === 'Employee') roles.push('<span class="badge bg-secondary">Employee</span>');
-                tbody.innerHTML += `<tr><td>${groupsApp.escapeHtml(resource.name)}</td><td>${roles.join(' ')}</td></tr>`;
+                tbody.innerHTML += `<tr><td>${this.escapeHtml(resource.name)}</td><td>${roles.join(' ')}</td></tr>`;
             });
         }
-        document.getElementById('resourcesPanel').style.display = 'block';
+        resourcesPanel.style.display = 'block';
     },
 
     async loadGroups() {
         try {
-            document.getElementById('loadingSpinner').style.display = 'block';
-            document.getElementById('groupsTableContainer').style.display = 'none';
+            const loadingSpinner = document.getElementById('loadingSpinner') as HTMLElement;
+            const groupsTableContainer = document.getElementById('groupsTableContainer') as HTMLElement;
+
+            loadingSpinner.style.display = 'block';
+            groupsTableContainer.style.display = 'none';
 
             const response = await fetch('/api/groups');
             if (!response.ok) throw new Error('Failed to load groups');
 
-            const groups = await response.json();
+            const groups: Group[] = await response.json();
             this.renderGroups(groups);
 
             // Populate groupSelect dropdown
-            const select = document.getElementById('groupSelect');
-            select.innerHTML = '<option value="">-- Select Group --</option>';
-            groups.forEach(group => {
-                select.innerHTML += `<option value="${group.groupId}">${groupsApp.escapeHtml(group.name)}</option>`;
-            });
-        } catch (error) {
+            const select = document.getElementById('groupSelect') as HTMLElement;
+            if (select) {
+                select.innerHTML = '<option value="">-- Select Group --</option>';
+                groups.forEach(group => {
+                    select.innerHTML += `<option value="${group.groupId}">${this.escapeHtml(group.name)}</option>`;
+                });
+            }
+        } catch (error: any) {
             console.error('Error loading groups:', error);
             alert('Error loading groups: ' + error.message);
         } finally {
-            document.getElementById('loadingSpinner').style.display = 'none';
+            const loadingSpinner = document.getElementById('loadingSpinner') as HTMLElement;
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
         }
     },
 
@@ -75,9 +130,14 @@ window.groupsApp = {
         await this.checkAccess();
 
         // Set up event listeners
-        document.getElementById('btnCreateGroup').addEventListener('click', () => this.openCreateModal());
-        document.getElementById('btnSaveGroup').addEventListener('click', () => this.saveGroup());
-        document.getElementById('btnConfirmDelete').addEventListener('click', () => this.confirmDelete());
+        const btnCreateGroup = document.getElementById('btnCreateGroup');
+        if (btnCreateGroup) btnCreateGroup.addEventListener('click', () => this.openCreateModal());
+
+        const btnSaveGroup = document.getElementById('btnSaveGroup');
+        if (btnSaveGroup) btnSaveGroup.addEventListener('click', () => this.saveGroup());
+
+        const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+        if (btnConfirmDelete) btnConfirmDelete.addEventListener('click', () => this.confirmDelete());
     },
 
     async checkAccess() {
@@ -89,10 +149,11 @@ window.groupsApp = {
             }
 
             this.currentUser = await response.json();
-            const isAdmin = this.currentUser.roles && this.currentUser.roles.includes('Admin');
+            const isAdmin = this.currentUser?.roles && this.currentUser.roles.includes('Admin');
 
             if (isAdmin) {
-                document.getElementById('adminContent').style.display = 'block';
+                const adminContent = document.getElementById('adminContent');
+                if (adminContent) adminContent.style.display = 'block';
                 await this.loadGroups();
             } else {
                 this.showAccessDenied();
@@ -104,19 +165,24 @@ window.groupsApp = {
     },
 
     showAccessDenied() {
-        document.getElementById('accessDenied').style.display = 'block';
+        const accessDenied = document.getElementById('accessDenied');
+        if (accessDenied) accessDenied.style.display = 'block';
     },
 
-    renderGroups(groups) {
-        const tbody = document.getElementById('groupsTableBody');
+    renderGroups(groups: Group[]) {
+        const tbody = document.getElementById('groupsTableBody') as HTMLElement;
         tbody.innerHTML = '';
 
+        const noGroups = document.getElementById('noGroups') as HTMLElement;
+        const groupsTable = document.getElementById('groupsTable') as HTMLElement;
+        const groupsTableContainer = document.getElementById('groupsTableContainer') as HTMLElement;
+
         if (groups.length === 0) {
-            document.getElementById('noGroups').style.display = 'block';
-            document.getElementById('groupsTable').style.display = 'none';
+            noGroups.style.display = 'block';
+            groupsTable.style.display = 'none';
         } else {
-            document.getElementById('noGroups').style.display = 'none';
-            document.getElementById('groupsTable').style.display = 'table';
+            noGroups.style.display = 'none';
+            groupsTable.style.display = 'table';
 
             groups.forEach(group => {
                 const row = document.createElement('tr');
@@ -136,27 +202,33 @@ window.groupsApp = {
             });
         }
 
-        document.getElementById('groupsTableContainer').style.display = 'block';
+        groupsTableContainer.style.display = 'block';
     },
 
     openCreateModal() {
         this.currentGroupId = null;
-        document.getElementById('groupModalTitle').textContent = 'Create Group';
-        document.getElementById('groupName').value = '';
-        document.getElementById('groupName').classList.remove('is-invalid');
+        const title = document.getElementById('groupModalTitle');
+        if (title) title.textContent = 'Create Group';
+
+        const nameInput = document.getElementById('groupName') as HTMLInputElement;
+        nameInput.value = '';
+        nameInput.classList.remove('is-invalid');
         this.groupModal.show();
     },
 
-    openEditModal(groupId, groupName) {
+    openEditModal(groupId: number, groupName: string) {
         this.currentGroupId = groupId;
-        document.getElementById('groupModalTitle').textContent = 'Edit Group';
-        document.getElementById('groupName').value = groupName;
-        document.getElementById('groupName').classList.remove('is-invalid');
+        const title = document.getElementById('groupModalTitle');
+        if (title) title.textContent = 'Edit Group';
+
+        const nameInput = document.getElementById('groupName') as HTMLInputElement;
+        nameInput.value = groupName;
+        nameInput.classList.remove('is-invalid');
         this.groupModal.show();
     },
 
     async saveGroup() {
-        const nameInput = document.getElementById('groupName');
+        const nameInput = document.getElementById('groupName') as HTMLInputElement;
         const name = nameInput.value.trim();
 
         if (!name) {
@@ -190,15 +262,16 @@ window.groupsApp = {
 
             this.groupModal.hide();
             await this.loadGroups();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving group:', error);
             alert('Error saving group: ' + error.message);
         }
     },
 
-    openDeleteModal(groupId, groupName) {
+    openDeleteModal(groupId: number, groupName: string) {
         this.currentGroupId = groupId;
-        document.getElementById('deleteGroupName').textContent = groupName;
+        const deleteGroupName = document.getElementById('deleteGroupName');
+        if (deleteGroupName) deleteGroupName.textContent = groupName;
         this.deleteModal.show();
     },
 
@@ -217,16 +290,10 @@ window.groupsApp = {
 
             this.deleteModal.hide();
             await this.loadGroups();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error deleting group:', error);
             alert('Error deleting group: ' + error.message);
         }
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

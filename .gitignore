@@ -72,3 +72,7 @@ coverage.xml
 publish/
 publish-standalone/
 coverage.xml
+
+# Generated JS files from TypeScript
+pto.track/wwwroot/js/*.js
+pto.track/wwwroot/js/**/*.js
