@@ -85,3 +85,7 @@ daypilot-all*
 staticwebassets.binlog
 pto.track/npm-audit*.json
 build_diag.txt
+
+# Test results: ignore TRX files and TestResults folders
+**/TestResults/
+*.trx
