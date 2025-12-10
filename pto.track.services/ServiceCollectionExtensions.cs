@@ -106,16 +106,23 @@ public static class ServiceCollectionExtensions
             }
 
             var context = services.GetRequiredService<PtoTrackDbContext>();
-            // Only run migrations if not using in-memory provider
-            var providerName = context.Database.ProviderName;
-            logger.LogDebug($"EF Core provider: {providerName}");
-            if (providerName != null && !providerName.Contains("InMemory", StringComparison.OrdinalIgnoreCase))
+            // Only run migrations if not using in-memory provider. Be defensive — provider resolution
+            // or an invalid connection string should not cause the process to throw and kill the test run.
+            string? providerName = null;
+            try
             {
-                context.Database.Migrate();
+                providerName = context.Database.ProviderName;
+                logger.LogDebug($"EF Core provider: {providerName}");
             }
-            else
+            catch (Exception exProv)
             {
-                // For in-memory provider, ensure the baseline seed data exists.
+                logger.LogWarning(exProv, "Unable to determine EF Core provider. Skipping migrations to avoid unsafe database operations.");
+                return;
+            }
+
+            // If provider indicates in-memory, ensure seed and skip migrations.
+            if (providerName != null && providerName.Contains("InMemory", StringComparison.OrdinalIgnoreCase))
+            {
                 try
                 {
                     pto.track.data.SeedDefaults.EnsureSeedData(context);
@@ -125,6 +132,35 @@ public static class ServiceCollectionExtensions
                 {
                     logger.LogDebug(exSeed, "Error while ensuring in-memory seed data.");
                 }
+                return;
+            }
+
+            // Additional validation: ensure the configured connection string looks like a SQL Server connection string.
+            bool LooksLikeSqlConnStr(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return false;
+                var lowered = s.ToLowerInvariant();
+                // check for common SQL Server keys
+                var containsKey = lowered.Contains("server=") || lowered.Contains("data source=") || lowered.Contains("initial catalog=") || lowered.Contains("trusted_connection=") || lowered.Contains("integrated security=") || lowered.Contains("user id=") || lowered.Contains("password=");
+                // also require at least one '=' and a ';' (simple heuristic)
+                var looksLikePairs = s.Contains('=') && s.Contains(';');
+                return containsKey && looksLikePairs;
+            }
+
+            if (!LooksLikeSqlConnStr(connStr))
+            {
+                logger.LogWarning("Connection string for 'PtoTrackDbContext' does not look like a valid SQL connection string. Skipping migrations.");
+                return;
+            }
+
+            try
+            {
+                context.Database.Migrate();
+            }
+            catch (Exception exMigrate)
+            {
+                // Migration failures in CI/dev should be logged but not crash the whole process.
+                logger.LogError(exMigrate, "An error occurred while applying database migrations. Skipping further migration attempts.");
             }
         }
         catch (Exception ex)
