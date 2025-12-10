@@ -3,6 +3,7 @@ param(
     [switch]$FailFast,
     [switch]$Execute,
     [switch]$DisableAnalyzers,
+    [switch]$IncludeMetrics,
     [int]$TimeoutSeconds = 120
 )
 
@@ -17,9 +18,11 @@ function Run-Command {
     Write-Host "Command: $File $Arguments (cwd: $WorkingDir)" -ForegroundColor Cyan
     if (-not $Execute) { Write-Host "(Dry-run) Would run above command" -ForegroundColor DarkCyan; return 0 }
 
-    $envVars = @{}
+    $envVars = @{ }
     # Ensure tests run against Testing environment (in-memory DB registered by test factories)
     $envVars['ASPNETCORE_ENVIRONMENT'] = 'Testing'
+    # By default skip the heavy code-metrics harness during normal dev test runs.
+    if (-not $IncludeMetrics) { $envVars['SKIP_CODE_METRICS'] = '1' }
 
     try {
         if ($File -ieq 'dotnet') {
@@ -89,6 +92,15 @@ if (-not (Test-Path (Join-Path $jsDir 'node_modules'))) {
 Write-Host "Running JS tests" -ForegroundColor Green
 $rc = Run-Command -File "npm" -Arguments "test" -WorkingDir $jsDir
 if ($rc -ne 0) { $exitCode = $rc; if ($FailFast) { exit $rc } }
+
+# Optionally run the code metrics harness (Roslyn-based) after functional tests
+if ($IncludeMetrics) {
+    Write-Host "Running code metrics harness (this may take some time)" -ForegroundColor Cyan
+    # Use the dedicated analyzer runner to also capture SARIF and logs
+    $runAnalyzers = Join-Path $scriptDir 'run-analyzers.ps1'
+    & pwsh $runAnalyzers -Execute -RunMetrics
+    if ($LASTEXITCODE -ne 0) { Write-Host "Metrics run failed with exit $LASTEXITCODE" -ForegroundColor Red; exit $LASTEXITCODE }
+}
 
 if ($exitCode -eq 0) { Write-Host "\n✓ All dev tests passed" -ForegroundColor Green } else { Write-Host "\n✗ Some dev tests failed (exit $exitCode)" -ForegroundColor Red }
 exit $exitCode

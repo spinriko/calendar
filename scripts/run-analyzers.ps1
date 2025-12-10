@@ -1,6 +1,7 @@
 param(
     [string]$Solution = 'pto.track.sln',
     [switch]$Execute,
+    [switch]$RunMetrics,
     [string]$Configuration = 'Release'
 )
 
@@ -45,4 +46,22 @@ else {
     Write-Host "To actually run analyzers, re-run with the `-Execute` switch."
     Write-Host "Plaintext log will be written to: $logFile when executed."
     Write-Host "SARIF error log will be written to: $sarifFile when executed."
+}
+
+# Optionally run the CodeMetricsAnalyzer tests (Roslyn-based metrics harness)
+if ($RunMetrics) {
+    $metricsDir = Join-Path $PSScriptRoot "..\artifacts\metrics"
+    if (-not (Test-Path $metricsDir)) { New-Item -ItemType Directory -Force -Path $metricsDir | Out-Null }
+
+    $metricsLog = Join-Path $metricsDir "code-metrics-$(Get-Date -Format yyyyMMdd-HHmmss).log"
+    Write-Host "Running CodeMetricsAnalyzer tests and saving log to: $metricsLog"
+    # Run the specific test filter to invoke the harness
+    & $dotnet test "..\pto.track.tests\pto.track.tests.csproj" --filter "FullyQualifiedName~CodeMetricsAnalyzer" -v minimal 2>&1 | Tee-Object $metricsLog
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "CodeMetricsAnalyzer tests failed or returned non-zero exit code: $LASTEXITCODE" -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+    else {
+        Write-Host "CodeMetricsAnalyzer completed — check artifacts in: $metricsDir"
+    }
 }
