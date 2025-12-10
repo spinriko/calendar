@@ -85,6 +85,13 @@ public static class AppServiceExtensions
 
         // Choose and register the DbContext strategy based on environment/config
         var connStr = builder.Configuration.GetConnectionString("PtoTrackDbContext");
+        // Treat the literal placeholder value 'user-secrets' as absent so local/test runs
+        // that don't populate secrets don't accidentally try to use SQL Server.
+        if (string.Equals(connStr, "user-secrets", StringComparison.OrdinalIgnoreCase))
+        {
+            connStr = string.Empty;
+        }
+
         IDbContextStrategy strategy;
         if (builder.Environment.IsEnvironment("Testing") || string.IsNullOrWhiteSpace(connStr))
         {

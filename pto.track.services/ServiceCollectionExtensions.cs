@@ -20,6 +20,12 @@ public static class ServiceCollectionExtensions
     {
         // Configure DB provider via the provided strategy instance.
         var connStr = configuration.GetConnectionString("PtoTrackDbContext");
+        // Treat the literal placeholder value 'user-secrets' as absent so local/test runs
+        // that don't populate secrets don't accidentally try to use SQL Server.
+        if (string.Equals(connStr, "user-secrets", StringComparison.OrdinalIgnoreCase))
+        {
+            connStr = string.Empty;
+        }
 
         // Fail fast in local environment if connection string is missing to avoid accidentally
         // connecting to a real database when running locally without proper config.
@@ -89,6 +95,10 @@ public static class ServiceCollectionExtensions
             // If no connection string is configured, assume tests intend to use InMemory DB and skip migrations.
             var config = services.GetService<IConfiguration>();
             var connStr = config?.GetConnectionString("PtoTrackDbContext");
+            if (string.Equals(connStr, "user-secrets", StringComparison.OrdinalIgnoreCase))
+            {
+                connStr = string.Empty;
+            }
             if (string.IsNullOrWhiteSpace(connStr))
             {
                 logger.LogDebug("Skipping database migration: no connection string configured (likely Testing/InMemory run).");
