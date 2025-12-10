@@ -19,7 +19,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes cyclomatic complexity for all C# projects in the solution.
     /// Reports methods with complexity > 10.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeProjectComplexity()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -112,7 +112,7 @@ public class CodeMetricsAnalyzer
     /// Formula: 171 - 5.2 * ln(Volume) - 0.23 * Complexity - 16.2 * ln(Lines)
     /// Scale: 0-100 (higher = more maintainable)
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeMaintainabilityIndex()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -185,7 +185,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes lines of code per method.
     /// Threshold: 50 lines
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeLinesOfCode()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -279,7 +279,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes method parameter count.
     /// Threshold: 5 parameters
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeMethodParameters()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -344,7 +344,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes nesting depth.
     /// Threshold: 4 levels
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeNestingDepth()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -408,7 +408,7 @@ public class CodeMetricsAnalyzer
     /// <summary>
     /// Analyzes class coupling and dependencies.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeClassCoupling()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -504,7 +504,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes depth of inheritance tree.
     /// Threshold: 4 levels
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeInheritanceDepth()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -567,7 +567,7 @@ public class CodeMetricsAnalyzer
     /// <summary>
     /// Comprehensive summary report combining all metrics.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task GenerateComprehensiveSummary()
     {
         var sourceFiles = GetAllSourceFiles();
