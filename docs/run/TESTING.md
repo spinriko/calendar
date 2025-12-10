@@ -2,6 +2,35 @@
 
 This solution includes comprehensive test coverage across multiple test projects, ensuring reliability and maintainability of the codebase.
 
+## Quick Local Run
+
+If you want a fast, reliable local run of the functional tests (skip heavy code-metrics analysis):
+
+```pwsh
+$env:SKIP_CODE_METRICS='1'
+$env:ASPNETCORE_ENVIRONMENT='Testing'
+dotnet test .\pto.track.sln /property:GenerateFullPaths=true /consoleloggerparameters:NoSummary
+```
+
+Run frontend unit tests (Jest + ESLint):
+
+```pwsh
+cd pto.track.tests.js
+npm ci
+npm test
+```
+
+Run the code-metrics analyzer separately (recommended for CI or off-main-thread runs):
+
+```pwsh
+# Runs only the CodeMetricsAnalyzer tests (runs Roslyn analysis across solution)
+dotnet test pto.track.tests/pto.track.tests.csproj --filter "FullyQualifiedName~CodeMetricsAnalyzer"
+```
+
+Notes:
+- The `SKIP_CODE_METRICS=1` environment variable prevents the large file/roslyn-based analysis from running during normal test runs. Use it for fast iteration.
+- The metrics harness is useful, but it can be slow on first run; run it separately when needed.
+
 ## Test Projects Overview
 
 ### Summary Statistics

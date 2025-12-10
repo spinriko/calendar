@@ -116,6 +116,18 @@ pto.track.data         → Data access layer (EF Core + Entities)
 
   - Analyzer logs and SARIF are written to `artifacts/analyzers/` by the analyzer runner. The runner writes a SARIF skeleton when MSBuild produces none so CI consumers always have a SARIF artifact to upload.
 
+  Quick local runs and tips:
+
+  - To speed up local iteration **skip the code-metrics harness** (it performs Roslyn parsing across the repo and can be slow):
+
+  ```pwsh
+  $env:SKIP_CODE_METRICS='1'
+  $env:ASPNETCORE_ENVIRONMENT='Testing'
+  dotnet test .\pto.track.sln
+  ```
+
+  - Frontend tests live in `pto.track.tests.js` — run `npm ci` and `npm test` inside that folder to run Jest tests and ESLint validation.
+
   ---
 
   ## Useful developer scripts
