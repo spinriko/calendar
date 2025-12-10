@@ -58,6 +58,8 @@ Project includes a JS test runner under `pto.track.tests.js/`.
 pwsh -NoProfile -Command "npm install --prefix pto.track.tests.js && npm test --prefix pto.track.tests.js"
 ```
 
+Node requirement: The JavaScript test tooling requires Node.js 20 or greater. If you have an older Node version installed, install Node 20+ (we recommend using `nvm` / `nvm-windows` or your OS package manager). CI is configured to use Node 20.
+
 Headless capture (Puppeteer) and fixtures
 - The repo keeps sample headless capture fixtures in `responses/`. If you regenerate assets fingerprints, run the fixture-update script to keep fixtures in sync:
 

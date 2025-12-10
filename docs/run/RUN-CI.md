@@ -135,6 +135,47 @@ Recommended artifact handling
 - Coverage: generate Cobertura (or other supported format) during `dotnet test` (use Coverlet / XPlat Code Coverage) and publish via `PublishCodeCoverageResults@1`.
 - Analyzer logs: write analyzer output to `artifacts/analyzers/` (our `scripts/run-analyzers.ps1` does this) and publish that directory with `PublishBuildArtifacts@1` so reviewers can download logs. Optionally produce SARIF from analyzers and publish with a SARIF-aware extension.
 
+Run tests per project (recommended)
+
+It's best to run each test project separately in CI so you can capture per-project test results, timeouts, and logs. This avoids a single monolithic test run that can obscure which project hung or failed and makes it easy to parallelize later.
+
+Example (run each project separately and publish TRX results):
+
+```yaml
+# run services/unit tests
+script: |
+  dotnet test pto.track.services.tests/pto.track.services.tests.csproj \
+    --logger "trx;LogFileName=services_tests.trx" \
+    --results-directory $(Build.SourcesDirectory)/TestResults/services
+
+# run integration/app tests
+script: |
+  dotnet test pto.track.tests/pto.track.tests.csproj \
+    --logger "trx;LogFileName=app_tests.trx" \
+    --results-directory $(Build.SourcesDirectory)/TestResults/app
+
+# run data tests
+script: |
+  dotnet test pto.track.data.tests/pto.track.data.tests.csproj \
+    --logger "trx;LogFileName=data_tests.trx" \
+    --results-directory $(Build.SourcesDirectory)/TestResults/data
+
+# publish all TRX files together
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'VSTest'
+    testResultsFiles: '**/TestResults/**/*.trx'
+    mergeTestResults: true
+    testRunTitle: 'Dotnet Tests'
+```
+
+Notes:
+- Use `--results-directory` (or `--logger`) to control where TRX files are written so the `PublishTestResults` task can find them reliably.
+- Add job-level or script-level timeouts so a single hanging test cannot stall the whole pipeline. When a project hangs, you'll get a failed job quickly instead of waiting for a single aggregated test run to timeout.
+- Keep analyzers in a separate stage so their behavior doesn't affect the test job.
+- If your build agent runs Node/npm tests (frontend), run them in their own job and publish JUnit/Jest results (e.g., using `jest-junit`) so frontend failures are reported independently.
+  - Node version: frontend/test jobs require Node.js 20 or greater. Use the `NodeTool@0` task to ensure a consistent Node runtime in CI agents.
+
 Tips and caveats
 
 - If analyzers are noisy and cause flakes, keep them in the separate `Analyzers` stage and run them on PR merge or nightly schedules instead of every PR.

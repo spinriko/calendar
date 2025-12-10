@@ -2,9 +2,9 @@
   "type": "module",
   "scripts": {
     "lint": "eslint .",
-    "test": "npm run lint && node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "test:coverage": "npm run lint && c8 node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch"
+    "test": "npm run lint && jest --config jest.config.cjs",
+    "test:coverage": "npm run lint && c8 jest --config jest.config.cjs",
+    "test:watch": "jest --config jest.config.cjs --watch"
   },
   "dependencies": {
     "express": "^5.2.1",
