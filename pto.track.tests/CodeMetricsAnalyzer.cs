@@ -899,6 +899,14 @@ public class CodeMetricsAnalyzer
 
     private List<string> GetAllSourceFiles()
     {
+        // Allow skipping heavy code-metrics analysis during CI or long-running test suites.
+        // Set environment variable `SKIP_CODE_METRICS=1` to bypass file discovery.
+        var skip = Environment.GetEnvironmentVariable("SKIP_CODE_METRICS");
+        if (!string.IsNullOrEmpty(skip) && skip == "1")
+        {
+            return new List<string>();
+        }
+
         var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
 
         // Discover all .csproj files under the solution and analyze their source files.
