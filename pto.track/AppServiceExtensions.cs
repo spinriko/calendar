@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using pto.track.Middleware;
 using pto.track.services;
+using pto.track.services.DbContextStrategies;
 
 namespace pto.track;
 
@@ -82,8 +83,22 @@ public static class AppServiceExtensions
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
         builder.Services.AddProblemDetails();
 
-        // Configure database and register application services
-        builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment);
+        // Choose and register the DbContext strategy based on environment/config
+        var connStr = builder.Configuration.GetConnectionString("PtoTrackDbContext");
+        IDbContextStrategy strategy;
+        if (builder.Environment.IsEnvironment("Testing") || string.IsNullOrWhiteSpace(connStr))
+        {
+            strategy = new pto.track.services.DbContextStrategies.InMemoryDbContextStrategy();
+        }
+        else
+        {
+            strategy = new pto.track.services.DbContextStrategies.SqlServerDbContextStrategy(connStr);
+        }
+        // Register the strategy so other components may resolve it if needed
+        builder.Services.AddSingleton(typeof(pto.track.services.DbContextStrategies.IDbContextStrategy), strategy);
+
+        // Configure database and register application services using the chosen strategy
+        builder.Services.AddSchedulerServices(builder.Configuration, builder.Environment, strategy);
 
         return builder;
     }

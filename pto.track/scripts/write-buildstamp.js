@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const projectDir = process.argv[2] || '.';
+let projectDir = process.argv[2] || '.';
+if (typeof projectDir === 'string') {
+    projectDir = projectDir.trim();
+    projectDir = projectDir.replace(/^['\"]+|['\"]+$/g, '');
+    projectDir = path.normalize(projectDir);
+}
 const stampPath = path.join(projectDir, 'wwwroot', 'dist', '.buildstamp');
 
 try {

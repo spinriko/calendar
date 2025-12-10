@@ -211,10 +211,12 @@ public static class HostingExtensions
 
     public static WebApplication EnsureDatabaseMigrated(this WebApplication app)
     {
-        if (!app.Environment.IsEnvironment("Testing"))
-        {
-            app.Services.MigrateDatabase();
-        }
+        // Always attempt to run the host-level migration/seeding helper.
+        // The helper itself is defensive: it will skip SQL migrations when
+        // running in the Testing environment or when no connection string
+        // is configured, but it will populate in-memory databases with
+        // baseline seed data so integration tests have a predictable state.
+        app.Services.MigrateDatabase();
         return app;
     }
 

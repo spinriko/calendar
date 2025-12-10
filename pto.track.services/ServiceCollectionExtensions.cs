@@ -15,9 +15,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSchedulerServices(
         this IServiceCollection services,
         IConfiguration configuration,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        DbContextStrategies.IDbContextStrategy strategy)
     {
-        // Configure DB provider - use SQL Server
+        // Configure DB provider via the provided strategy instance.
         var connStr = configuration.GetConnectionString("PtoTrackDbContext");
 
         // Fail fast in local environment if connection string is missing to avoid accidentally
@@ -27,15 +28,7 @@ public static class ServiceCollectionExtensions
             throw new InvalidOperationException("Connection string 'PtoTrackDbContext' is missing. Add it to appsettings.local.json or user secrets before running locally.");
         }
 
-        if (!environment.IsEnvironment("Testing"))
-        {
-            services.AddDbContext<PtoTrackDbContext>(options =>
-                options.UseSqlServer(connStr, sqlOptions =>
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(30),
-                        errorNumbersToAdd: null)));
-        }
+        strategy.ConfigureServices(services, configuration);
 
         // Register AutoMapper
         services.AddAutoMapper(typeof(ServiceCollectionExtensions).Assembly);
@@ -83,14 +76,45 @@ public static class ServiceCollectionExtensions
         var services = serviceScope.ServiceProvider;
         try
         {
+            var logger = services.GetRequiredService<ILogger<PtoTrackDbContext>>();
+
+            // Defensive: if the host environment is explicitly "Testing", don't attempt migrations.
+            var env = services.GetService<IHostEnvironment>();
+            if (env != null && env.IsEnvironment("Testing"))
+            {
+                logger.LogDebug("Skipping database migration: running in Testing environment.");
+                return;
+            }
+
+            // If no connection string is configured, assume tests intend to use InMemory DB and skip migrations.
+            var config = services.GetService<IConfiguration>();
+            var connStr = config?.GetConnectionString("PtoTrackDbContext");
+            if (string.IsNullOrWhiteSpace(connStr))
+            {
+                logger.LogDebug("Skipping database migration: no connection string configured (likely Testing/InMemory run).");
+                return;
+            }
+
             var context = services.GetRequiredService<PtoTrackDbContext>();
             // Only run migrations if not using in-memory provider
             var providerName = context.Database.ProviderName;
-            var logger = services.GetRequiredService<ILogger<PtoTrackDbContext>>();
             logger.LogDebug($"EF Core provider: {providerName}");
             if (providerName != null && !providerName.Contains("InMemory", StringComparison.OrdinalIgnoreCase))
             {
                 context.Database.Migrate();
+            }
+            else
+            {
+                // For in-memory provider, ensure the baseline seed data exists.
+                try
+                {
+                    pto.track.data.SeedDefaults.EnsureSeedData(context);
+                    logger.LogDebug("Ensured in-memory seed data via SeedDefaults.");
+                }
+                catch (Exception exSeed)
+                {
+                    logger.LogDebug(exSeed, "Error while ensuring in-memory seed data.");
+                }
             }
         }
         catch (Exception ex)
@@ -98,5 +122,45 @@ public static class ServiceCollectionExtensions
             var logger = services.GetRequiredService<ILogger<PtoTrackDbContext>>();
             logger.LogError(ex, "An error occurred migrating or creating the DB.");
         }
+    }
+
+    private static void EnsureSeedData(PtoTrackDbContext context, ILogger logger)
+    {
+        // If resources already exist, assume the DB is seeded.
+        if (context.Resources.Any())
+        {
+            logger.LogDebug("In-memory DB already contains resources; skipping seed.");
+            return;
+        }
+
+        // Seed Group 1
+        if (!context.Groups.Any(g => g.GroupId == 1))
+        {
+            context.Groups.Add(new pto.track.data.Models.Group { GroupId = 1, Name = "Group 1" });
+        }
+
+        // Create the standard initial resources matching the model-level seed
+        var seedDate = new DateTime(2025, 11, 19, 0, 0, 0, DateTimeKind.Utc);
+
+        var resources = new[]
+        {
+            new pto.track.data.Resource { Id = 1, Name = "Test Employee 1", Role = "Employee", IsActive = true, IsApprover = false, EmployeeNumber = "EMP001", Email = "employee@example.com", ActiveDirectoryId = "mock-ad-guid-employee", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 },
+            new pto.track.data.Resource { Id = 2, Name = "Test Employee 2", Role = "Employee", IsActive = true, IsApprover = false, EmployeeNumber = "EMP002", Email = "employee2@example.com", ActiveDirectoryId = "mock-ad-guid-employee2", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 },
+            new pto.track.data.Resource { Id = 3, Name = "Manager", Role = "Manager", IsActive = true, IsApprover = true, EmployeeNumber = "MGR001", Email = "manager@example.com", ActiveDirectoryId = "mock-ad-guid-manager", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 },
+            new pto.track.data.Resource { Id = 4, Name = "Approver", Role = "Approver", IsActive = true, IsApprover = true, EmployeeNumber = "APR001", Email = "approver@example.com", ActiveDirectoryId = "mock-ad-guid-approver", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 },
+            new pto.track.data.Resource { Id = 5, Name = "Administrator", Role = "Admin", IsActive = true, IsApprover = true, EmployeeNumber = "ADMIN001", Email = "admin@example.com", ActiveDirectoryId = "mock-ad-guid-admin", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 }
+        };
+
+        // Only add those that don't already exist to avoid duplicates on repeated runs
+        foreach (var r in resources)
+        {
+            if (!context.Resources.Any(e => e.Id == r.Id))
+            {
+                context.Resources.Add(r);
+            }
+        }
+
+        context.SaveChanges();
+        logger.LogDebug("In-memory DB seeded with baseline resources and groups.");
     }
 }

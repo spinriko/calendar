@@ -6,7 +6,15 @@ function fail(msg, code = 1) {
     process.exit(code);
 }
 
-const projectDir = process.argv[2] || path.join(__dirname, '..');
+let projectDir = process.argv[2] || path.join(__dirname, '..');
+// Sanitize projectDir: some MSBuild/Exec quoting can inject stray surrounding quotes
+if (typeof projectDir === 'string') {
+    projectDir = projectDir.trim();
+    // remove any leading or trailing single/double quotes that may come from MSBuild quoting
+    projectDir = projectDir.replace(/^['\"]+|['\"]+$/g, '');
+    // normalize path separators
+    projectDir = path.normalize(projectDir);
+}
 const distDir = path.join(projectDir, 'wwwroot', 'dist');
 const manifestPath = path.join(distDir, 'asset-manifest.json');
 
