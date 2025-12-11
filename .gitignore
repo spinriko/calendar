@@ -104,3 +104,6 @@ test-logs/
 # MSBuild logs (local CI/build agent outputs)
 msbuild-bin.log
 *.binlog
+
+# Local developer overrides (keep local PathBase / secrets out of source control)
+pto.track/appsettings.local.json
