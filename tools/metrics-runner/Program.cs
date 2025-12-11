@@ -1,4 +1,10 @@
 using System.Text.Json;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+// (Roslyn-based walkers are implemented in RoslynMetrics.cs)
 
 var root = args.Length > 0 ? args[0] : Path.GetFullPath("..\\..");
 var solutionPath = Path.GetFullPath(root);
@@ -35,70 +41,26 @@ foreach (var csproj in csprojFiles)
         try
         {
             var text = File.ReadAllText(f);
-            // remove block comments
-            text = System.Text.RegularExpressions.Regex.Replace(text, "/\\*.*?\\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
-            // remove line comments
-            var lines = text.Split(new[] { '\n' }, StringSplitOptions.None)
-                .Select(l =>
-                {
-                    var idx = l.IndexOf("//");
-                    return idx >= 0 ? l.Substring(0, idx) : l;
-                })
-                .Select(l => l.TrimEnd('\r'))
-                .ToList();
 
-            var nonEmptyLines = lines.Count(l => !string.IsNullOrWhiteSpace(l));
+            // Parse with Roslyn for more accurate metrics
+            var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(text);
+            var rootNode = tree.GetRoot();
+
+            // Lines of code (non-empty)
+            var nonEmptyLines = text.Split(new[] { '\n' }, StringSplitOptions.None).Count(l => !string.IsNullOrWhiteSpace(l.Trim()));
             totalLines += nonEmptyLines;
 
-            // Halstead token approximation
-            var tokens = System.Text.RegularExpressions.Regex.Split(text, "\\W+")
-                .Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
-            int N = tokens.Count;
-            int n = tokens.Distinct(StringComparer.Ordinal).Count();
+            // Walk the syntax tree to compute cyclomatic and Halstead-like counts
+            var walker = new RoslynMetricsWalker();
+            walker.Visit(rootNode);
+
+            int fileCyclomatic = walker.TotalCyclomatic;
+            int N = walker.TotalOperators + walker.TotalOperands;
+            int n = walker.DistinctOperators.Count + walker.DistinctOperands.Count;
             double halsteadVolume = 1.0;
             if (n > 0)
             {
                 halsteadVolume = N * Math.Log(Math.Max(2, n), 2);
-            }
-
-            // Cyclomatic complexity estimation per file by scanning methods
-            int fileCyclomatic = 0;
-            var methodRegex = new System.Text.RegularExpressions.Regex(@"\b(?:public|private|protected|internal|static|async|sealed|virtual|override|extern)\s+[\w<>,\[\]\s]+\s+\w+\s*\([^)]*\)\s*\{", System.Text.RegularExpressions.RegexOptions.Compiled);
-            var matches = methodRegex.Matches(text);
-            var complexityKeywords = new[] { "if", "for", "foreach", "while", "case", "catch", "&&", "||", "?" };
-
-            foreach (System.Text.RegularExpressions.Match m in matches)
-            {
-                int start = m.Index + m.Length - 1; // position at '{'
-                int braceDepth = 0;
-                int i = start;
-                for (; i < text.Length; i++)
-                {
-                    if (text[i] == '{') braceDepth++;
-                    else if (text[i] == '}')
-                    {
-                        braceDepth--;
-                        if (braceDepth == 0) { i++; break; }
-                    }
-                }
-                var methodBody = text.Substring(start, Math.Min(text.Length - start, i - start));
-                int methodComplexity = 1;
-                foreach (var kw in complexityKeywords)
-                {
-                    methodComplexity += System.Text.RegularExpressions.Regex.Matches(methodBody, System.Text.RegularExpressions.Regex.Escape(kw)).Count;
-                }
-                fileCyclomatic += methodComplexity;
-            }
-
-            // Fallback: if no methods found, approximate complexity by counting keywords in file
-            if (matches.Count == 0)
-            {
-                int approx = 1;
-                foreach (var kw in complexityKeywords)
-                {
-                    approx += System.Text.RegularExpressions.Regex.Matches(text, System.Text.RegularExpressions.Regex.Escape(kw)).Count;
-                }
-                fileCyclomatic = approx;
             }
 
             fileMetrics.Add(new
@@ -155,3 +117,5 @@ Console.WriteLine($"Wrote metrics to {outFile}");
 Console.WriteLine($"Projects: {report.projectCount}, Files: {report.totalFiles}, Lines: {report.totalLines}");
 
 return 0;
+
+
