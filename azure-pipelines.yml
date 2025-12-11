@@ -20,8 +20,9 @@ pool:
   name: Default
 
 stages:
+
   - stage: Build
-    displayName: 'Build Solution'
+    displayName: 'Build Solution and Frontend'
     jobs:
       - job: Build
         steps:
@@ -57,6 +58,18 @@ stages:
             displayName: 'Restore NuGet Packages'
           - script: dotnet build pto.track/pto.track.csproj --configuration Release
             displayName: 'Build Project'
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: 'Use Node.js 20.x'
+          - script: npm install --prefix pto.track && npm run build --prefix pto.track
+            displayName: 'Build Frontend Bundles (esbuild)'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track/wwwroot/dist'
+              artifactName: 'frontend-dist'
+              publishLocation: 'Container'
+
 
   - stage: Test
     displayName: 'Run Tests and Coverage'
@@ -64,37 +77,67 @@ stages:
     jobs:
       - job: Test
         steps:
-          - script: dotnet test **/*.tests.csproj --configuration Release --collect:"XPlat Code Coverage"
-            displayName: 'Run .NET Tests with Coverage (All Projects)'
-          - task: NodeTool@0
-            inputs:
-              versionSpec: '20.x'
-            displayName: 'Use Node.js 20.x'
-
+          - script: dotnet test pto.track.services.tests/pto.track.services.tests.csproj --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/services
+            displayName: 'Test Services'
+          - script: dotnet test pto.track.tests/pto.track.tests.csproj --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/app
+            displayName: 'Test App'
+          - script: dotnet test pto.track.data.tests/pto.track.data.tests.csproj --logger "trx;LogFileName=data_tests.trx" --results-directory $(Build.SourcesDirectory)/TestResults/data
+            displayName: 'Test Data'
           - script: pwsh ./pto.track.tests.js/run-headless.ps1
-            displayName: 'Run QUnit JavaScript Tests'
+            displayName: 'Run JavaScript Tests (QUnit/Puppeteer)'
           - task: PublishTestResults@2
             inputs:
-              testResultsFiles: '**/TestResults/*.trx'
-              testRunTitle: 'C# Test Results'
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '**/TestResults/**/*.trx'
+              mergeTestResults: true
+              testRunTitle: 'Dotnet Tests'
           - task: PublishCodeCoverageResults@1
             inputs:
               codeCoverageTool: 'Cobertura'
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.cobertura.xml'
-              reportDirectory: '$(System.DefaultWorkingDirectory)/**/TestResults/'
+              summaryFileLocation: '$(Build.SourcesDirectory)/**/coverage.cobertura.xml'
+              reportDirectory: '$(Build.SourcesDirectory)/coverage-report'
           - task: PublishBuildArtifacts@1
             inputs:
               pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track.tests.js/save-results.html'
               artifactName: 'JavaScriptTestReport'
+              publishLocation: 'Container'
+  - stage: Analyze
+    displayName: 'Run Analyzers and Metrics'
+    dependsOn: Test
+    jobs:
+      - job: Analyze
+        steps:
+          - script: pwsh ./scripts/run-analyzers.ps1 -Execute
+            displayName: 'Run Roslyn Analyzers'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/artifacts/analyzers'
+              artifactName: 'analyzers'
+              publishLocation: 'Container'
+          - script: |
+              dotnet build tools/metrics-runner/metrics-runner.csproj -c Release
+              dotnet run --project tools/metrics-runner -- "$(Build.SourcesDirectory)"
+            displayName: 'Run metrics-runner (console)'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/artifacts/metrics'
+              artifactName: 'metrics'
+              publishLocation: 'Container'
+
 
   - stage: Publish
     displayName: 'Publish Standalone App'
-    dependsOn: Test
+    dependsOn: Analyze
     jobs:
       - job: Publish
         steps:
           - script: dotnet publish pto.track/pto.track.csproj -c Release -o $(deployFolder) --self-contained -r win-x64
             displayName: 'Publish Standalone Application'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(deployFolder)'
+              artifactName: 'app-publish'
+              publishLocation: 'Container'
 
   - stage: Deploy
     displayName: 'Deploy to IIS Server'
