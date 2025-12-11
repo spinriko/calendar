@@ -100,3 +100,7 @@ build_diag.txt
 # Local artifacts and analysis outputs
 artifacts/
 test-logs/
+
+# MSBuild logs (local CI/build agent outputs)
+msbuild-bin.log
+*.binlog
