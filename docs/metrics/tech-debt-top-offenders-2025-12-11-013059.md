@@ -1,3 +1,4 @@
+```markdown
 # Tech Debt — Top Offenders (snapshot)
 
 Generated: 2025-12-11T01:30:59Z
@@ -48,3 +49,5 @@ dotnet run --project tools/metrics-runner -- "C:\code\dotnet\pto"
 
 - This snapshot was generated from `artifacts/metrics/metrics.json`. The metrics are approximate (Halstead/MI approximations) but sufficient for prioritization.
 - Consider converting this snapshot into a tracked backlog (issue per file) as you pay down tech debt.
+
+```

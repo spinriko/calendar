@@ -1,4 +1,7 @@
+
 # Semantic Versioning Plan
+
+Status: Draft (as of December 11, 2025 — not yet implemented)
 
 This document outlines the plan to implement Semantic Versioning (SemVer) for the `pto.track` application.
 

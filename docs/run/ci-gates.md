@@ -1,3 +1,4 @@
+````markdown
 # CI Gates — Future Work
 
 This page collects recommended patterns for gating builds based on code metrics and other quality signals. It's intended as a short, copy-pasteable reference for CI engineers who will implement gates in your pipeline (Azure DevOps, Jenkins, GitLab, etc.).
@@ -80,3 +81,5 @@ Next steps (suggested)
 
 Notes
 - This document is guidance for implementers. The exact thresholds and gating strategy should be chosen by the team owning the repository to match appetite for enforcement vs. developer friction.
+
+````

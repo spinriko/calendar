@@ -1,3 +1,4 @@
+```markdown
 # Jest Test Coverage Proposals
 
 **Current Status:** 38 tests passing
@@ -226,3 +227,5 @@
 - Tests should be organized by function with clear describe blocks
 - Edge cases should include error conditions and boundary values
 - Integration tests should verify realistic user workflows
+
+```
