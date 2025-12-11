@@ -1,3 +1,8 @@
+// Include DayPilot runtime into the bundle so we can avoid SDK static web assets.
+// This imports the distributed DayPilot script from `wwwroot/lib/daypilot` and
+// ensures `DayPilot` is available as a global when the module runs.
+import '../lib/daypilot/daypilot-all.min.js';
+
 import {
     getStatusColor,
     buildAbsencesUrl,
@@ -26,19 +31,49 @@ interface AppElements {
     filterApproved: HTMLInputElement;
     filterRejected: HTMLInputElement;
     filterCancelled: HTMLInputElement;
-    modal?: any;
-    modalEl?: HTMLElement;
-    modalTitle?: HTMLElement;
-    modalSaveBtn?: HTMLElement;
-    inpStartDate?: HTMLInputElement;
-    inpStartTime?: HTMLInputElement;
-    inpEndDate?: HTMLInputElement;
-    inpEndTime?: HTMLInputElement;
-    chkAllDay?: HTMLInputElement;
-    inpReason?: HTMLTextAreaElement;
-    durationDisplay?: HTMLElement;
-    timeSelectionRow?: HTMLElement;
+    modal: any;
+    modalEl: HTMLElement;
+    modalTitle: HTMLElement;
+    modalSaveBtn: HTMLElement;
+    inpStartDate: HTMLInputElement;
+    inpStartTime: HTMLInputElement;
+    inpEndDate: HTMLInputElement;
+    inpEndTime: HTMLInputElement;
+    chkAllDay: HTMLInputElement;
+    inpReason: HTMLTextAreaElement;
+    durationDisplay: HTMLElement;
+    timeSelectionRow: HTMLElement;
 }
+
+// Lightweight domain types used to tighten previously broad `any` usages.
+type DayPilotArgs = {
+    start?: any;
+    end?: any;
+    headerLevel?: number;
+    source?: any;
+    // DayPilot args sometimes include html for headers and a resource id
+    html?: string;
+    resource?: string | number;
+    data?: any;
+    row?: any;
+    cell?: any;
+};
+
+type Absence = {
+    id?: number;
+    start?: string;
+    end?: string;
+    reason?: string;
+    employeeId?: number;
+    status?: string;
+    approverName?: string;
+    approvalComments?: string;
+    requestedDate?: string;
+    approvedDate?: string;
+    employeeName?: string;
+};
+
+type MenuItem = { text?: string; onClick?: (...args: any[]) => any };
 
 export class AbsenceSchedulerApp {
     DayPilot: any;
@@ -49,7 +84,7 @@ export class AbsenceSchedulerApp {
     state: AppState;
     elements: AppElements;
     baseUrl: string;
-    permissionStrategy: IPermissionStrategy;
+    permissionStrategy: IPermissionStrategy | null;
 
     constructor(dayPilot: any, schedulerId: string, datepickerId: string, baseUrl: string = "/") {
         this.DayPilot = dayPilot;
@@ -128,25 +163,25 @@ export class AbsenceSchedulerApp {
             eventResizeHandling: "Disabled",
             treeEnabled: true,
             timeRangeSelectedHandling: "Enabled",
-            onBeforeTimeHeaderRender: args => {
+            onBeforeTimeHeaderRender: (args: DayPilotArgs) => {
                 if (this.state.currentView === "Month" && args.headerLevel === 1) {
                     const start = new this.DayPilot.Date(args.start);
                     args.html = `<span style='font-weight:normal'>Week of ${start.toString("MMM d")}</span>`;
                 }
             },
-            onBeforeRowHeaderRender: args => this.handleBeforeRowHeaderRender(args),
-            onBeforeCellRender: args => this.handleBeforeCellRender(args),
-            onTimeRangeSelected: args => this.handleTimeRangeSelected(args),
+            onBeforeRowHeaderRender: (args: DayPilotArgs) => this.handleBeforeRowHeaderRender(args),
+            onBeforeCellRender: (args: DayPilotArgs) => this.handleBeforeCellRender(args),
+            onTimeRangeSelected: (args: DayPilotArgs) => this.handleTimeRangeSelected(args),
             onEventClick: async () => {
                 // Disabled - using context menu instead
                 return;
             },
-            onBeforeEventRender: args => this.handleBeforeEventRender(args),
+            onBeforeEventRender: (args: DayPilotArgs) => this.handleBeforeEventRender(args),
         });
         this.scheduler.init();
     }
 
-    handleBeforeRowHeaderRender(args) {
+    handleBeforeRowHeaderRender(args: DayPilotArgs) {
         if (!this.permissionStrategy) return;
 
         if (!this.permissionStrategy.canCreateFor(args.row.id)) {
@@ -154,7 +189,7 @@ export class AbsenceSchedulerApp {
         }
     }
 
-    handleBeforeCellRender(args) {
+    handleBeforeCellRender(args: DayPilotArgs) {
         if (!this.permissionStrategy) return;
 
         const cssClass = this.permissionStrategy.getCellCssClass(
@@ -168,7 +203,7 @@ export class AbsenceSchedulerApp {
         }
     }
 
-    async handleTimeRangeSelected(args) {
+    async handleTimeRangeSelected(args: DayPilotArgs) {
         if (!this.validateSelection(args)) {
             this.scheduler.clearSelection();
             return;
@@ -314,7 +349,7 @@ export class AbsenceSchedulerApp {
         this.elements.modal.hide();
     }
 
-    validateSelection(args) {
+    validateSelection(args: any) {
         // Prevent selection of past dates
         if (args.start < this.DayPilot.Date.today()) {
             return false;
@@ -325,7 +360,7 @@ export class AbsenceSchedulerApp {
         return this.permissionStrategy.canCreateFor(args.resource);
     }
 
-    getAbsenceFormConfig(startDate, endDate) {
+    getAbsenceFormConfig(startDate: any, endDate: any) {
         // Generate time slots for working hours (08:00 - 18:00)
         const timeSlots = [];
         for (let h = 8; h <= 18; h++) {
@@ -355,7 +390,7 @@ export class AbsenceSchedulerApp {
         return { form, data };
     }
 
-    createAbsenceFromForm(result, resourceId) {
+    createAbsenceFromForm(result: any, resourceId: string | number) {
         // Combine date with time
         const [startHour, startMinute] = result.startTime.split(':');
         const [endHour, endMinute] = result.endTime.split(':');
@@ -369,12 +404,12 @@ export class AbsenceSchedulerApp {
         return {
             start: absenceStart.toString(),
             end: absenceEnd.toString(),
-            employeeId: parseInt(resourceId, 10),
+            employeeId: parseInt(`${resourceId}`, 10),
             reason: result.reason
         };
     }
 
-    async submitAbsence(absence) {
+    async submitAbsence(absence: Absence) {
         console.log("Sending absence request:", absence);
 
         try {
@@ -389,28 +424,28 @@ export class AbsenceSchedulerApp {
                 barColor: getStatusColor(data.status),
                 data: data
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating absence:", error);
-            const errorMsg = error.request?.responseText || error.message || "Unknown error";
+            const errorMsg = error?.request?.responseText || error?.message || "Unknown error";
             console.error("Error details:", errorMsg);
             await this.DayPilot.Modal.alert(`Failed to create absence: ${errorMsg}`);
         }
     }
 
-    async updateAbsence(id, absence) {
+    async updateAbsence(id: number | string, absence: Absence) {
         console.log("Updating absence request:", id, absence);
 
         try {
             await this.DayPilot.Http.put(`${this.baseUrl}api/absences/${id}`, absence);
             await this.loadSchedulerData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating absence:", error);
-            const errorMsg = error.request?.responseText || error.message || "Unknown error";
+            const errorMsg = error?.request?.responseText || error?.message || "Unknown error";
             await this.DayPilot.Modal.alert(`Failed to update absence: ${errorMsg}`);
         }
     }
 
-    async editAbsence(absence, event) {
+    async editAbsence(absence: Absence, event: any) {
         this.state.editingAbsenceId = absence.id;
         this.state.selectedResourceId = absence.employeeId;
         this.elements.modalTitle.textContent = "Edit Absence";
@@ -437,7 +472,7 @@ export class AbsenceSchedulerApp {
             this.elements.inpEndTime.value = end.toString("HH:mm");
         }
 
-        this.elements.inpReason.value = absence.reason;
+        this.elements.inpReason.value = absence.reason || "";
 
         // Trigger change event to update UI state
         this.elements.chkAllDay.dispatchEvent(new Event('change'));
@@ -449,7 +484,7 @@ export class AbsenceSchedulerApp {
         this.elements.modal.show();
     }
 
-    handleBeforeEventRender(args) {
+    handleBeforeEventRender(args: any) {
         const status = args.data.status || args.data.data?.status;
         args.data.backColor = getStatusColor(status);
         args.data.borderColor = "darker";
@@ -464,7 +499,7 @@ export class AbsenceSchedulerApp {
             height: 24,
             html: "<div style='color: white; font-weight: bold; font-size: 18px; line-height: 24px; text-align: center; cursor: pointer; padding: 3px;'>⋯</div>",
             toolTip: "Actions",
-            onClick: async args => {
+            onClick: async (args: any) => {
                 const e = args.source;
                 const absence = e.data.data || e.data;
 
@@ -510,11 +545,11 @@ export class AbsenceSchedulerApp {
                 }
 
                 // Wire up action handlers
-                menuItems.forEach(item => {
-                    if (item.onClick) {
-                        const originalOnClick = item.onClick;
-                        item.onClick = async (args) => {
-                            const result = originalOnClick();
+                menuItems.forEach((mi: MenuItem) => {
+                    if (mi.onClick) {
+                        const originalOnClick = mi.onClick;
+                        mi.onClick = async (...cbArgs: any[]) => {
+                            const result = originalOnClick(...cbArgs);
                             if (result && result.action) {
                                 await this.handleMenuAction(result.action, result.absence, e);
                             }
@@ -540,7 +575,7 @@ export class AbsenceSchedulerApp {
             showMonths: 3,
             skipMonths: 3,
             weekStarts: 1, // Start on Monday
-            onTimeRangeSelected: args => {
+            onTimeRangeSelected: (args: any) => {
                 let startDate = args.start;
                 if (self.state.currentView) {
                     switch (self.state.currentView) {
@@ -560,7 +595,7 @@ export class AbsenceSchedulerApp {
                 });
                 self.loadSchedulerData();
             },
-            onVisibleRangeChanged: args => {
+            onVisibleRangeChanged: (args: any) => {
                 self.loadDatePickerData();
             }
         });
@@ -575,7 +610,7 @@ export class AbsenceSchedulerApp {
                 this.state.currentEmployeeId = response.data.id;
                 this.state.isMockMode = response.data.isMockMode || false;
                 this.state.isManager = response.data.isApprover ||
-                    response.data.roles?.some(r =>
+                    response.data.roles?.some((r: any) =>
                         r.toLowerCase() === 'manager' ||
                         r.toLowerCase() === 'approver'
                     );
@@ -602,10 +637,10 @@ export class AbsenceSchedulerApp {
         const defaultFilters = this.permissionStrategy.getDefaultFilters();
 
         // Reset visibility
-        this.elements.filterPending.parentElement.style.display = visibleFilters.includes("Pending") ? "flex" : "none";
-        this.elements.filterApproved.parentElement.style.display = visibleFilters.includes("Approved") ? "flex" : "none";
-        this.elements.filterRejected.parentElement.style.display = visibleFilters.includes("Rejected") ? "flex" : "none";
-        this.elements.filterCancelled.parentElement.style.display = visibleFilters.includes("Cancelled") ? "flex" : "none";
+        this.elements.filterPending.parentElement!.style.display = visibleFilters.includes("Pending") ? "flex" : "none";
+        this.elements.filterApproved.parentElement!.style.display = visibleFilters.includes("Approved") ? "flex" : "none";
+        this.elements.filterRejected.parentElement!.style.display = visibleFilters.includes("Rejected") ? "flex" : "none";
+        this.elements.filterCancelled.parentElement!.style.display = visibleFilters.includes("Cancelled") ? "flex" : "none";
 
         // Set checked state
         this.elements.filterPending.checked = defaultFilters.includes("Pending");
@@ -650,10 +685,10 @@ export class AbsenceSchedulerApp {
             const [{ data: resources }, { data: absences }] = await Promise.all([promiseResources, promiseAbsences]);
 
             console.log("loadSchedulerData - API returned", absences.length, "absences");
-            console.log("loadSchedulerData - Absence statuses:", absences.map(a => a.status));
+            console.log("loadSchedulerData - Absence statuses:", absences.map((a: any) => a.status));
 
             // Map absences to scheduler events
-            const events = absences.map(a => ({
+            const events = absences.map((a: Absence) => ({
                 id: a.id,
                 start: a.start,
                 end: a.end,
@@ -702,7 +737,7 @@ export class AbsenceSchedulerApp {
 
         const { data } = await this.DayPilot.Http.get(absencesUrl);
 
-        const events = data.map(a => ({
+        const events = data.map((a: Absence) => ({
             start: a.start,
             end: a.end,
             text: a.reason,
@@ -712,7 +747,7 @@ export class AbsenceSchedulerApp {
         this.datepicker.update({ events });
     }
 
-    async handleMenuAction(action, absence, event) {
+    async handleMenuAction(action: any, absence: any, event: any) {
         switch (action) {
             case 'viewDetails':
                 await this.viewDetails(absence);
@@ -732,7 +767,7 @@ export class AbsenceSchedulerApp {
         }
     }
 
-    async viewDetails(absence) {
+    async viewDetails(absence: Absence) {
         const form = [
             { name: "Employee", id: "employeeName", disabled: true },
             { name: "Start", id: "start", type: "datetime", disabled: true },
@@ -766,7 +801,7 @@ export class AbsenceSchedulerApp {
         await this.DayPilot.Modal.form(form, formData);
     }
 
-    async approveAbsence(absence) {
+    async approveAbsence(absence: Absence) {
         const modal = await this.DayPilot.Modal.prompt("Approve this absence request? (Optional comment):");
         if (modal.canceled) return;
 
@@ -779,7 +814,7 @@ export class AbsenceSchedulerApp {
         await this.loadSchedulerData();
     }
 
-    async rejectAbsence(absence) {
+    async rejectAbsence(absence: Absence) {
         const modal = await this.DayPilot.Modal.prompt("Rejection reason:");
         if (modal.canceled || !modal.result) return;
 
@@ -792,7 +827,7 @@ export class AbsenceSchedulerApp {
         await this.loadSchedulerData();
     }
 
-    async deleteAbsence(absence, event) {
+    async deleteAbsence(absence: Absence, event: any) {
         const modal = await this.DayPilot.Modal.confirm("Delete this absence request?");
         if (modal.canceled) return;
 
@@ -803,9 +838,9 @@ export class AbsenceSchedulerApp {
 
     initEventHandlers() {
         // View Switcher Handlers
-        document.getElementById("viewDay").addEventListener("click", () => this.switchView("Day"));
-        document.getElementById("viewWeek").addEventListener("click", () => this.switchView("Week"));
-        document.getElementById("viewMonth").addEventListener("click", () => this.switchView("Month"));
+        document.getElementById("viewDay")!.addEventListener("click", () => this.switchView("Day"));
+        document.getElementById("viewWeek")!.addEventListener("click", () => this.switchView("Week"));
+        document.getElementById("viewMonth")!.addEventListener("click", () => this.switchView("Month"));
 
         // Navigation Handlers
         this.elements.previous.addEventListener("click", () => this.handleNavigation("previous"));
@@ -871,7 +906,7 @@ export class AbsenceSchedulerApp {
         }
     }
 
-    switchView(view) {
+    switchView(view: any) {
         this.state.currentView = view;
 
         // Update buttons style
@@ -932,7 +967,7 @@ export class AbsenceSchedulerApp {
         this.loadSchedulerData();
     }
 
-    handleNavigation(direction) {
+    handleNavigation(direction: any) {
         const currentStart = this.scheduler.startDate;
 
         if (direction === "today") {
@@ -992,3 +1027,19 @@ export class AbsenceSchedulerApp {
         this.loadDatePickerData();
     }
 }
+
+// Ensure the class is available on the global object for cases where bundlers
+// inline/flatten the module and don't preserve named exports at runtime.
+// This gives consumers a reliable global fallback: `globalThis.AbsenceSchedulerApp`.
+try {
+    // @ts-ignore
+    if (typeof globalThis !== 'undefined') {
+        // @ts-ignore
+        globalThis.AbsenceSchedulerApp = AbsenceSchedulerApp;
+    }
+} catch (e) {
+    // ignore
+}
+
+// Default export to help ESM consumers that expect a default
+export default AbsenceSchedulerApp;

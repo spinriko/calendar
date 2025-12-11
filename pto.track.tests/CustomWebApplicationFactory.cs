@@ -15,41 +15,16 @@ namespace pto.track.tests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.UseSetting("environment", "Testing");
-
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                // Override connection string to prevent using real database
-                var dict = new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:PtoTrackDbContext"] = string.Empty
-                };
-                config.AddInMemoryCollection(dict);
-            });
+            // Ensure the test host runs in the Testing environment so app-level
+            // environment checks (like registering InMemory DB) trigger reliably.
+            // Also set the process environment variable early so EF model-level
+            // seeding (which checks ASPNETCORE_ENVIRONMENT) behaves the same.
+            System.Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+            builder.UseEnvironment("Testing");
 
             builder.ConfigureServices(services =>
             {
-                // Remove existing DbContext registrations
-                var dbContextDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<PtoTrackDbContext>));
-                if (dbContextDescriptor != null)
-                {
-                    services.Remove(dbContextDescriptor);
-                }
-
-                var dbContextImplDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(PtoTrackDbContext));
-                if (dbContextImplDescriptor != null)
-                {
-                    services.Remove(dbContextImplDescriptor);
-                }
-
-                // Add in-memory database for testing
-                var dbName = "TestDb_" + Guid.NewGuid().ToString();
-                services.AddDbContext<PtoTrackDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase(dbName);
-                });
-
-                // Remove existing IUserClaimsProvider registration
+                // Remove existing IUserClaimsProvider registration (so tests can inject test provider)
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IUserClaimsProvider));
                 if (descriptor != null)
                 {
@@ -63,12 +38,23 @@ namespace pto.track.tests
                     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(
                         "Test", options => { });
 
-                // Ensure database is created and seeded
-                var sp = services.BuildServiceProvider();
-                using (var scope = sp.CreateScope())
+                // If running under Testing environment, ensure the app uses a shared InMemoryDatabaseRoot
+                // so test code and the app share the same in-memory database instance.
+                var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                if (string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase))
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<PtoTrackDbContext>();
-                    db.Database.EnsureCreated();
+                    // Register a shared InMemoryDatabaseRoot and replace the IDbContextStrategy
+                    var root = new Microsoft.EntityFrameworkCore.Storage.InMemoryDatabaseRoot();
+                    services.AddSingleton(root);
+
+                    // Replace the registered IDbContextStrategy (if present) with one that uses the shared root
+                    var stratDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(pto.track.services.DbContextStrategies.IDbContextStrategy));
+                    if (stratDescriptor != null)
+                    {
+                        services.Remove(stratDescriptor);
+                    }
+                    services.AddSingleton<pto.track.services.DbContextStrategies.IDbContextStrategy>(
+                        new pto.track.services.DbContextStrategies.InMemoryDbContextStrategy(dbName: "PtoTrack_Testing", root: root));
                 }
             });
         }

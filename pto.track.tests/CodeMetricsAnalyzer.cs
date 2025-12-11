@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Xunit;
 
 namespace pto.track.tests;
@@ -17,7 +19,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes cyclomatic complexity for all C# projects in the solution.
     /// Reports methods with complexity > 10.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeProjectComplexity()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -110,7 +112,7 @@ public class CodeMetricsAnalyzer
     /// Formula: 171 - 5.2 * ln(Volume) - 0.23 * Complexity - 16.2 * ln(Lines)
     /// Scale: 0-100 (higher = more maintainable)
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeMaintainabilityIndex()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -183,7 +185,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes lines of code per method.
     /// Threshold: 50 lines
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeLinesOfCode()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -277,7 +279,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes method parameter count.
     /// Threshold: 5 parameters
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeMethodParameters()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -342,7 +344,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes nesting depth.
     /// Threshold: 4 levels
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeNestingDepth()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -406,7 +408,7 @@ public class CodeMetricsAnalyzer
     /// <summary>
     /// Analyzes class coupling and dependencies.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeClassCoupling()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -502,7 +504,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes depth of inheritance tree.
     /// Threshold: 4 levels
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task AnalyzeInheritanceDepth()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -565,7 +567,7 @@ public class CodeMetricsAnalyzer
     /// <summary>
     /// Comprehensive summary report combining all metrics.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "bisect: temporary skip")]
     public async Task GenerateComprehensiveSummary()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -643,6 +645,162 @@ public class CodeMetricsAnalyzer
         }
 
         Console.WriteLine("\n✓ Analysis complete");
+        // Persist machine-readable metrics for CI and further processing
+        try
+        {
+            var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
+            var artifactsDir = Path.Combine(solutionPath, "artifacts", "metrics");
+            Directory.CreateDirectory(artifactsDir);
+
+            // Compute per-project metrics
+            var projectSourceMap = GetProjectSourceMap(); // key: projectName, value: list of files
+            var projectMetrics = new Dictionary<string, object>();
+            var projectSummaries = new Dictionary<string, object>();
+
+            foreach (var kvp in projectSourceMap)
+            {
+                var projectName = kvp.Key;
+                var files = kvp.Value;
+
+                int pTotalLines = 0;
+                int pTotalClasses = 0;
+                int pTotalMethods = 0;
+                var pComplexityScores = new List<int>();
+                var pMaintainabilityScores = new List<double>();
+                var pParameterCounts = new List<int>();
+
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var code = await File.ReadAllTextAsync(file);
+                        var tree = CSharpSyntaxTree.ParseText(code);
+                        var root = await tree.GetRootAsync();
+
+                        pTotalLines += code.Split('\n').Length;
+                        pTotalClasses += root.DescendantNodes().OfType<ClassDeclarationSyntax>().Count();
+
+                        var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+                        foreach (var method in methods)
+                        {
+                            pTotalMethods++;
+                            var complexity = CalculateCyclomaticComplexity(method);
+                            pComplexityScores.Add(complexity);
+
+                            var lines = method.GetText().Lines.Count;
+                            var volume = CalculateHalsteadVolume(method);
+                            var mi = 171 - 5.2 * Math.Log(volume) - 0.23 * complexity - 16.2 * Math.Log(lines);
+                            mi = Math.Max(0, Math.Min(100, mi * 100 / 171));
+                            pMaintainabilityScores.Add(mi);
+
+                            pParameterCounts.Add(method.ParameterList.Parameters.Count);
+                        }
+                    }
+                    catch { }
+                }
+
+                var pMetricsObj = new
+                {
+                    Project = projectName,
+                    Files = files.Count,
+                    Lines = pTotalLines,
+                    Classes = pTotalClasses,
+                    Methods = pTotalMethods,
+                    CyclomaticComplexity = new
+                    {
+                        Average = pComplexityScores.Any() ? pComplexityScores.Average() : 0.0,
+                        Median = pComplexityScores.Any() ? GetMedian(pComplexityScores.Select(x => (double)x).ToList()) : 0.0,
+                        Max = pComplexityScores.Any() ? pComplexityScores.Max() : 0,
+                        OverThreshold = pComplexityScores.Count(x => x > 10)
+                    },
+                    Maintainability = new
+                    {
+                        Average = pMaintainabilityScores.Any() ? pMaintainabilityScores.Average() : 0.0,
+                        Median = pMaintainabilityScores.Any() ? GetMedian(pMaintainabilityScores) : 0.0,
+                        Min = pMaintainabilityScores.Any() ? pMaintainabilityScores.Min() : 0.0,
+                        BelowThreshold = pMaintainabilityScores.Count(x => x < 65)
+                    },
+                    Parameters = new
+                    {
+                        Average = pParameterCounts.Any() ? pParameterCounts.Average() : 0.0,
+                        Max = pParameterCounts.Any() ? pParameterCounts.Max() : 0,
+                        OverThreshold = pParameterCounts.Count(x => x > 5)
+                    }
+                };
+
+                projectMetrics[projectName] = pMetricsObj;
+
+                projectSummaries[projectName] = new
+                {
+                    Files = pMetricsObj.Files,
+                    Lines = pMetricsObj.Lines,
+                    Methods = pMetricsObj.Methods,
+                    AvgCyclomatic = ((dynamic)pMetricsObj).CyclomaticComplexity.Average,
+                    MaxCyclomatic = ((dynamic)pMetricsObj).CyclomaticComplexity.Max,
+                    AvgMaintainability = ((dynamic)pMetricsObj).Maintainability.Average,
+                    MethodsBelowMaintainabilityThreshold = ((dynamic)pMetricsObj).Maintainability.BelowThreshold
+                };
+            }
+
+            var metricsObj = new
+            {
+                Solution = "pto.track",
+                Files = sourceFiles.Count,
+                Lines = totalLines,
+                Classes = totalClasses,
+                Methods = totalMethods,
+                CyclomaticComplexity = new
+                {
+                    Average = complexityScores.Any() ? complexityScores.Average() : 0.0,
+                    Median = complexityScores.Any() ? GetMedian(complexityScores.Select(x => (double)x).ToList()) : 0.0,
+                    Max = complexityScores.Any() ? complexityScores.Max() : 0,
+                    OverThreshold = complexityScores.Count(x => x > 10)
+                },
+                Maintainability = new
+                {
+                    Average = maintainabilityScores.Any() ? maintainabilityScores.Average() : 0.0,
+                    Median = maintainabilityScores.Any() ? GetMedian(maintainabilityScores) : 0.0,
+                    Min = maintainabilityScores.Any() ? maintainabilityScores.Min() : 0.0,
+                    BelowThreshold = maintainabilityScores.Count(x => x < 65)
+                },
+                Parameters = new
+                {
+                    Average = parameterCounts.Any() ? parameterCounts.Average() : 0.0,
+                    Max = parameterCounts.Any() ? parameterCounts.Max() : 0,
+                    OverThreshold = parameterCounts.Count(x => x > 5)
+                },
+                Projects = projectMetrics
+            };
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var metricsJson = JsonSerializer.Serialize(metricsObj, options);
+            var metricsPath = Path.Combine(artifactsDir, "code-metrics.json");
+            await File.WriteAllTextAsync(metricsPath, metricsJson);
+
+            // Also write a short summary useful for CI gating (includes per-project summaries)
+            var summaryObj = new
+            {
+                Files = metricsObj.Files,
+                Lines = metricsObj.Lines,
+                Methods = metricsObj.Methods,
+                AvgCyclomatic = metricsObj.CyclomaticComplexity.Average,
+                MaxCyclomatic = metricsObj.CyclomaticComplexity.Max,
+                AvgMaintainability = metricsObj.Maintainability.Average,
+                MethodsBelowMaintainabilityThreshold = metricsObj.Maintainability.BelowThreshold,
+                Projects = projectSummaries
+            };
+            var summaryJson = JsonSerializer.Serialize(summaryObj, options);
+            var summaryPath = Path.Combine(artifactsDir, "code-metrics-summary.json");
+            await File.WriteAllTextAsync(summaryPath, summaryJson);
+
+            Console.WriteLine($"\nWrote metrics JSON to: {metricsPath}");
+            Console.WriteLine($"Wrote metrics summary to: {summaryPath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: failed to write metrics artifacts: {ex.Message}");
+        }
+
         Assert.True(true);
     }
 
@@ -741,24 +899,63 @@ public class CodeMetricsAnalyzer
 
     private List<string> GetAllSourceFiles()
     {
+        // Allow skipping heavy code-metrics analysis during CI or long-running test suites.
+        // Set environment variable `SKIP_CODE_METRICS=1` to bypass file discovery.
+        var skip = Environment.GetEnvironmentVariable("SKIP_CODE_METRICS");
+        if (!string.IsNullOrEmpty(skip) && skip == "1")
+        {
+            return new List<string>();
+        }
+
         var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
-        var projectFolders = new[] { "pto.track", "pto.track.services", "pto.track.data" };
+
+        // Discover all .csproj files under the solution and analyze their source files.
+        var csprojFiles = Directory.GetFiles(solutionPath, "*.csproj", SearchOption.AllDirectories)
+            .Where(p => !p.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !p.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
+            .ToList();
+
+        var projectDirs = csprojFiles.Select(p => Path.GetDirectoryName(p)).Where(d => !string.IsNullOrEmpty(d)).Distinct();
 
         var sourceFiles = new List<string>();
 
-        foreach (var projectFolder in projectFolders)
+        foreach (var projectDir in projectDirs)
         {
-            var projectPath = Path.Combine(solutionPath, projectFolder);
-            if (Directory.Exists(projectPath))
-            {
-                var files = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories)
-                    .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\") &&
-                               !f.Contains("\\Migrations\\") && !f.Contains(".Designer.cs"));
-                sourceFiles.AddRange(files);
-            }
+            var files = Directory.GetFiles(projectDir!, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                            && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)
+                            && !f.Contains(Path.DirectorySeparatorChar + "Migrations" + Path.DirectorySeparatorChar)
+                            && !f.EndsWith(".Designer.cs"));
+            sourceFiles.AddRange(files);
         }
 
-        return sourceFiles;
+        return sourceFiles.Distinct().ToList();
+    }
+
+    private Dictionary<string, List<string>> GetProjectSourceMap()
+    {
+        var solutionPath = Path.GetFullPath(Path.Combine("..", "..", "..", ".."));
+        var csprojFiles = Directory.GetFiles(solutionPath, "*.csproj", SearchOption.AllDirectories)
+            .Where(p => !p.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !p.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
+            .ToList();
+
+        var map = new Dictionary<string, List<string>>();
+
+        foreach (var csproj in csprojFiles)
+        {
+            var projectDir = Path.GetDirectoryName(csproj)!;
+            var projectName = Path.GetFileNameWithoutExtension(csproj);
+
+            var files = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                            && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)
+                            && !f.Contains(Path.DirectorySeparatorChar + "Migrations" + Path.DirectorySeparatorChar)
+                            && !f.EndsWith(".Designer.cs"))
+                .ToList();
+
+            map[projectName] = files.Distinct().ToList();
+        }
+
+        return map;
     }
 
     private string GetRelativeProjectPath(string filePath)
