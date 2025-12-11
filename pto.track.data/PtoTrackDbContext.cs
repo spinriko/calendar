@@ -40,14 +40,9 @@ namespace pto.track.data
         {
             ConfigureEntities(modelBuilder);
 
-            // Skip model-level seeding when running tests so tests can control DB contents.
-            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            if (string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            SeedData(modelBuilder);
+            // Centralize model seed data in a single helper so tests and runtime
+            // seeding remain consistent.
+            SeedDefaults.ApplyModelSeed(modelBuilder);
         }
 
         private void ConfigureEntities(ModelBuilder modelBuilder)

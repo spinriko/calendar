@@ -68,6 +68,13 @@ coverage/
 coverage-report/
 coverage.xml
 
+# Also ignore nested coverage/test-results and JS coverage outputs
+**/coverage/
+**/test-results/
+lcov.info
+test-results/
+**/lcov-report/
+
 # published
 publish/
 publish-standalone/
@@ -76,3 +83,16 @@ coverage.xml
 # Generated JS files from TypeScript
 pto.track/wwwroot/js/*.js
 pto.track/wwwroot/js/**/*.js
+
+# Ignore build artifacts and local capture outputs created during bundling work
+responses/
+pto.track/wwwroot/dist/
+absences-scheduler*
+daypilot-all*
+staticwebassets.binlog
+pto.track/npm-audit*.json
+build_diag.txt
+
+# Test results: ignore TRX files and TestResults folders
+**/TestResults/
+*.trx

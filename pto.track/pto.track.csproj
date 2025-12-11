@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bcfe46fb-b8ec-491b-b5bf-dc0e8dd4fbca</UserSecretsId>
+        <!-- Static Web Assets generation: default enabled. Removed temporary disable. -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,9 +28,46 @@
     <ProjectReference Include="..\pto.track.services\pto.track.services.csproj" />
   </ItemGroup>
 
-  <Target Name="NpmBuild" BeforeTargets="Build" Condition="'$(SkipNpm)' != 'true'">
-    <Message Text="Running npm build..." Importance="high" />
-    <Exec Command="npm run build" WorkingDirectory=".." />
+  <!--
+    Build hook: run frontend build when publishing.
+    - Runs `npm ci` then `npm run build:js` in the project directory before PrepareForPublish.
+    - Skip by setting MSBuild property `-p:SkipNpm=true`.
+  -->
+  <Target Name="NpmBuildForPublish" BeforeTargets="PrepareForPublish" Condition="'$(SkipNpm)' != 'true'">
+    <Message Text="Running npm ci (install) in $(ProjectDir)..." Importance="high" Condition="!Exists('$(ProjectDir)node_modules')" />
+    <Exec Command="npm ci" WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" Condition="!Exists('$(ProjectDir)node_modules')" />
+    <Message Text="node_modules already present; skipping npm ci" Importance="low" Condition="Exists('$(ProjectDir)node_modules')" />
+    <!-- Determine whether frontend build is needed by running a small node helper that
+         compares source file mtimes against wwwroot/dist/.buildstamp -->
+    <Message Text="Checking whether frontend build is needed..." Importance="high" />
+    <Exec Command='node "$(ProjectDir)scripts/frontend-build-needed.js" "$(ProjectDir)" > "$(ProjectDir)obj\frontend.build.flag"' WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" />
+    <ReadLinesFromFile File="$(ProjectDir)obj\frontend.build.flag">
+      <Output TaskParameter="Lines" ItemName="FrontendBuildFlagLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <FrontendBuildNeeded>%(FrontendBuildFlagLines.Identity)</FrontendBuildNeeded>
+    </PropertyGroup>
+
+    <Message Text="FrontendBuildNeeded = $(FrontendBuildNeeded)" Importance="high" />
+
+    <Message Text="Running npm run build:js in $(ProjectDir)..." Importance="high" Condition="'$(FrontendBuildNeeded)' == 'true'" />
+    <Exec Command="npm run build:js" WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" Condition="'$(FrontendBuildNeeded)' == 'true'" />
+
+    <!-- Validate manifest and hashed assets exist after build (or if dist already exists) -->
+    <Message Text="Validating generated asset-manifest.json and hashed assets..." Importance="high" />
+    <Exec Command='node "$(ProjectDir)scripts/validate-manifest.js" "$(ProjectDir)"' WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" Condition="'$(FrontendBuildNeeded)' == 'true' Or Exists('$(ProjectDir)wwwroot\dist')" />
+
+    <!-- Also run the npm script variant (for CI jobs that prefer npm script invocation) -->
+    <Exec Command='npm run validate:manifest' WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" Condition="'$(FrontendBuildNeeded)' == 'true' Or Exists('$(ProjectDir)wwwroot\dist')" />
+
+    <!-- Expose manifest path in MSBuild logs/telemetry so CI logs show where the manifest was written -->
+    <PropertyGroup>
+      <AssetManifestPath>$(ProjectDir)wwwroot\dist\asset-manifest.json</AssetManifestPath>
+    </PropertyGroup>
+    <Message Text="Asset manifest path: $(AssetManifestPath)" Importance="high" />
+
+    <!-- Update or create the build stamp so future builds can skip when unchanged -->
+    <Exec Command='node "$(ProjectDir)scripts/write-buildstamp.js" "$(ProjectDir)"' WorkingDirectory="$(ProjectDir)" IgnoreExitCode="false" Condition="'$(FrontendBuildNeeded)' == 'true' Or !Exists('$(ProjectDir)wwwroot\dist')" />
   </Target>
 
 </Project>

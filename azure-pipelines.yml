@@ -66,6 +66,11 @@ stages:
         steps:
           - script: dotnet test **/*.tests.csproj --configuration Release --collect:"XPlat Code Coverage"
             displayName: 'Run .NET Tests with Coverage (All Projects)'
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: 'Use Node.js 20.x'
+
           - script: pwsh ./pto.track.tests.js/run-headless.ps1
             displayName: 'Run QUnit JavaScript Tests'
           - task: PublishTestResults@2

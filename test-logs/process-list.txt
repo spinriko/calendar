@@ -1,0 +1,32 @@
+
+
+  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING       1444
+  TCP    0.0.0.0:445            0.0.0.0:0              LISTENING       4
+  TCP    0.0.0.0:1433           0.0.0.0:0              LISTENING       20268
+  TCP    0.0.0.0:5040           0.0.0.0:0              LISTENING       4988
+  TCP    0.0.0.0:49664          0.0.0.0:0              LISTENING       1168
+  TCP    0.0.0.0:49665          0.0.0.0:0              LISTENING       588
+  TCP    0.0.0.0:49666          0.0.0.0:0              LISTENING       1380
+  TCP    0.0.0.0:49667          0.0.0.0:0              LISTENING       2232
+  TCP    0.0.0.0:49668          0.0.0.0:0              LISTENING       4040
+  TCP    0.0.0.0:49670          0.0.0.0:0              LISTENING       1136
+  TCP    127.0.0.1:1434         0.0.0.0:0              LISTENING       20268
+  TCP    127.0.0.1:49960        0.0.0.0:0              LISTENING       26696
+  TCP    127.0.0.1:51070        0.0.0.0:0              LISTENING       27480
+  TCP    127.0.0.1:51686        0.0.0.0:0              LISTENING       20268
+  TCP    172.21.192.1:139       0.0.0.0:0              LISTENING       4
+  TCP    192.168.12.210:139     0.0.0.0:0              LISTENING       4
+  TCP    [::]:135               [::]:0                 LISTENING       1444
+  TCP    [::]:445               [::]:0                 LISTENING       4
+  TCP    [::]:1433              [::]:0                 LISTENING       20268
+  TCP    [::]:49664             [::]:0                 LISTENING       1168
+  TCP    [::]:49665             [::]:0                 LISTENING       588
+  TCP    [::]:49666             [::]:0                 LISTENING       1380
+  TCP    [::]:49667             [::]:0                 LISTENING       2232
+  TCP    [::]:49668             [::]:0                 LISTENING       4040
+  TCP    [::]:49670             [::]:0                 LISTENING       1136
+  TCP    [::1]:1434             [::]:0                 LISTENING       20268
+  TCP    [::1]:49669            [::]:0                 LISTENING       4664
+  TCP    [::1]:51686            [::]:0                 LISTENING       20268
+
+

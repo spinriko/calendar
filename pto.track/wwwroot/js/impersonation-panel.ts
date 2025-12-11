@@ -27,9 +27,9 @@ export function toggleImpersonationPanel() {
  * @param {string} employeeNumber - The employee number
  * @returns {string[]} Array of role names for that user
  */
-export function getRolesForUser(employeeNumber) {
+export function getRolesForUser(employeeNumber: string) {
     // Map employee numbers to their roles based on the database/test data
-    const userRoles = {
+    const userRoles: Record<string, string[]> = {
         'EMP001': ['Employee'],                                   // Test Employee 1
         'EMP002': ['Employee'],                                   // Test Employee 2
         'MGR001': ['Employee', 'Manager'],                       // Test Manager
@@ -58,7 +58,7 @@ export function getImpersonationData() {
  * Reload the page (extracted for testability)
  * @param {Function} reloadFn - Optional reload function for testing
  */
-export function reloadPage(reloadFn = null) {
+export function reloadPage(reloadFn: (() => void) | null = null) {
     if (reloadFn) {
         reloadFn();
     } else {
@@ -70,7 +70,7 @@ export function reloadPage(reloadFn = null) {
  * Apply impersonation by saving to server and reloading
  * @param {Function} reloadFn - Optional reload function for testing
  */
-export async function applyImpersonation(reloadFn: any = null) {
+export async function applyImpersonation(reloadFn: (() => void) | null = null) {
     const data = getImpersonationData();
 
     try {
@@ -90,7 +90,7 @@ export async function applyImpersonation(reloadFn: any = null) {
             console.error('Failed to apply impersonation:', await response.text());
             alert('Failed to apply impersonation');
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error applying impersonation:', error);
         alert('Error applying impersonation');
     }

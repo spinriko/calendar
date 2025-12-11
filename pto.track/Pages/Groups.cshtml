@@ -151,12 +151,43 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/groups-app.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            if (window.groupsApp) {
-                window.groupsApp.init('@Url.Content("~/")');
+    <script type="module">
+        (async () => {
+            let moduleUrl = '/dist/groups-app.js';
+            try {
+                const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-store' });
+                if (resp && resp.ok) {
+                    const manifest = await resp.json();
+                    if (manifest && manifest['groups-app.js']) {
+                        moduleUrl = manifest['groups-app.js'];
+                    }
+                }
+            } catch (e) {
+                // ignore and fall back
             }
-        });
+
+            try {
+                const mod = await import(moduleUrl);
+                // module may export the app as named export or default
+                const exported = mod.groupsApp || mod.default || mod;
+                const app = (exported && exported.init) ? exported : (exported && exported.groupsApp) ? exported.groupsApp : null;
+                // If the module attached a global, prefer that (legacy)
+                if (!app && window.groupsApp) {
+                    window.groupsApp.init('@Url.Content("~/")');
+                    return;
+                }
+
+                if (app && typeof app.init === 'function') {
+                    app.init('@Url.Content("~/")');
+                } else if (typeof exported === 'function') {
+                    // some modules export a factory function
+                    exported('@Url.Content("~/")');
+                } else {
+                    console.error('groups-app: unable to find init function on module export', mod);
+                }
+            } catch (err) {
+                console.error('Failed to load groups-app module', err);
+            }
+        })();
     </script>
 }

@@ -1,13 +1,17 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 
+@inject Microsoft.Extensions.Hosting.IHostEnvironment Environment
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - PTO Track</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/pto.track.styles.css" asp-append-version="true" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    @if (!Environment.IsEnvironment("Testing"))
+    {
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    }
 </head>
 
 <body>
@@ -45,8 +49,18 @@
             setTimeout(function () {
                 const banner = document.getElementById('errorBanner');
                 if (banner) {
-                    const bsAlert = new bootstrap.Alert(banner);
-                    bsAlert.close();
+                    // Guard against missing bootstrap script during Testing (or in constrained environments)
+                    if (typeof bootstrap !== 'undefined' && bootstrap && bootstrap.Alert) {
+                        try {
+                            const bsAlert = new bootstrap.Alert(banner);
+                            bsAlert.close();
+                        } catch (e) {
+                            banner.style.display = 'none';
+                        }
+                    } else {
+                        // No bootstrap available; hide the banner gracefully
+                        banner.style.display = 'none';
+                    }
                 }
             }, 3000);
         </script>
@@ -61,9 +75,38 @@
         <partial name="_ImpersonationPanel" />
     }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @if (!Environment.IsEnvironment("Testing"))
+    {
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    }
 
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            async function chooseSiteScript() {
+                try {
+                    const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-cache' });
+                    if (resp.ok) {
+                        const manifest = await resp.json();
+                        // prefer an exact match for site.js (with or without hash)
+                        const key = Object.keys(manifest).find(k => k.startsWith('site') || k === 'site.js') || 'site.js';
+                        const url = manifest[key] || '/dist/site.js';
+                        const s = document.createElement('script');
+                        s.type = 'module';
+                        s.src = url;
+                        document.body.appendChild(s);
+                        return;
+                    }
+                } catch (e) {
+                    console.debug('Manifest not found or invalid, falling back to /dist/site.js', e);
+                }
+                const s = document.createElement('script');
+                s.type = 'module';
+                s.src = '/dist/site.js';
+                document.body.appendChild(s);
+            }
+            chooseSiteScript();
+        })();
+    </script>
 
     <script>
         // Show Groups menu item for Admin users only
