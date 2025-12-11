@@ -100,6 +100,24 @@ stages:
               ArtifactName: 'analyzers'
               publishLocation: 'Container'
 
+          # Optional: run the lightweight console metrics runner
+          # The metrics runner is a small .NET console tool located at `tools/metrics-runner`.
+          # Running it in CI produces `artifacts/metrics/metrics.json` which you can publish
+          # as a build artifact and consume in downstream gates or dashboards.
+
+          - powershell: |
+              pwsh -NoProfile -Command {
+                dotnet build tools/metrics-runner/metrics-runner.csproj -c Release
+                dotnet run --project tools/metrics-runner -- "$(Build.SourcesDirectory)"
+              }
+            displayName: Run metrics-runner (console)
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'artifacts/metrics'
+              ArtifactName: 'metrics'
+              publishLocation: 'Container'
+
           # Optional: if analyzers produce SARIF, publish it using an extension that reads SARIF
           # - task: PublishCodeAnalysisResults@1
           #   inputs:
