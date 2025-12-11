@@ -107,3 +107,7 @@ msbuild-bin.log
 
 # Local developer overrides (keep local PathBase / secrets out of source control)
 pto.track/appsettings.local.json
+
+# Test artifacts
+pto.track/test-assets/
+
