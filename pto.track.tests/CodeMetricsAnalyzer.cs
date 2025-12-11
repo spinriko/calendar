@@ -19,7 +19,7 @@ public class CodeMetricsAnalyzer
     /// Analyzes cyclomatic complexity for all C# projects in the solution.
     /// Reports methods with complexity > 10.
     /// </summary>
-    [Fact(Skip = "bisect: temporary skip")]
+    [Fact]
     public async Task AnalyzeProjectComplexity()
     {
         var sourceFiles = GetAllSourceFiles();
@@ -916,6 +916,8 @@ public class CodeMetricsAnalyzer
 
         var projectDirs = csprojFiles.Select(p => Path.GetDirectoryName(p)).Where(d => !string.IsNullOrEmpty(d)).Distinct();
 
+        var skipDirs = new[] { ".git", "node_modules", "packages", "artifacts", "test-logs", "bin", "obj" };
+
         var sourceFiles = new List<string>();
 
         foreach (var projectDir in projectDirs)
@@ -924,7 +926,13 @@ public class CodeMetricsAnalyzer
                 .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
                             && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)
                             && !f.Contains(Path.DirectorySeparatorChar + "Migrations" + Path.DirectorySeparatorChar)
-                            && !f.EndsWith(".Designer.cs"));
+                            && !f.EndsWith(".Designer.cs")
+                            && !skipDirs.Any(sd => f.IndexOf(Path.DirectorySeparatorChar + sd + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0)
+                            && !skipDirs.Any(sd => f.IndexOf(Path.DirectorySeparatorChar + sd + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0));
+
+            // Also remove any files that are located under excluded directories by checking path segments
+            files = files.Where(f => !skipDirs.Any(sd => f.Split(Path.DirectorySeparatorChar).Any(seg => string.Equals(seg, sd, StringComparison.OrdinalIgnoreCase))));
+
             sourceFiles.AddRange(files);
         }
 
