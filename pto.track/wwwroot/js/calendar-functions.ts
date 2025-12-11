@@ -2,13 +2,12 @@
  * Calendar Functions Module
  * 
  * Pure functions extracted from Absences.cshtml for testing and reusability.
- * These functions handle status colors, URL building, role determination,
- * filter management, and permission validation for the absence tracking calendar.
+ * These functions handle status colors, URL building, and view updates.
  * 
  * @module calendar-functions
  */
 
-function getStatusColor(status) {
+function getStatusColor(status: string | null | undefined) {
     switch (status) {
         case "Pending": return "#ffa500cc";
         case "Approved": return "#6aa84fcc";
@@ -18,9 +17,9 @@ function getStatusColor(status) {
     }
 }
 
-function buildAbsencesUrl(baseUrl, selectedStatuses, isManager, isAdmin, currentEmployeeId) {
+function buildAbsencesUrl(baseUrl: string, selectedStatuses: string[], isManager: boolean, isAdmin: boolean, currentEmployeeId: any) {
     let url = baseUrl;
-    selectedStatuses.forEach(status => {
+    selectedStatuses.forEach((status: string) => {
         url += `&status[]=${status}`;
     });
     const isEmployee = !isManager && !isAdmin;
@@ -34,182 +33,29 @@ function buildAbsencesUrl(baseUrl, selectedStatuses, isManager, isAdmin, current
     return url;
 }
 
-function determineUserRole(user) {
-    if (!user || !user.roles) return "Employee";
-    if (user.roles.includes("Admin")) return "Admin";
-    if (user.roles.includes("Manager")) return "Manager";
-    if (user.roles.includes("Approver")) return "Approver";
-    return "Employee";
-}
+type ViewButton = { id?: string; style?: { fontWeight?: string; backgroundColor?: string } };
 
-function getDefaultStatusFilters(role) {
-    switch (role) {
-        case "Admin":
-            return ["Pending", "Approved", "Rejected", "Cancelled"];
-        case "Manager":
-        case "Approver":
-            return ["Pending", "Approved"];
-        case "Employee":
-        default:
-            return ["Pending"];
-    }
-}
-
-function getVisibleFilters(role) {
-    switch (role) {
-        case "Admin":
-        case "Employee":
-            return ["Pending", "Approved", "Rejected", "Cancelled"];
-        case "Manager":
-        case "Approver":
-            return ["Pending", "Approved"];
-        default:
-            return ["Pending", "Approved"];
-    }
-}
-
-function updateSelectedStatusesFromCheckboxes(filterElements) {
-    const statuses = [];
-    if (filterElements.filterPending.checked) statuses.push("Pending");
-    if (filterElements.filterApproved.checked) statuses.push("Approved");
-    if (filterElements.filterRejected.checked) statuses.push("Rejected");
-    if (filterElements.filterCancelled.checked) statuses.push("Cancelled");
-    return statuses;
-}
-
-function isUserManagerOrApprover(user) {
-    if (!user) return false;
-    return user.isApprover ||
-        user.roles?.some(r =>
-            r.toLowerCase() === 'manager' ||
-            r.toLowerCase() === 'approver'
-        );
-}
-
-function canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-    if (isAdmin || isManager || isApprover) {
-        return true;
-    }
-    // Use loose equality to handle string/number differences
-    return currentEmployeeId == targetResourceId;
-}
-
-function getResourceSelectionMessage(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-    if (canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover)) {
-        return null;
-    }
-    return "You can only create absence requests for yourself. Please select your own row in the calendar.";
-}
-
-function buildContextMenuItems(absence, userContext, event) {
-    const items = [];
-    const status = absence.status;
-    const context = userContext || {
-        currentEmployeeId: null,
-        isAdmin: false,
-        isManager: false,
-        isApprover: false
-    };
-    const isAdmin = context.isAdmin;
-    const isManager = context.isManager;
-    const isApprover = context.isApprover;
-    const isOwner = String(absence.employeeId) === String(context.currentEmployeeId);
-    const canApprove = isAdmin || isManager || isApprover;
-    const canEdit = isAdmin || isOwner;
-    const canDelete = isAdmin || isOwner;
-    items.push({
-        text: "View Details",
-        onClick: function () {
-            return { action: 'viewDetails', absence };
+function updateViewButtons(buttons: ArrayLike<any>, activeView: string) {
+    const arr = Array.from(buttons as any[]);
+    arr.forEach((btn: any) => {
+        const style = btn.style || (btn instanceof HTMLElement ? btn.style : undefined);
+        if (style) {
+            style.fontWeight = 'normal';
+            style.backgroundColor = '';
         }
     });
-    if (status === "Pending" && canEdit) {
-        items.push({
-            text: "Edit Reason",
-            onClick: function () {
-                return { action: 'editReason', absence };
-            }
-        });
-    }
-    if (status === "Pending" && canApprove) {
-        if (canEdit) {
-            items.push({ text: "-" });
-        }
-        items.push({
-            text: "Approve",
-            onClick: function () {
-                return { action: 'approve', absence };
-            }
-        });
-        items.push({
-            text: "Reject",
-            onClick: function () {
-                return { action: 'reject', absence };
-            }
-        });
-    }
-    if ((status === "Pending" || status === "Cancelled") && canDelete) {
-        if (canEdit || canApprove) {
-            items.push({ text: "-" });
-        }
-        items.push({
-            text: "Delete",
-            onClick: function () {
-                return { action: 'delete', absence };
-            }
-        });
-    }
-    return items;
-}
-
-function getSchedulerRowColor(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-    if (!canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover)) {
-        return "#eeeeee";
-    }
-    return null; // Default color
-}
-
-function shouldAllowSelection(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover = false) {
-    return canCreateAbsenceForResource(currentEmployeeId, targetResourceId, isManager, isAdmin, isApprover);
-}
-
-function getCellCssClass(cellStart, today, currentEmployeeId, resourceId, isManager, isAdmin, isApprover) {
-    // Check for past dates
-    if (cellStart < today) {
-        return "disabled-row";
-    }
-    // Check for permissions
-    if (!canCreateAbsenceForResource(currentEmployeeId, resourceId, isManager, isAdmin, isApprover)) {
-        return "disabled-row";
-    }
-    return null;
-}
-
-function updateViewButtons(buttons, activeView) {
-    buttons.forEach(btn => {
-        btn.style.fontWeight = 'normal';
-        btn.style.backgroundColor = '';
-    });
-    const activeBtn = buttons.find(b => b.id === `view${activeView}`);
+    const activeBtn = arr.find((b: any) => (b.id === `view${activeView}`) || (b.getAttribute && b.getAttribute('id') === `view${activeView}`));
     if (activeBtn) {
-        activeBtn.style.fontWeight = 'bold';
-        activeBtn.style.backgroundColor = '#ddd';
+        const style = activeBtn.style || (activeBtn instanceof HTMLElement ? activeBtn.style : undefined);
+        if (style) {
+            style.fontWeight = 'bold';
+            style.backgroundColor = '#ddd';
+        }
     }
 }
 
 export {
     getStatusColor,
     buildAbsencesUrl,
-    determineUserRole,
-    getDefaultStatusFilters,
-    getVisibleFilters,
-    updateSelectedStatusesFromCheckboxes,
-    isUserManagerOrApprover,
-    canCreateAbsenceForResource,
-    getResourceSelectionMessage,
-    buildContextMenuItems,
-    getSchedulerRowColor,
-    shouldAllowSelection,
-    getCellCssClass,
     updateViewButtons
 };

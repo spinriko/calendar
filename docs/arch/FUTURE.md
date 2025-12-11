@@ -1,3 +1,4 @@
+```markdown
 # Future Enhancements - Pattern Analysis
 
 This document outlines well-known software patterns that could be considered for future implementation in the PTO tracking application.
@@ -467,3 +468,5 @@ The other patterns should only be considered if there's a clear need based on:
 - New requirements demand specific architectural patterns
 
 **Last Updated**: November 20, 2025
+
+```

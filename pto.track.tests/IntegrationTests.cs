@@ -79,41 +79,59 @@ namespace pto.track.tests.Integration
                     {
                         var db = scope.ServiceProvider.GetRequiredService<PtoTrackDbContext>();
                         db.Database.EnsureCreated();
-
-                        // If the test provides a seed action, clear any model-seeded data
-                        // so tests control the data state precisely.
+                        // After the test host has been created, seed the per-test in-memory DB
+                        // so the running application observes the expected initial state.
                         if (seed != null)
                         {
                             var existingResources = db.Resources.ToList();
-                            if (existingResources.Any())
-                            {
-                                db.Resources.RemoveRange(existingResources);
-                            }
+                            if (existingResources.Any()) db.Resources.RemoveRange(existingResources);
 
                             var existingEvents = db.Events.ToList();
-                            if (existingEvents.Any())
-                            {
-                                db.Events.RemoveRange(existingEvents);
-                            }
+                            if (existingEvents.Any()) db.Events.RemoveRange(existingEvents);
 
-                            // Persist removals before invoking the test seed
                             db.SaveChanges();
+                            seed.Invoke(db);
+                            try { db.SaveChanges(); } catch (ArgumentException) { }
                         }
-
-                        seed?.Invoke(db);
-                        try
+                        else
                         {
-                            db.SaveChanges();
-                        }
-                        catch (ArgumentException)
-                        {
-                            // Ignore duplicate key errors when seeding during host build
+                            // Use centralized seed helper for default data
+                            pto.track.data.SeedDefaults.EnsureSeedData(db);
                         }
                     }
                 });
             });
 
-            return factory.CreateClient();
+            var client = factory.CreateClient();
+
+            // Also seed via the test host's service provider so the running
+            // application instance observes the seeded data (the BuildServiceProvider
+            // call above may create a separate provider). This ensures the controller
+            // sees the same in-memory DB contents.
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<PtoTrackDbContext>();
+                db.Database.EnsureCreated();
+
+                if (seed != null)
+                {
+                    var existingResources = db.Resources.ToList();
+                    if (existingResources.Any()) db.Resources.RemoveRange(existingResources);
+
+                    var existingEvents = db.Events.ToList();
+                    if (existingEvents.Any()) db.Events.RemoveRange(existingEvents);
+
+                    db.SaveChanges();
+                    seed.Invoke(db);
+                    try { db.SaveChanges(); } catch (ArgumentException) { }
+                }
+                else
+                {
+                    pto.track.data.SeedDefaults.EnsureSeedData(db);
+                }
+            }
+
+            return client;
         }
 
         [Fact]
@@ -343,8 +361,21 @@ namespace pto.track.tests.Integration
         [Fact]
         public async Task GetResourcesByGroup_VerifiesSeededGroupData()
         {
-            // Use the standard test setup but don't clear seeded data
-            var client = GetClientWithInMemoryDb(seed: null); // null means use default seeding
+            // Seed the test DB with the expected application default data
+            var client = GetClientWithInMemoryDb(db =>
+            {
+                if (!db.Groups.Any(g => g.GroupId == 1))
+                {
+                    db.Groups.Add(new pto.track.data.Models.Group { GroupId = 1, Name = "Group 1" });
+                }
+
+                var seedDate = new DateTime(2025, 11, 19, 0, 0, 0, DateTimeKind.Utc);
+                db.Resources.Add(new Resource { Id = 1, Name = "Test Employee 1", Role = "Employee", IsActive = true, IsApprover = false, EmployeeNumber = "EMP001", Email = "employee@example.com", ActiveDirectoryId = "mock-ad-guid-employee", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 2, Name = "Test Employee 2", Role = "Employee", IsActive = true, IsApprover = false, EmployeeNumber = "EMP002", Email = "employee2@example.com", ActiveDirectoryId = "mock-ad-guid-employee2", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 3, Name = "Manager", Role = "Manager", IsActive = true, IsApprover = true, EmployeeNumber = "MGR001", Email = "manager@example.com", ActiveDirectoryId = "mock-ad-guid-manager", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 4, Name = "Approver", Role = "Approver", IsActive = true, IsApprover = true, EmployeeNumber = "APR001", Email = "approver@example.com", ActiveDirectoryId = "mock-ad-guid-approver", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 });
+                db.Resources.Add(new Resource { Id = 5, Name = "Administrator", Role = "Admin", IsActive = true, IsApprover = true, EmployeeNumber = "ADMIN001", Email = "admin@example.com", ActiveDirectoryId = "mock-ad-guid-admin", CreatedDate = seedDate, ModifiedDate = seedDate, GroupId = 1 });
+            });
 
             // Act - Get resources for Group 1 (seeded group)
             var resp = await client.GetAsync("/api/resources/group/1", GetTimeoutToken());

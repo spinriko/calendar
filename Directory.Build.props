@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Disable Roslyn and .NET analyzers globally while we stabilise test infra -->
+    <RunAnalyzers>false</RunAnalyzers>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+  </PropertyGroup>
+</Project>

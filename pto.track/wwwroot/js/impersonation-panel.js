@@ -2,11 +2,21 @@
  * Impersonation Panel - Allows developers to test different user roles
  * @module impersonation-panel
  */
+
+let baseUrl = "/";
+
+declare global {
+    interface Window {
+        toggleImpersonationPanel: () => void;
+        applyImpersonation: (reloadFn?: any) => Promise<void>;
+    }
+}
+
 /**
  * Toggle the visibility of the impersonation panel
  */
 export function toggleImpersonationPanel() {
-    const panel = document.querySelector('.impersonation-panel');
+    const panel = document.querySelector('.impersonation-panel') as HTMLElement;
     if (panel) {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
@@ -16,14 +26,14 @@ export function toggleImpersonationPanel() {
  * @param {string} employeeNumber - The employee number
  * @returns {string[]} Array of role names for that user
  */
-export function getRolesForUser(employeeNumber) {
+export function getRolesForUser(employeeNumber: string) {
     // Map employee numbers to their roles based on the database/test data
-    const userRoles = {
-        'EMP001': ['Employee'], // Test Employee 1
-        'EMP002': ['Employee'], // Test Employee 2
-        'MGR001': ['Employee', 'Manager'], // Test Manager
-        'APR001': ['Employee', 'Approver'], // Test Approver
-        'ADMIN001': ['Employee', 'Admin'] // Administrator
+    const userRoles: Record<string, string[]> = {
+        'EMP001': ['Employee'],                                   // Test Employee 1
+        'EMP002': ['Employee'],                                   // Test Employee 2
+        'MGR001': ['Employee', 'Manager'],                       // Test Manager
+        'APR001': ['Employee', 'Approver'],                      // Test Approver
+        'ADMIN001': ['Employee', 'Admin']                          // Administrator
     };
     return userRoles[employeeNumber] || ['Employee'];
 }
@@ -32,7 +42,7 @@ export function getRolesForUser(employeeNumber) {
  * @returns {{employeeNumber: string, roles: string[]}}
  */
 export function getImpersonationData() {
-    const employeeNumber = document.getElementById('impersonateUser')?.value || 'EMP001';
+    const employeeNumber = (document.getElementById('impersonateUser') as HTMLInputElement)?.value || 'EMP001';
     const roles = getRolesForUser(employeeNumber);
     return {
         employeeNumber,
@@ -43,7 +53,7 @@ export function getImpersonationData() {
  * Reload the page (extracted for testability)
  * @param {Function} reloadFn - Optional reload function for testing
  */
-export function reloadPage(reloadFn = null) {
+export function reloadPage(reloadFn: (() => void) | null = null) {
     if (reloadFn) {
         reloadFn();
     }
@@ -55,10 +65,10 @@ export function reloadPage(reloadFn = null) {
  * Apply impersonation by saving to server and reloading
  * @param {Function} reloadFn - Optional reload function for testing
  */
-export async function applyImpersonation(reloadFn = null) {
+export async function applyImpersonation(reloadFn: (() => void) | null = null) {
     const data = getImpersonationData();
     try {
-        const response = await fetch('/api/impersonation', {
+        const response = await fetch(`${baseUrl}api/impersonation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -73,8 +83,7 @@ export async function applyImpersonation(reloadFn = null) {
             console.error('Failed to apply impersonation:', await response.text());
             alert('Failed to apply impersonation');
         }
-    }
-    catch (error) {
+    } catch (error: any) {
         console.error('Error applying impersonation:', error);
         alert('Error applying impersonation');
     }
@@ -89,7 +98,7 @@ export function loadSavedImpersonation() {
     try {
         const data = JSON.parse(saved);
         // Update user select
-        const userSelect = document.getElementById('impersonateUser');
+        const userSelect = document.getElementById('impersonateUser') as HTMLInputElement;
         if (userSelect && data.employeeNumber) {
             userSelect.value = data.employeeNumber;
         }
@@ -100,14 +109,13 @@ export function loadSavedImpersonation() {
 }
 /**
  * Initialize the impersonation panel on page load
+ * @param {string} url - Base URL for API calls
  */
-export function initImpersonationPanel() {
+export function initImpersonationPanel(url: string = "/") {
+    baseUrl = url;
     loadSavedImpersonation();
     // Make functions available globally for onclick handlers
     window.toggleImpersonationPanel = toggleImpersonationPanel;
     window.applyImpersonation = applyImpersonation;
 }
-// Auto-initialize on DOM content loaded
-if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', initImpersonationPanel);
-}
+
