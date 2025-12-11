@@ -96,3 +96,7 @@ build_diag.txt
 # Test results: ignore TRX files and TestResults folders
 **/TestResults/
 *.trx
+
+# Local artifacts and analysis outputs
+artifacts/
+test-logs/
