@@ -96,3 +96,11 @@ build_diag.txt
 # Test results: ignore TRX files and TestResults folders
 **/TestResults/
 *.trx
+
+# Local artifacts and analysis outputs
+artifacts/
+test-logs/
+
+# MSBuild logs (local CI/build agent outputs)
+msbuild-bin.log
+*.binlog
