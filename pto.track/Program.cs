@@ -36,7 +36,15 @@ if (OperatingSystem.IsWindows())
     }
 }
 
+
 var app = builder.Build();
+
+// Restore PathBase support for reverse proxy or subdirectory hosting
+var pathBase = builder.Configuration.GetValue<string>("PathBase");
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
 
 // Configure pipeline and map endpoints using centralized helpers
 app.ConfigurePipeline();
