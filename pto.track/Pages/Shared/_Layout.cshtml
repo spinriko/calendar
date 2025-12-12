@@ -15,6 +15,12 @@
 </head>
 
 <body>
+    @{
+        var basePath = Context.Request.PathBase.HasValue ? Context.Request.PathBase.Value : "/";
+    }
+    <div style="background: #ffc; color: #333; border-bottom: 1px solid #cc0; padding: 4px 12px; font-size: 0.95em;">
+        <strong>Debug:</strong> Current PathBase = <code>@basePath</code>
+    </div>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" asp-page="/Index">PTO Track</a>
