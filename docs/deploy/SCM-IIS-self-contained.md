@@ -1,11 +1,11 @@
 # Deploying self-contained app and running as a Windows Service behind IIS (reverse proxy)
 
-This document outlines the manual steps your infra team typically performs to deploy a published, self-contained ASP.NET Core app to `C:\inetpub\pto-track`, configure IIS as a reverse-proxy for `http://localhost/pto-track` → `http://localhost:5139/pto-track`, and install the app executable as a Windows Service such that Service Control Manager (SCM) gets a proper "Started" status.
+This document outlines the manual steps your infra team typically performs to deploy a published, self-contained ASP.NET Core app to `C:\standalone\pto-track`, configure IIS as a reverse-proxy for `http://localhost/pto-track` → `http://localhost:5139/pto-track`, and install the app executable as a Windows Service such that Service Control Manager (SCM) gets a proper "Started" status.
 
 Important: these are manual, explanatory steps. Do not run them as a black-box automation; review each step and adapt to your environment (service account, ports, firewall, ARR settings).
 
 High-level checklist
-- Publish a self-contained Windows build of the app to `C:\inetpub\pto-track`
+- Publish a self-contained Windows build of the app to `C:\standalone\pto-track`
 - Ensure the app is configured to run as a Windows service (the host needs to report to SCM)
 - Install the service (create service registration)
 - Configure IIS as a reverse-proxy using ARR + URL Rewrite to forward `/pto-track` to `http://localhost:5139/pto-track`
@@ -31,6 +31,24 @@ app.Run();
 Notes:
 - If you need to support both interactive development and service mode, detect the environment or command-line flag and only call `UseWindowsService()` on Windows when appropriate.
 - The app's lifetime will be controlled by SCM when installed as a service; logs will go to whatever logging sinks you configure (EventLog, files, etc.). Consider adding `builder.Services.Configure<EventLogSettings>(...)` and enabling the EventLog provider for easy troubleshooting.
+- The app's lifetime will be controlled by SCM when installed as a service; logs will go to whatever logging sinks you configure (EventLog, files, etc.). Consider adding `builder.Services.Configure<EventLogSettings>(...)` and enabling the EventLog provider for easy troubleshooting.
+
+Event Log source
+----------------
+If you configure logging to write to the Windows Event Log it's helpful to register a stable event source so administrators can find entries easily (the app's `Program.cs` uses `SourceName = "PTO Track"`). Creating the event source requires administrative privileges and should be done once during provisioning.
+
+Example PowerShell (run elevated):
+
+```powershell
+if (-not [System.Diagnostics.EventLog]::SourceExists('PTO Track')) {
+  New-EventLog -LogName Application -Source 'PTO Track'
+}
+
+# To remove (if needed):
+# if ([System.Diagnostics.EventLog]::SourceExists('PTO Track')) { Remove-EventLog -Source 'PTO Track' }
+```
+
+Note: attempts to create the event source from the application process itself will fail unless the process has the required privileges; perform the registration in deployment scripts or during host provisioning.
 
 2) Publish a self-contained Windows build
 ---------------------------------------
@@ -38,12 +56,12 @@ Notes:
 From the repository root, run the publish command (example for `win-x64`):
 
 ```powershell
-dotnet publish .\pto.track\pto.track.csproj -c Release -r win-x64 --self-contained true -o C:\inetpub\pto-track
+dotnet publish .\pto.track\pto.track.csproj -c Release -r win-x64 --self-contained -o C:\standalone\pto-track
 ```
 
 Notes:
 - The published folder should contain `pto.track.exe` and all runtime dependencies.
-- Ensure file ACLs for the service account (LocalService or a specific domain account) allow read/execute in `C:\inetpub\pto-track`.
+- Ensure file ACLs for the service account (LocalService or a specific domain account) allow read/execute in `C:\standalone\pto-track`.
 
 3) Configure the app's URL and PathBase
 ---------------------------------------
@@ -61,7 +79,7 @@ You can register the published executable as a Windows Service. There are two co
 - Using `sc.exe` (built-in):
 
   ```powershell
-  sc create "PTOTrack" binPath= "C:\inetpub\pto-track\pto.track.exe" DisplayName= "PTO Track" start= auto
+  sc create "PTOTrack" binPath= "C:\standalone\pto-track\pto.track.exe" DisplayName= "PTO Track" start= auto
   ```
 
   Then set the service account and other options in the Services MMC or via `sc config`.
@@ -69,7 +87,7 @@ You can register the published executable as a Windows Service. There are two co
 - Using PowerShell `New-Service` (simpler syntax):
 
   ```powershell
-  New-Service -Name "PTOTrack" -BinaryPathName 'C:\inetpub\pto-track\pto.track.exe' -DisplayName 'PTO Track' -StartupType Automatic
+  New-Service -Name "PTOTrack" -BinaryPathName 'C:\standalone\pto-track\pto.track.exe' -DisplayName 'PTO Track' -StartupType Automatic
   ```
 
 Important:
@@ -134,6 +152,3 @@ If you get 502 / Gateway errors at IIS, examine:
 8) Security note
 ----------------
 Running a public-facing site on the host requires review of service account privileges and ACLs. Prefer a low-privilege service account and avoid running as Administrator.
-
----
-If you'd like, I can also prepare a repeatable checklist or a conservative (non-executing) PowerShell script that prints the exact commands you would run. I won't run anything automatically.
