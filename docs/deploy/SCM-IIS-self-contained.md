@@ -119,7 +119,6 @@ Notes:
 - Ensure ARR is allowed to forward request headers needed by the app (X-Forwarded-For, X-Forwarded-Proto) if you rely on them.
 
 6) Start the service and validate
----------------------------------
 
 Start the service using Services MMC or SCM:
 
@@ -138,9 +137,42 @@ If the service start succeeds (SCM reports `Running`), open a browser to:
   http://localhost/pto-track/
 
 If you get 502 / Gateway errors at IIS, examine:
-- Is the backend listening on `localhost:5139`? (Test with `Invoke-WebRequest http://localhost:5139/pto-track/` on the host.)
-- Are there firewall rules preventing access to the port?
-- Check the app logs and Windows Event Log for errors during startup.
+
+Quick verification checklist
+----------------------------
+Run these checks after deployment to ensure everything is healthy and proxying correctly.
+
+PowerShell (on the host):
+
+```powershell
+# 1) Service running
+Get-Service -Name PTOTrack | Select-Object Status, DisplayName
+
+# 2) Backend reachable (Kestrel)
+Invoke-WebRequest http://localhost:5139/pto-track/ -UseBasicParsing -TimeoutSec 10
+
+# 3) Health endpoints (if configured)
+Invoke-WebRequest http://localhost:5139/health/ready -UseBasicParsing
+
+# 4) IIS reverse-proxy works from the front door
+Invoke-WebRequest http://localhost/pto-track/ -UseBasicParsing
+
+# 5) Port connectivity test
+Test-NetConnection -ComputerName localhost -Port 5139
+
+# 6) Check recent Event Log entries for the app (requires EventLog source created)
+Get-EventLog -LogName Application -Source 'PTO Track' -Newest 20
+
+# 7) Tail IIS logs (example path)
+Get-Content -Path "C:\inetpub\logs\LogFiles\W3SVC1\u_ex*.log" -Tail 50 -Wait
+```
+
+Manual checks:
+- Open `http://localhost/pto-track/` in a private browser window to avoid cached redirects.
+- Verify static assets (e.g. `http://localhost/pto-track/css/site.css`) load and that API routes under `/pto-track/api/` respond.
+- If the root returns a 403.14, ensure there are no physical `pto-track` folders under the IIS site root and that the rewrite rule matches the root (we prefer a single catch-all rule rewriting to `http://localhost:5139/pto-track/{R:1}` with the "Is Not a File" condition only).
+
+If any of these checks fail, consult the app Event Log entries, Kestrel console logs (if running manually), and the IIS logs for the corresponding request timestamps.
 
 7) Troubleshooting: common reasons SCM shows NOT STARTED
 --------------------------------------------------------
