@@ -77,13 +77,12 @@ stages:
     jobs:
       - job: Test
         steps:
-          - script: dotnet test **/*.tests.csproj --configuration Release --collect:"XPlat Code Coverage"
-            displayName: 'Run .NET Tests with Coverage (All Projects)'
-          - task: NodeTool@0
-            inputs:
-              versionSpec: '20.x'
-            displayName: 'Use Node.js 20.x'
-
+          - script: dotnet test pto.track.services.tests/pto.track.services.tests.csproj --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/services
+            displayName: 'Test Services'
+          - script: dotnet test pto.track.tests/pto.track.tests.csproj --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/app
+            displayName: 'Test App'
+          - script: dotnet test pto.track.data.tests/pto.track.data.tests.csproj --logger "trx;LogFileName=data_tests.trx" --results-directory $(Build.SourcesDirectory)/TestResults/data
+            displayName: 'Test Data'
           - script: pwsh ./pto.track.tests.js/run-headless.ps1
             displayName: 'Run JavaScript Tests (QUnit/Puppeteer)'
           - task: PublishTestResults@2
