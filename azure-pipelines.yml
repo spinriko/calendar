@@ -3,14 +3,8 @@
 trigger:
   branches:
     include:
-      - main
       - BuildOnly
       - WithoutEnvironment
-
-pr:
-  branches:
-    include:
-      - main
 
 variables:
   - group: "DevOps Automation Accounts"
