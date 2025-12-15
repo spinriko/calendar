@@ -38,6 +38,7 @@ if (OperatingSystem.IsWindows())
 
 
 var app = builder.Build();
+Console.WriteLine($"WebRootPaht: {app.Environment.WebRootPath}");
 
 // Restore PathBase support for reverse proxy or subdirectory hosting
 var pathBase = builder.Configuration.GetValue<string>("PathBase");
