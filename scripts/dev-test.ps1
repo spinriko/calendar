@@ -1,4 +1,11 @@
-#!/usr/bin/env pwsh
+<#
+This script runs dev tests for the PTO project.
+Compatible with both Windows PowerShell and PowerShell Core.
+#>
+
+# Detect if running in PowerShell Core
+$isPwsh = $PSVersionTable.PSEdition -eq 'Core'
+
 param(
     [switch]$FailFast,
     [switch]$Execute,
@@ -26,11 +33,18 @@ function Run-Command {
 
     try {
         if ($File -ieq 'dotnet') {
-            # pass environment for dotnet so tests run with Testing env
-            $proc = Start-Process -FilePath $File -ArgumentList $Arguments -WorkingDirectory $WorkingDir -NoNewWindow -Wait -PassThru -Environment $envVars
+            if ($isPwsh) {
+                $proc = Start-Process -FilePath $File -ArgumentList $Arguments -WorkingDirectory $WorkingDir -NoNewWindow -Wait -PassThru -Environment $envVars
+            }
+            else {
+                # Windows PowerShell does not support -Environment, so set env vars globally (may affect parent shell)
+                $oldEnv = @{}
+                foreach ($k in $envVars.Keys) { $oldEnv[$k] = [System.Environment]::GetEnvironmentVariable($k); [System.Environment]::SetEnvironmentVariable($k, $envVars[$k]) }
+                $proc = Start-Process -FilePath $File -ArgumentList $Arguments -WorkingDirectory $WorkingDir -NoNewWindow -Wait -PassThru
+                foreach ($k in $oldEnv.Keys) { [System.Environment]::SetEnvironmentVariable($k, $oldEnv[$k]) }
+            }
         }
         else {
-            # tools like npm on Windows are wrappers (npm.cmd); avoid passing -Environment to reduce platform quirks
             $proc = Start-Process -FilePath $File -ArgumentList $Arguments -WorkingDirectory $WorkingDir -NoNewWindow -Wait -PassThru
         }
         Write-Host "$File exited with code $($proc.ExitCode)" -ForegroundColor Yellow
