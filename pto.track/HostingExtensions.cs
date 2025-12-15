@@ -127,6 +127,9 @@ public static class HostingExtensions
                 }
             });
         }
+
+        // Always serve static files from wwwroot (for all environments)
+        app.UseStaticFiles();
         // Serve bundled frontend assets from /dist with correct content-type mappings
         try
         {
