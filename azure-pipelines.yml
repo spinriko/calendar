@@ -80,8 +80,7 @@ stages:
             condition: false
             inputs:
               packageType: "sdk"
-              version: $(dotnetVersion)
-              useGlobalJson: false
+              useGlobalJson: true
               includePreviewVersions: false
               performMultiLevelLookup: true # checks for local installs
 
@@ -96,7 +95,7 @@ stages:
           - task: NodeTool@0
             displayName: "Ensure Node.js is Installed"
             inputs:
-              versionSpec: $(dotnetVersion)
+              versionSpec: $(nodeVersion)
             condition: false
 
           - script: npm install --global $(typescriptPath)
@@ -118,7 +117,7 @@ stages:
             inputs:
               command: "build"
               projects: "$(projectPath)"
-              arguments: "--configuration Release --no-restore"
+              arguments: "--configuration Release --no-build --no-restore"
 
   - stage: Test
     displayName: "Run Tests and Coverage"
@@ -239,9 +238,6 @@ stages:
                 --configuration Release
                 --runtime win-x64
                 --self-contained true
-                /p:PublishSingleFile=true
-                /p:IncludesNativeLibrariesForSelfExtract=true
-                /p:PublishedTrimmed=false
                 --output $(Build.ArtifactStagingDirectory)/publish
 
           - task: PublishBuildArtifacts@1
@@ -275,6 +271,22 @@ stages:
                     Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
                     exit 1
                 }
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Stop and remove current service"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+
+                if (Get-Service -Name $(serviceName) -ErrorAction SilentlyContinue) {
+                  Write-Host "Service $(serviceName) exists. Stopping and removing..."
+                  Stop-Service -Name $(serviceName) -Force -ErrorAction SilentlyContinue
+                  sc.exe delete $(serviceName)
+                }
+                Write-Host "Service $(serviceName) was stopped and removed."
               CommunicationProtocol: "Http"
 
           - task: WindowsMachineFileCopy@2
@@ -315,39 +327,6 @@ stages:
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
-            displayName: "Create Windows Service"
-            condition: false # temporarily disabled in favor of IIS app pool
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                # TODO check if service account has 'Log On As a Service' rights
-
-                if (Get-Service -Name $(serviceName) -ErrorAction SilentlyContinue) {
-                  Write-Host "Service $(serviceName) exists. Stopping and removing..."
-                  Stop-Service -Name $(serviceName) -Force
-                  sc.exe delete $(serviceName)
-                }
-                Write-Host "Creating service $(serviceName)..."
-                sc.exe create $(serviceName) binPath= "$(executablePath)" start= auto obj= $(serviceAccountName) password= "$(serviceAccountPassword)"
-                sc.exe description $(serviceName) "$(serviceDescription)"
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Stop Web AppPool"
-            condition: true # temporarily enabled
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                if ((Get-WebAppPoolState -Name "$(appPoolName)").value -ne 'stopped'){
-                  Stop-WebAppPool -Name "$(appPoolName)"
-                }
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
             displayName: "Replace Previous App Files/Folders"
             inputs:
               Machines: "$(webServerDev)"
@@ -359,28 +338,6 @@ stages:
                 }
                 Move-Item -Path $(deploymentFolder) -Destination $(deploymentBackupFolder)
                 Move-Item -Path $(tempFolder)\ -Destination $(deploymentFolder)
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Start Web App Service"
-            condition: false # temporarily disabled in favor of IIS app pool
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                Start-Service $(serviceName)
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Start Web AppPool"
-            condition: true # temporarily enabled
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                Start-WebAppPool -Name "$(appPoolName)"
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -427,4 +384,17 @@ stages:
                 $httpsRule.AppendChild($httpsAction)
                 $rulesNode.AppendChild($httpsRule)
                 $webConfigXml.Save($webConfigPath)
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Create New Windows Service And Start"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                Write-Host "Creating service $(serviceName)..."
+                sc.exe create $(serviceName) binPath= "$(executablePath)" start= auto obj= $(serviceAccountName) password= "$(serviceAccountPassword)"
+                sc.exe description $(serviceName) "$(serviceDescription)"
+                Start-Service -Name $(serviceName)
               CommunicationProtocol: "Http"
