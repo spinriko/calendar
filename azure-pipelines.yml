@@ -77,7 +77,7 @@ stages:
         steps:
           - task: UseDotNet@2
             displayName: "Ensure .NET SDK 9.0 Installed"
-            condition: false
+#            condition: false
             inputs:
               packageType: "sdk"
               version: $(dotnetVersion)
