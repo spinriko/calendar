@@ -80,8 +80,8 @@ stages:
             condition: false
             inputs:
               packageType: "sdk"
-#              version: $(dotnetVersion)
-              useGlobalJson: true
+              version: $(dotnetVersion)
+              useGlobalJson: false
               includePreviewVersions: false
               performMultiLevelLookup: true # checks for local installs
 
