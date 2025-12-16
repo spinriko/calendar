@@ -8,6 +8,7 @@ trigger:
 
 variables:
   - group: "DevOps Automation Accounts"
+  - group: "ASBDotNetWebApps-DEV"
 
   - name: "dotnetVersion"
     value: "9.0.100"
@@ -155,7 +156,7 @@ stages:
               publishTestResults: false # handled in arguments
 
           - task: PowerShell@2
-            displayName: "Run JavaScript Tests (QUinit/Puppeteer)"
+            displayName: "Run JavaScript Tests (Jest)"
             condition: false
             inputs:
               filePath: "./pto.track.tests.js/run-headless.ps1"
