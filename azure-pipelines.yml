@@ -116,7 +116,7 @@ stages:
             displayName: "Build Project"
             inputs:
               command: "build"
-              projects: "$(projectPath)"
+              projects: "$(solutionPath)"
               arguments: "--configuration Release --no-restore"
 
   - stage: Test
