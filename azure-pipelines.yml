@@ -143,7 +143,7 @@ stages:
               testRunTitle: "Test App"
               command: "test"
               projects: "**/pto.track.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
+              arguments: '--configuration Release --no-build --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -152,7 +152,7 @@ stages:
               testRunTitle: "Test Data"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
+              arguments: '--configuration Release --no-build --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
               publishTestResults: false # handled in arguments
 
           - task: PowerShell@2
