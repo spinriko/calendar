@@ -44,7 +44,7 @@ variables:
     value: 'c:\self-contained_apps\$(appName)_backup\'
 
   - name: "executablePath"
-    value: '$(deploymentFolder)\$(appName).exe'
+    value: '$(deploymentFolder)$(appName).exe'
 
   - name: "serviceName"
     value: "PTO_Track_Service"
@@ -282,12 +282,14 @@ stages:
               UserPassword: "$(automationAcctPass)"
               InlineScript: |
 
-                if (Get-Service -Name $(serviceName) -ErrorAction SilentlyContinue) {
+                if (Get-Service -Name $(serviceName)) {
                   Write-Host "Service $(serviceName) exists. Stopping and removing..."
                   Stop-Service -Name $(serviceName) -Force -ErrorAction SilentlyContinue
-                  sc.exe delete $(serviceName)
+                  sc.exe delete $(serviceName)                
+                  Write-Host "Service $(serviceName) was stopped and removed."
+                } else {
+                  Write-Host "Service $(serviceName) did not exist OR there was an error getting the service."
                 }
-                Write-Host "Service $(serviceName) was stopped and removed."
               CommunicationProtocol: "Http"
 
           - task: WindowsMachineFileCopy@2
