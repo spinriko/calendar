@@ -5,8 +5,8 @@ Usage:
   .\Gather-Service-Diagnostics.ps1 -ServiceName PTOTrack -PublishPath 'C:\standalone\pto-track'
 #>
 param(
-    [string]$ServiceName = 'PTOTrack',
-    [string]$PublishPath = 'C:\standalone\pto-track',
+    [string]$ServiceName = 'PTO_Track_Service',
+    [string]$PublishPath = 'C:\self-contained_apps\pto.track',
     [string]$OutputDir = "C:\temp\pto-diagnostics-$(Get-Date -Format yyyyMMdd-HHmmss)"
 )
 
