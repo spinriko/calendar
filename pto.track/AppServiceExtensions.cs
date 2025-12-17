@@ -45,8 +45,13 @@ public static class AppServiceExtensions
                 }
                 else
                 {
-                    // Disallow all origins by default in non-dev environments
-                    policy.SetIsOriginAllowed(_ => false);
+                    // By default in non-dev environments, allow the corp server host
+                    // to call APIs when no explicit Cors:AllowedOrigins are configured.
+                    // This eases deployment to the corporate webappsdev host.
+                    policy.WithOrigins("http://webappsdev")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
                 }
             });
         });
