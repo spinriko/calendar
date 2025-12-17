@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <httpErrors existingResponse="PassThrough" />
+    <rewrite>
+      <rules>
+        <clear />
+
+        <!-- 1) HTTP->HTTPS redirect except for /pto-track -->
+        <rule name="Redirect to HTTPS (except /pto-track)" stopProcessing="true">
+          <match url="(.*)" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{HTTPS}" pattern="^OFF$" />
+            <add input="{REQUEST_URI}" pattern="^/pto-track" negate="true" />
+          </conditions>
+          <action type="Redirect" url="https://{HTTP_HOST}{REQUEST_URI}" appendQueryString="false" redirectType="Permanent" />
+        </rule>
+
+        <!-- 2) Reverse proxy /pto-track to backend at localhost:5000 -->
+        <rule name="ReverseProxy_PTOTrack" stopProcessing="true">
+          <!-- match URL path starting with pto-track -->
+          <match url="^pto-track(.*)" />
+          <conditions logicalGrouping="MatchAll" trackAllCaptures="false" />
+          <action type="Rewrite" url="http://localhost:5000/pto-track{R:1}" appendQueryString="true" logRewrittenUrl="true" />
+        </rule>
+
+      </rules>
+    </rewrite>
+
+    <!-- Recommended headers forwarded to backend -->
+    <proxy>
+      <preserveHostHeader>true</preserveHostHeader>
+    </proxy>
+  </system.webServer>
+</configuration>
