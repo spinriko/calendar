@@ -97,15 +97,27 @@ stages:
             displayName: "Ensure Node.js is Installed"
             inputs:
               versionSpec: $(nodeVersion)
-            condition: false
 
-          - script: npm install --global $(typescriptPath)
-            displayName: "Ensure typescript is Installed"
-            condition: false
+          - task: Cache@2
+            displayName: 'Cache node modules (pto.track)'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | pto.track/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)" | pto.track/
+              path: pto.track/node_modules
+          - task: Cache@2
+            displayName: 'Cache frontend build output (pto.track/wwwroot/dist)'
+            inputs:
+              key: 'dist | "$(Agent.OS)" | pto.track/wwwroot/dist | $(Build.SourceVersion)'
+              restoreKeys: |
+                dist | "$(Agent.OS)" | pto.track/wwwroot/dist
+              path: pto.track/wwwroot/dist
 
-          - script: npm install --global $(esbuildPath)
-            displayName: "Ensure esbuild is Installed"
-            condition: false
+          - script: npm ci --prefix pto.track
+            displayName: "Install frontend dependencies (pto.track)"
+
+          - script: npm run build:js --prefix pto.track
+            displayName: "Build frontend assets (pto.track)"
 
           - task: DotNetCoreCLI@2
             displayName: "Restore NuGet Packages"
@@ -126,7 +138,26 @@ stages:
     jobs:
       - job: Test
         steps:
-          - checkout: none
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: "Ensure Node.js is Installed (Test Job)"
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: 'Cache node modules (pto.track.tests.js)'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | pto.track.tests.js/package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)" | pto.track.tests.js/
+              path: pto.track.tests.js/node_modules
+
+          - script: npm ci --prefix pto.track.tests.js
+            displayName: "Install JS test deps (pto.track.tests.js)"
+
+          - script: npm test --prefix pto.track.tests.js
+            displayName: "Run JavaScript Tests (Jest)"
 
           - task: DotNetCoreCLI@2
             displayName: "Test Services"
@@ -134,7 +165,7 @@ stages:
               testRunTitle: "Test Services"
               command: "test"
               projects: "**/*.tests.csproj"
-              arguments: '--configuration Release --no-build --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
+              arguments: '--configuration Release --no-build --no-restore --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -143,7 +174,7 @@ stages:
               testRunTitle: "Test App"
               command: "test"
               projects: "**/pto.track.tests.csproj"
-              arguments: '--configuration Release --no-build --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
+              arguments: '--configuration Release --no-build --no-restore --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -152,15 +183,8 @@ stages:
               testRunTitle: "Test Data"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
-              arguments: '--configuration Release --no-build --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
+              arguments: '--configuration Release --no-build --no-restore --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
               publishTestResults: false # handled in arguments
-
-          - task: PowerShell@2
-            displayName: "Run JavaScript Tests (Jest)"
-            condition: false
-            inputs:
-              filePath: "./pto.track.tests.js/run-headless.ps1"
-              pwsh: true
 
           - task: PublishTestResults@2
             inputs:
