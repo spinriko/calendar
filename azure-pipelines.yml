@@ -131,7 +131,19 @@ stages:
           - script: npm --version
             displayName: "Check npm on agent (Test Job)"
             
-          # JavaScript tests are skipped in CI on ADO Server; run locally instead
+          # Run JavaScript tests (Jest). Puppeteer Chromium download is skipped
+          # to avoid headless/browser installs on restricted build agents.
+          - script: |
+              npm ci --prefix pto.track.tests.js
+            displayName: "Install JS test dependencies (pto.track.tests.js)"
+            env:
+              PUPPETEER_SKIP_DOWNLOAD: true
+
+          - script: |
+              npm test --prefix pto.track.tests.js --silent
+            displayName: "Run JavaScript tests (pto.track.tests.js)"
+            env:
+              PUPPETEER_SKIP_DOWNLOAD: true
 
           - task: DotNetCoreCLI@2
             displayName: "Test Services"
