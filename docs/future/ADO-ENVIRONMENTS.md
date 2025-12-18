@@ -28,7 +28,9 @@ This document outlines how to use Azure DevOps (ADO) Environments to harden and 
 
 ## Pipeline Structure (Multi-Stage)
 - **Build stage**: compile and publish artifact.
+- **AnalyzeBuild stage**: run unit/integration tests, coverage, lint/static analysis, and dependency/security checks.
 - **Deploy stages**: `deployment` jobs, each targeting an ADO environment (`Corp-Dev`, `Corp-Test`, `Corp-Prod`).
+- **EnvTests/EnvAnalytics stages**: post-deploy environment-level smoke/functional tests and analytics checks (Dev/Test) gating promotion.
 - **Approvals**: configured in environment UI; pipeline pauses until approved.
 
 ### Sample YAML (illustrative)
@@ -56,13 +58,58 @@ stages:
         pathToPublish: '$(Build.ArtifactStagingDirectory)'
         artifactName: 'drop'
 
+- stage: AnalyzeBuild
+  displayName: Analyze Build (Tests, Coverage, Lint)
+  dependsOn: Build
+  jobs:
+  - job: Analyze
+    pool: { vmImage: 'windows-latest' }
+    steps:
+    # Run tests with coverage for each test project in the stack
+    - task: DotNetCoreCLI@2
+      displayName: Run .NET Tests (web) with Coverage
+      inputs:
+        command: 'test'
+        projects: 'pto.track.tests/pto.track.tests.csproj'
+        arguments: '--collect:"XPlat Code Coverage"'
+    - task: DotNetCoreCLI@2
+      displayName: Run .NET Tests (services) with Coverage
+      inputs:
+        command: 'test'
+        projects: 'pto.track.services.tests/pto.track.services.tests.csproj'
+        arguments: '--collect:"XPlat Code Coverage"'
+    - task: DotNetCoreCLI@2
+      displayName: Run .NET Tests (data) with Coverage
+      inputs:
+        command: 'test'
+        projects: 'pto.track.data.tests/pto.track.data.tests.csproj'
+        arguments: '--collect:"XPlat Code Coverage"'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/TestResults/*.trx'
+        failTaskOnFailedTests: true
+    - script: npm test --prefix pto.track.tests.js
+      displayName: Run JS tests (npm)
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'pto.track.tests.js/results/*.xml'
+        failTaskOnFailedTests: true
+    - task: PowerShell@2
+      displayName: Dependency Vulnerability Scan (.NET)
+      inputs:
+        targetType: 'inline'
+        script: |
+          dotnet list pto.track/pto.track.csproj package --vulnerable || exit 0
+
 - stage: Deploy_Dev
   displayName: Deploy Dev
-  dependsOn: Build
+  dependsOn: AnalyzeBuild
   jobs:
   - deployment: DeployDev
     displayName: Deploy to Corp-Dev
-    environment: 'Corp-Dev'  # targets registered corp servers
+    environment: 'Corp-Dev'
     strategy:
       runOnce:
         deploy:
@@ -98,20 +145,65 @@ stages:
                 if (Test-Path $deploy) { Move-Item $deploy $backup }
                 Move-Item "C:\deploy\pto-track\dev\temp" $deploy
                 iisreset
-          - task: PowerShell@2
-            displayName: Health + Smoke Tests
-            inputs:
-              targetType: 'inline'
-              script: |
-                $BaseUrl = 'https://corp.example.com/pto-track'
-                $ErrorActionPreference = 'Stop'
-                function Test-Url($u){ try { (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 15).StatusCode -in 200..299 } catch { $false } }
-                $ok = (Test-Url "$BaseUrl/health/ready") -and (Test-Url "$BaseUrl/health/live") -and (Test-Url "$BaseUrl/dist/asset-manifest.json") -and (Test-Url "$BaseUrl/dist/site.js")
-                if (-not $ok) { throw "Post-deploy checks failed" }
+
+- stage: EnvTests_Dev
+  displayName: Environment Tests (Dev)
+  dependsOn: Deploy_Dev
+  jobs:
+  - job: EnvTestsDev
+    pool: { vmImage: 'windows-latest' }
+    steps:
+    - task: PowerShell@2
+      displayName: Health + Smoke Tests
+      inputs:
+        targetType: 'inline'
+        script: |
+          $BaseUrl = 'https://corp.example.com/pto-track'
+          $ErrorActionPreference = 'Stop'
+          function Test-Url($u){ try { (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 15).StatusCode -in 200..299 } catch { $false } }
+          $ok = (Test-Url "$BaseUrl/health/ready") -and (Test-Url "$BaseUrl/health/live") -and (Test-Url "$BaseUrl/dist/asset-manifest.json") -and (Test-Url "$BaseUrl/dist/site.js")
+          if (-not $ok) { throw "Post-deploy checks failed" }
+    - script: npm test --prefix pto.track.tests.js
+      displayName: Run UI/API Tests (Dev) via npm
+
+- stage: Deploy_Test
+  displayName: Deploy Test
+  dependsOn: EnvTests_Dev
+  jobs:
+  - deployment: DeployTest
+    displayName: Deploy to Corp-Test
+    environment: 'Corp-Test'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          # repeat extract/env/restart steps with test-specific paths
+
+- stage: EnvTests_Test
+  displayName: Environment Tests (Test)
+  dependsOn: Deploy_Test
+  jobs:
+  - job: EnvTestsTest
+    pool: { vmImage: 'windows-latest' }
+    steps:
+    - task: PowerShell@2
+      displayName: Health + Smoke Tests
+      inputs:
+        targetType: 'inline'
+        script: |
+          $BaseUrl = 'https://corp.example.com/test/pto-track'
+          $ErrorActionPreference = 'Stop'
+          function Test-Url($u){ try { (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 15).StatusCode -in 200..299 } catch { $false } }
+          $ok = (Test-Url "$BaseUrl/health/ready") -and (Test-Url "$BaseUrl/health/live") -and (Test-Url "$BaseUrl/dist/asset-manifest.json") -and (Test-Url "$BaseUrl/dist/site.js")
+          if (-not $ok) { throw "Post-deploy checks failed" }
+    - script: npm test --prefix pto.track.tests.js
+      displayName: Run UI/API Tests (Test) via npm
 
 - stage: Deploy_Prod
   displayName: Deploy Prod
-  dependsOn: Deploy_Dev
+  dependsOn: EnvTests_Test
   jobs:
   - deployment: DeployProd
     displayName: Deploy to Corp-Prod
@@ -137,6 +229,12 @@ stages:
 - Store `sqlConnectionString` in an environment or variable group.
 - Reference via `$(sqlConnectionString)` in YAML; avoid inline creds.
 - Consider Key Vault integration for prod secrets (ADO service connection required).
+
+## Do Environments Require VMs?
+- **Short answer:** No. Environments are logical stages with approvals, checks, and deployment history.
+- **When VMs are needed:** If you want deployment steps to execute on the corp servers via the environment, register those servers as **Virtual machine** resources and install an ADO agent. `deployment` jobs then run directly on those machines.
+- **Alternative without VMs:** Use Environments for approvals/traceability while keeping remote tasks (e.g., `WindowsMachineFileCopy@2`, `PowerShellOnTargetMachines@3`) so steps run on the pipeline agent but target servers remotely.
+- **Azure resources:** For Azure Web Apps/Kubernetes, bind the environment to those resources and deploy without Windows VM registration.
 
 ## Approvals & Governance
 - Configure environment approvals/checks (required reviewers, business hours, external validations).
