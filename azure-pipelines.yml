@@ -98,20 +98,7 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
-          - task: Cache@2
-            displayName: 'Cache node modules (pto.track)'
-            inputs:
-              key: 'npm | "$(Agent.OS)" | pto.track/package-lock.json'
-              restoreKeys: |
-                npm | "$(Agent.OS)" | pto.track/
-              path: pto.track/node_modules
-          - task: Cache@2
-            displayName: 'Cache frontend build output (pto.track/wwwroot/dist)'
-            inputs:
-              key: 'dist | "$(Agent.OS)" | pto.track/wwwroot/dist | $(Build.SourceVersion)'
-              restoreKeys: |
-                dist | "$(Agent.OS)" | pto.track/wwwroot/dist
-              path: pto.track/wwwroot/dist
+          
 
           - script: npm ci --prefix pto.track
             displayName: "Install frontend dependencies (pto.track)"
@@ -145,13 +132,7 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
-          - task: Cache@2
-            displayName: 'Cache node modules (pto.track.tests.js)'
-            inputs:
-              key: 'npm | "$(Agent.OS)" | pto.track.tests.js/package-lock.json'
-              restoreKeys: |
-                npm | "$(Agent.OS)" | pto.track.tests.js/
-              path: pto.track.tests.js/node_modules
+          
 
           - script: npm ci --prefix pto.track.tests.js
             displayName: "Install JS test deps (pto.track.tests.js)"
