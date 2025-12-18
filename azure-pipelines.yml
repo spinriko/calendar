@@ -3,217 +3,429 @@
 trigger:
   branches:
     include:
-      - main
+      - BuildOnly
+      - WithoutEnvironment
 
 variables:
-  serverName: 'YOUR_SERVER_NAME'
-  deployFolder: 'c:\inet\pto.track'
-  forwardedHttpUrl: 'http://localhost:5139'
-  forwardedHttpsUrl: 'https://localhost:7241'
-  rewritePath: 'c:\inet\pto.track\web.config'
-  serviceName: 'PTO Track Service'
-  serviceAccount: 'NT AUTHORITY\NetworkService' # Change as needed
-  servicePassword: $(servicePassword) # Mark as secret in Azure DevOps
-  serviceEnvVars: '' # Add environment variables as needed, e.g. "ASPNETCORE_ENVIRONMENT=Production;CUSTOM_VAR=value"
+  - group: "DevOps Automation Accounts"
+  - group: "ASBDotNetWebApps-DEV"
+
+  - name: "dotnetVersion"
+    value: "9.0.100"
+
+  - name: "efToolVersion"
+    value: "9.0.*"
+
+  - name: "nodeVersion"
+    value: "20.x"
+
+  - name: "typescriptPath"
+    value: 'C:\admin\typescript-5.9.3.tgz'
+
+  - name: "esbuildPath"
+    value: 'C:\admin\esbuild-0.27.1.tgz'
+
+  - name: "solutionPath"
+    value: "**/pto.track.sln"
+
+  - name: "projectPath"
+    value: "**/pto.track.csproj"
+
+  - name: "appName"
+    value: "pto.track"
+
+  - name: "tempFolder"
+    value: 'c:\self-contained_apps\$(appName)_temp'
+
+  - name: "deploymentFolder"
+    value: 'c:\self-contained_apps\$(appName)\'
+
+  - name: "deploymentBackupFolder"
+    value: 'c:\self-contained_apps\$(appName)_backup\'
+
+  - name: "executablePath"
+    value: '$(deploymentFolder)$(appName).exe'
+
+  - name: "serviceName"
+    value: "PTO_Track_Service"
+
+  - name: "appPoolName"
+    value: "pto-track"
+
+  - name: "serviceDescription"
+    value: "PTO Track .NET Core Web Application"
+
+  - name: "webConfigPath"
+    value: 'c:\self-contained_apps\$(appName)\web.config'
+
+  - name: "forwardedHttpUrl"
+    value: "http://localhost:5139"
+
+  - name: "forwardedHttpsUrl"
+    value: "https://localhost:7241"
+
+  # additional variables are pulled from the UI
 
 pool:
-  name: Default
+  name: DVO
 
 stages:
-
   - stage: Build
-    displayName: 'Build Solution and Frontend'
+    displayName: "Build Solution"
     jobs:
       - job: Build
-        steps:
-          - powershell: |
-              $sdk = dotnet --list-sdks
-              if ($sdk -notmatch '9.0') {
-                  Write-Host 'Required .NET SDK 9.0 is not installed. Attempting installation...'
-                  Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/thank-you/sdk-9.0.100-windows-x64-installer" -OutFile "dotnet-sdk-9.0.100-win-x64.exe"
-                  Start-Process -FilePath "dotnet-sdk-9.0.100-win-x64.exe" -ArgumentList "/quiet" -Wait
-                  Remove-Item "dotnet-sdk-9.0.100-win-x64.exe"
-                  $sdk = dotnet --list-sdks
-                  if ($sdk -notmatch '9.0') {
-                      Write-Error 'Failed to install .NET SDK 9.0.'
-                      exit 1
-                  }
-              }
-            displayName: 'Ensure .NET SDK 9.0 Installed'
-            failOnStderr: true
-          - powershell: |
-              $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
-              if (-not $efTool) {
-                  Write-Host 'dotnet-ef tool is not installed globally. Attempting installation...'
-                  dotnet tool install -g dotnet-ef
-                  $efTool = dotnet tool list -g | Select-String 'dotnet-ef'
-                  if (-not $efTool) {
-                      Write-Error 'Failed to install dotnet-ef tool.'
-                      exit 1
-                  }
-              }
-            displayName: 'Ensure dotnet-ef Tool Installed'
-            failOnStderr: true
-          - script: dotnet restore
-            displayName: 'Restore NuGet Packages'
-          - script: dotnet build pto.track/pto.track.csproj --configuration Release
-            displayName: 'Build Project'
-          - task: NodeTool@0
-            inputs:
-              versionSpec: '20.x'
-            displayName: 'Use Node.js 20.x'
-          - script: npm install --prefix pto.track && npm run build --prefix pto.track
-            displayName: 'Build Frontend Bundles (esbuild)'
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track/wwwroot/dist'
-              artifactName: 'frontend-dist'
-              publishLocation: 'Container'
 
+        steps:
+          - task: UseDotNet@2
+            displayName: "Ensure .NET SDK 9.0 Installed"
+            condition: false
+            inputs:
+              packageType: "sdk"
+              useGlobalJson: true
+              includePreviewVersions: false
+              performMultiLevelLookup: true # checks for local installs
+
+          - task: DotNetCoreCLI@2
+            displayName: "Ensure dotnet-ef is Installed"
+            condition: false
+            inputs:
+              command: "custom"
+              custom: "tool"
+              arguments: install --global dotnet-ef --version $(efToolVersion)
+
+          - script: node --version
+            displayName: "Check Node.js on agent"
+
+          
+
+          - script: npm ci --prefix pto.track
+            displayName: "Install frontend dependencies (pto.track)"
+
+          - script: npm run build:js --prefix pto.track
+            displayName: "Build frontend assets (pto.track)"
+
+          - task: DotNetCoreCLI@2
+            displayName: "Restore NuGet Packages"
+            inputs:
+              command: "restore"
+              projects: "$(solutionPath)"
+
+          - task: DotNetCoreCLI@2
+            displayName: "Build Project"
+            inputs:
+              command: "build"
+              projects: "$(solutionPath)"
+              arguments: "--configuration Release --no-restore"
 
   - stage: Test
-    displayName: 'Run Tests and Coverage'
+    displayName: "Run Tests and Coverage"
     dependsOn: Build
     jobs:
       - job: Test
         steps:
-          - script: dotnet test pto.track.services.tests/pto.track.services.tests.csproj --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/services
-            displayName: 'Test Services'
-          - script: dotnet test pto.track.tests/pto.track.tests.csproj --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory $(Build.SourcesDirectory)/TestResults/app
-            displayName: 'Test App'
-          - script: dotnet test pto.track.data.tests/pto.track.data.tests.csproj --logger "trx;LogFileName=data_tests.trx" --results-directory $(Build.SourcesDirectory)/TestResults/data
-            displayName: 'Test Data'
-          - script: pwsh ./pto.track.tests.js/run-headless.ps1
-            displayName: 'Run JavaScript Tests (QUnit/Puppeteer)'
+          - checkout: self
+
+          - script: node --version
+            displayName: "Check Node.js on agent (Test Job)"          
+
+          - script: npm --version
+            displayName: "Check npm on agent (Test Job)"
+            
+          # Run JavaScript tests (Jest). Puppeteer Chromium download is skipped
+          # to avoid headless/browser installs on restricted build agents.
+          # add these back in after downgrading npm
+          #- script: |
+          #    npm ci --prefix pto.track.tests.js
+          #  displayName: "Install JS test dependencies (pto.track.tests.js)"
+          #  env:
+          #    PUPPETEER_SKIP_DOWNLOAD: true
+
+          #- script: |
+          #    npm test --prefix pto.track.tests.js --silent
+          #  displayName: "Run JavaScript tests (pto.track.tests.js)"
+          #  env:
+          #    PUPPETEER_SKIP_DOWNLOAD: true
+
+          - task: DotNetCoreCLI@2
+            displayName: "Test Services"
+            inputs:
+              testRunTitle: "Test Services"
+              command: "test"
+              projects: "**/*.tests.csproj"
+              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
+              publishTestResults: false # handled in arguments
+
+          - task: DotNetCoreCLI@2
+            displayName: "Test App"
+            inputs:
+              testRunTitle: "Test App"
+              command: "test"
+              projects: "**/pto.track.tests.csproj"
+              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
+              publishTestResults: false # handled in arguments
+
+          - task: DotNetCoreCLI@2
+            displayName: "Test Data"
+            inputs:
+              testRunTitle: "Test Data"
+              command: "test"
+              projects: "**/pto.track.data.tests.csproj"
+              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
+              publishTestResults: false # handled in arguments
+
           - task: PublishTestResults@2
             inputs:
-              testResultsFormat: 'VSTest'
-              testResultsFiles: '**/TestResults/**/*.trx'
+              testResultsFormat: "VSTest"
+              testResultsFiles: "**/TestResults/**/*.trx"
               mergeTestResults: true
-              testRunTitle: 'Dotnet Tests'
+              testRunTitle: "Dotnet Tests"
+
           - task: PublishCodeCoverageResults@1
             inputs:
-              codeCoverageTool: 'Cobertura'
-              summaryFileLocation: '$(Build.SourcesDirectory)/**/coverage.cobertura.xml'
-              reportDirectory: '$(Build.SourcesDirectory)/coverage-report'
+              codeCoverageTool: "Cobertura"
+              summaryFileLocation: "$(Build.SourcesDirectory)/**/coverage.cobertura.xml"
+              reportDirectory: "$(Build.SourcesDirectory)/coverage-report"
+
           - task: PublishBuildArtifacts@1
+            condition: false
             inputs:
-              pathToPublish: '$(System.DefaultWorkingDirectory)/pto.track.tests.js/save-results.html'
-              artifactName: 'JavaScriptTestReport'
-              publishLocation: 'Container'
+              pathToPublish: "$(System.DefaultWorkingDirectory)/pto.track.tests.js/save-results.html"
+              artifactName: "JavaScriptTestReport"
+              publishLocation: "Container"
+
   - stage: Analyze
-    displayName: 'Run Analyzers and Metrics'
+    displayName: "Run Analyzers and Metrics"
     dependsOn: Test
     jobs:
       - job: Analyze
         steps:
-          - script: pwsh ./scripts/run-analyzers.ps1 -Execute
-            displayName: 'Run Roslyn Analyzers'
-          - task: PublishBuildArtifacts@1
+          - task: PowerShell@2
+            displayName: "Run Roslyn Analyzers"
             inputs:
-              pathToPublish: '$(System.DefaultWorkingDirectory)/artifacts/analyzers'
-              artifactName: 'analyzers'
-              publishLocation: 'Container'
-          - script: |
-              dotnet build tools/metrics-runner/metrics-runner.csproj -c Release
-              dotnet run --project tools/metrics-runner -- "$(Build.SourcesDirectory)"
-            displayName: 'Run metrics-runner (console)'
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: '$(System.DefaultWorkingDirectory)/artifacts/metrics'
-              artifactName: 'metrics'
-              publishLocation: 'Container'
+              filePath: "./scripts/run-analyzers.ps1"
+              arguments: "-Execute"
 
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(System.DefaultWorkingDirectory)/artifacts/analyzers"
+              artifactName: "analyzers"
+              publishLocation: "Container"
+
+          - task: DotNetCoreCLI@2
+            displayName: "Build metrics-runner (console)"
+            inputs:
+              command: "build"
+              projects: "**/metrics-runner.csproj"
+              arguments: "--configuration Release"
+
+          - task: DotNetCoreCLI@2
+            displayName: "Run metrics-runner (console)"
+            inputs:
+              command: "run"
+              projects: "**/metrics-runner"
+              arguments: "-- '$(Build.SourcesDirectory)'"
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(System.DefaultWorkingDirectory)/artifacts/metrics"
+              artifactName: "metrics"
+              publishLocation: "Container"
 
   - stage: Publish
-    displayName: 'Publish Standalone App'
+    displayName: "Publish Standalone App"
     dependsOn: Analyze
     jobs:
       - job: Publish
         steps:
-          - script: dotnet publish pto.track/pto.track.csproj -c Release -o $(deployFolder) --self-contained -r win-x64
-            displayName: 'Publish Standalone Application'
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: '$(deployFolder)'
-              artifactName: 'app-publish'
-              publishLocation: 'Container'
+          - checkout: none
+          - download: current
 
-  - stage: Deploy
-    displayName: 'Deploy to IIS Server'
+          - task: DotNetCoreCLI@2
+            displayName: "Generate Self-Contained App"
+            inputs:
+              command: "publish"
+              publishWebProjects: false
+              projects: "$(projectPath)"
+              arguments: >
+                --configuration Release
+                --runtime win-x64
+                --self-contained true
+                --output $(Build.ArtifactStagingDirectory)/publish
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Build Artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)/publish"
+              ArtifactName: "build_artifact"
+
+  - stage: DeployDev
+    displayName: "Deploy to Development Server"
     dependsOn: Publish
     jobs:
       - job: Deploy
+
         steps:
-            - powershell: |
-              $exePath = Join-Path "$(deployFolder)" "pto.track.exe"
-              $svcName = "$(serviceName)"
-              $svcAccount = "$(serviceAccount)"
-              $svcPassword = "$(servicePassword)"
-              $envVars = "$(serviceEnvVars)"
-              if (Get-Service -Name $svcName -ErrorAction SilentlyContinue) {
-                Write-Host "Service $svcName exists. Stopping and removing..."
-                Stop-Service -Name $svcName -Force
-                sc.exe delete "$svcName"
-              }
-              Write-Host "Creating service $svcName..."
-              if ($svcAccount -ne 'NT AUTHORITY\NetworkService' -and $svcPassword -ne '') {
-                $createCmd = "sc.exe create `"$svcName`" binPath= `"$exePath`" obj= `"$svcAccount`" password= `"$svcPassword`""
-              } else {
-                $createCmd = "sc.exe create `"$svcName`" binPath= `"$exePath`" obj= `"$svcAccount`""
-              }
-              Invoke-Expression $createCmd
-              if ($envVars -ne '') {
-                Write-Host "Setting environment variables for service..."
-                $envVars.Split(';') | ForEach-Object {
-                  $pair = $_.Split('=')
-                  if ($pair.Length -eq 2) {
-                    [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Machine')
-                  }
-                }
-              }
-              Start-Service -Name $svcName
-            displayName: 'Create and Start Windows Service'
-            failOnStderr: true
-          - powershell: |
-              # Check for IIS installation
-              $iisFeature = Get-WindowsFeature -Name Web-Server
-              if (-not $iisFeature.Installed) {
-                  Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
-                  exit 1
-              }
-            displayName: 'Check IIS Installation'
-            failOnStderr: true
-          - task: CopyFiles@2
+          - checkout: none
+          - download: current
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Check IIS Installation"
             inputs:
-              SourceFolder: '$(deployFolder)'
-              Contents: '**'
-              TargetFolder: '\\$(serverName)\$(deployFolder)'
-          - powershell: |
-              # Update IIS rewrite rules
-              $webConfig = "$(rewritePath)"
-              [xml]$config = Get-Content $webConfig
-              $rules = $config.configuration.'system.webServer'.rewrite.rules
-              # Remove existing rules (optional)
-              $rules.Clear()
-              # Add HTTP rule
-              $httpRule = $rules.CreateElement('rule')
-              $httpRule.SetAttribute('name', 'Forward HTTP')
-              $httpRule.SetAttribute('stopProcessing', 'true')
-              $httpAction = $httpRule.CreateElement('action')
-              $httpAction.SetAttribute('type', 'Rewrite')
-              $httpAction.SetAttribute('url', '$(forwardedHttpUrl)')
-              $httpRule.AppendChild($httpAction)
-              $rules.AppendChild($httpRule)
-              # Add HTTPS rule
-              $httpsRule = $rules.CreateElement('rule')
-              $httpsRule.SetAttribute('name', 'Forward HTTPS')
-              $httpsRule.SetAttribute('stopProcessing', 'true')
-              $httpsAction = $httpsRule.CreateElement('action')
-              $httpsAction.SetAttribute('type', 'Rewrite')
-              $httpsAction.SetAttribute('url', '$(forwardedHttpsUrl)')
-              $httpsRule.AppendChild($httpsAction)
-              $rules.AppendChild($httpsRule)
-              $config.Save($webConfig)
-            displayName: 'Update IIS Rewrite Rules'
-            failOnStderr: true
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                $iisFeature = Get-WindowsFeature -Name Web-Server
+                if (-not $iisFeature.Installed) {
+                    Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
+                    exit 1
+                }
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Stop and remove current service"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+
+                if (Get-Service -Name $(serviceName)) {
+                  Write-Host "Service $(serviceName) exists. Stopping and removing..."
+                  Stop-Service -Name $(serviceName) -Force -ErrorAction SilentlyContinue
+                  sc.exe delete $(serviceName)                
+                  Write-Host "Service $(serviceName) was stopped and removed."
+                } else {
+                  Write-Host "Service $(serviceName) did not exist OR there was an error getting the service."
+                }
+              CommunicationProtocol: "Http"
+
+          - task: WindowsMachineFileCopy@2
+            displayName: "Copy Build Artifact to Web Server"
+            inputs:
+              SourcePath: "$(Pipeline.Workspace)/build_artifact/pto.track.zip"
+              MachineNames: "$(webServerDev)"
+              AdminUserName: "$(automationAcctName)"
+              AdminPassword: "$(automationAcctPass)"
+              TargetPath: '\\$(webServerDev)\$(tempFolder)\'
+              CleanTargetBeforeCopy: true
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Extract Artifact"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                $zip = Get-ChildItem -Path $(tempFolder)\ -Recurse | where {$_.Name -match ".zip"}
+                $zip | Expand-Archive -DestinationPath $(tempFolder)\
+                $zip | Remove-Item
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Set ASPNETCORE_ENVIRONMENT=$(pto-track-env) (Machine)"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                Write-Host "Setting ASPNETCORE_ENVIRONMENT=$(pto-track-env) at Machine scope"
+                [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "$(pto-track-env)", "Machine")
+                $envVal = [Environment]::GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Machine")
+                Write-Host "ASPNETCORE_ENVIRONMENT (Machine) now: $envVal"
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Set ConnectionStrings__PtoTrackDbContext from variable group"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                Write-Host "Setting ConnectionStrings__PtoTrackDbContext at Machine scope"
+                if (-not $env:sqlConnectionString -and -not "$(sqlConnectionString)") {
+                  Write-Error "sqlConnectionString variable is not defined"
+                }
+                $conn = "$(sqlConnectionString)"
+                if (-not $conn) { $conn = $env:sqlConnectionString }
+                [Environment]::SetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", $conn, "Machine")
+                $current = [Environment]::GetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", "Machine")
+                if ($current) {
+                  Write-Host "ConnectionStrings__PtoTrackDbContext set. Length: $($current.Length)"
+                } else {
+                  Write-Error "Failed to set ConnectionStrings__PtoTrackDbContext"
+                }
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Replace Previous App Files/Folders"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                if (Test-Path $(deploymentBackupFolder)){
+                  Remove-Item $(deploymentBackupFolder) -Recurse -Force
+                }
+                Move-Item -Path $(deploymentFolder) -Destination $(deploymentBackupFolder)
+                Move-Item -Path $(tempFolder)\ -Destination $(deploymentFolder)
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Update IIS Rewrite Rules"
+            condition: false # disabled until further testing and evaluation
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                $webConfigPath = "$(webConfigPath)"
+                [xml]$webConfigXml = Get-Content $webConfigPath -Raw
+
+                # build out XML nodes if they do not exist
+                $rulesNode = $webConfigXml.configuration.location.'system.webServer'.rewrite.rules
+                if (-not $rulesNode){
+                    $rewriteNode = $webConfigXml.configuration.location.'system.webServer'.rewrite
+                    if (-not $rewriteNode) {
+                        $systemWebServerNode = $webConfigXml.configuration.location.'system.webServer'
+                        $rewriteNode = $webConfigXml.CreateElement("rewrite")
+                        $systemWebServerNode.AppendChild($rewriteNode) | Out-Null
+                    }
+                    $rulesNode = $webConfigXml.CreateElement("rules")
+                    $rewriteNode.AppendChild($rulesNode) | Out-Null
+                }
+
+                # Add HTTP rule
+                $httpRule = $webConfigXml.CreateElement("rule")
+                $httpRule.SetAttribute('name', 'Forward HTTP')
+                $httpRule.SetAttribute('stopProcessing', 'true')
+                $httpAction = $webConfigXml.CreateElement('action')
+                $httpAction.SetAttribute('type', 'Rewrite')
+                $httpAction.SetAttribute('url', "$(forwardedHttpUrl)")
+                $httpRule.AppendChild($httpAction)
+                $rulesNode.AppendChild($httpRule)
+
+                # Add HTTPS rule
+                $httpsRule = $webConfigXml.CreateElement('rule')
+                $httpsRule.SetAttribute('name', 'Forward HTTPS')
+                $httpsRule.SetAttribute('stopProcessing', 'true')
+                $httpsAction = $webConfigXml.CreateElement('action')
+                $httpsAction.SetAttribute('type', 'Rewrite')
+                $httpsAction.SetAttribute('url', "$(forwardedHttpsUrl)")
+                $httpsRule.AppendChild($httpsAction)
+                $rulesNode.AppendChild($httpsRule)
+                $webConfigXml.Save($webConfigPath)
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Create New Windows Service And Start"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                Write-Host "Creating service $(serviceName)..."
+                sc.exe create $(serviceName) binPath= "$(executablePath)" start= auto obj= $(serviceAccountName) password= "$(serviceAccountPassword)"
+                sc.exe description $(serviceName) "$(serviceDescription)"
+                Start-Service -Name $(serviceName)
+              CommunicationProtocol: "Http"

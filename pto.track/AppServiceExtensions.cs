@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using pto.track.Middleware;
 using pto.track.services;
 using pto.track.services.DbContextStrategies;
@@ -11,10 +12,16 @@ public static class AppServiceExtensions
 {
     public static WebApplicationBuilder ConfigureServices(this WebApplicationBuilder builder)
     {
-        // Configure logging early so services can use it
-        builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
-        builder.Logging.AddDebug();
+        // Configure logging early so services can use it. When running as a
+        // Windows Service we avoid clearing providers so host-level logging
+        // configured via `builder.Host.ConfigureLogging(...)` (EventLog) is
+        // preserved and not accidentally removed.
+        if (!WindowsServiceHelpers.IsWindowsService())
+        {
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.AddDebug();
+        }
 
         // Configure CORS - allow localhost defaults for development/local if not configured
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
@@ -38,8 +45,13 @@ public static class AppServiceExtensions
                 }
                 else
                 {
-                    // Disallow all origins by default in non-dev environments
-                    policy.SetIsOriginAllowed(_ => false);
+                    // By default in non-dev environments, allow the corp server host
+                    // to call APIs when no explicit Cors:AllowedOrigins are configured.
+                    // This eases deployment to the corporate webappsdev host.
+                    policy.WithOrigins("http://webappsdev")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
                 }
             });
         });
