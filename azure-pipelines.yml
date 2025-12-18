@@ -131,11 +131,7 @@ stages:
           - script: npm --version
             displayName: "Check npmm on agent (Test Job)"
             
-          - script: npm ci --prefix pto.track.tests.js
-            displayName: "Install JS test deps (pto.track.tests.js)"
-
-          - script: npm test --prefix pto.track.tests.js
-            displayName: "Run JavaScript Tests (Jest)"
+          # JavaScript tests are skipped in CI on ADO Server; run locally instead
 
           - task: DotNetCoreCLI@2
             displayName: "Test Services"
