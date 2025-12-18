@@ -21,7 +21,7 @@
           <!-- match URL path starting with pto-track -->
           <match url="^pto-track(.*)" />
           <conditions logicalGrouping="MatchAll" trackAllCaptures="false" />
-          <action type="Rewrite" url="http://localhost:5000/pto-track{R:1}" appendQueryString="true" logRewrittenUrl="true" />
+          <action type="Rewrite" url="http://localhost:5139/pto-track{R:1}" appendQueryString="true" logRewrittenUrl="true" />
         </rule>
 
       </rules>
