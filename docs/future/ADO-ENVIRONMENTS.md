@@ -236,6 +236,25 @@ stages:
 - **Alternative without VMs:** Use Environments for approvals/traceability while keeping remote tasks (e.g., `WindowsMachineFileCopy@2`, `PowerShellOnTargetMachines@3`) so steps run on the pipeline agent but target servers remotely.
 - **Azure resources:** For Azure Web Apps/Kubernetes, bind the environment to those resources and deploy without Windows VM registration.
 
+## CI vs CD Agents: Build Server vs Environment VMs
+- **Build Server Agent (CI):** Runs on your build server (or hosted pool). Executes:
+  - Build stage: compile, restore packages, publish artifact.
+  - AnalyzeBuild stage: unit/integration tests (all csproj), coverage, lint, dependency scans.
+  - EnvTests_Dev/EnvTests_Test stages: smoke tests hitting deployed endpoints from outside (no direct server access needed).
+  - Uses: pool (custom or `windows-latest`).
+
+- **Environment VM Agents (CD):** Installed on target corp servers (`server1-dev`, `server1-test`, etc.). Execute:
+  - Deploy_Dev/Deploy_Test/Deploy_Prod jobs: extract artifact, set Machine-level env vars, swap IIS folders, restart service.
+  - Uses: `environment: Corp-Dev` (or Test/Prod) binding; runs directly on the registered machine.
+
+- **Workflow:**
+  - Build server agent runs CI pipeline (build, test, analyze).
+  - Build server agent publishes artifact to pipeline storage.
+  - Environment VM agents on corp servers run CD pipeline (deployment ops).
+  - Build server agent (or hosted pool) runs post-deploy smoke tests hitting the deployed endpoint.
+
+- **Key Point:** The build server agent doesn't "go away." It's still essential for CI. Environment VM agents are *added* to handle deployment on target machines. Both work together in an end-to-end CI/CD flow.
+
 ## Approvals & Governance
 - Configure environment approvals/checks (required reviewers, business hours, external validations).
 - Keep audit trail in ADO Environments for each deploy.
