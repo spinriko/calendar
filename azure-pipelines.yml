@@ -93,10 +93,8 @@ stages:
               custom: "tool"
               arguments: install --global dotnet-ef --version $(efToolVersion)
 
-          - task: NodeTool@0
-            displayName: "Ensure Node.js is Installed"
-            inputs:
-              versionSpec: $(nodeVersion)
+          - script: node --version
+            displayName: "Check Node.js on agent"
 
           
 
@@ -127,12 +125,8 @@ stages:
         steps:
           - checkout: self
 
-          - task: NodeTool@0
-            displayName: "Ensure Node.js is Installed (Test Job)"
-            inputs:
-              versionSpec: $(nodeVersion)
-
-          
+          - script: node --version
+            displayName: "Check Node.js on agent (Test Job)"          
 
           - script: npm ci --prefix pto.track.tests.js
             displayName: "Install JS test deps (pto.track.tests.js)"
