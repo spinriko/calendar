@@ -153,13 +153,15 @@
 @section Scripts {
     <script type="module">
         (async () => {
-            let moduleUrl = '/dist/groups-app.js';
+            const basePath = '@Url.Content("~/")';
+            let moduleUrl = basePath + 'dist/groups-app.js';
             try {
-                const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-store' });
+                const resp = await fetch(basePath + 'dist/asset-manifest.json', { cache: 'no-store' });
                 if (resp && resp.ok) {
                     const manifest = await resp.json();
                     if (manifest && manifest['groups-app.js']) {
-                        moduleUrl = manifest['groups-app.js'];
+                        const raw = manifest['groups-app.js'];
+                        moduleUrl = raw.startsWith('/') ? (basePath.replace(/\/$/, '') + raw) : (basePath + raw);
                     }
                 }
             } catch (e) {

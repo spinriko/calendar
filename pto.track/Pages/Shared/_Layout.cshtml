@@ -88,14 +88,16 @@
 
     <script>
         (function () {
+            const basePath = '@Url.Content("~/")';
             async function chooseSiteScript() {
                 try {
-                    const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-cache' });
+                    const resp = await fetch(basePath + 'dist/asset-manifest.json', { cache: 'no-cache' });
                     if (resp.ok) {
                         const manifest = await resp.json();
                         // prefer an exact match for site.js (with or without hash)
                         const key = Object.keys(manifest).find(k => k.startsWith('site') || k === 'site.js') || 'site.js';
-                        const url = manifest[key] || '/dist/site.js';
+                        const raw = manifest[key] || 'dist/site.js';
+                        const url = raw.startsWith('/') ? (basePath.replace(/\/$/, '') + raw) : (basePath + raw);
                         const s = document.createElement('script');
                         s.type = 'module';
                         s.src = url;
@@ -103,11 +105,11 @@
                         return;
                     }
                 } catch (e) {
-                    console.debug('Manifest not found or invalid, falling back to /dist/site.js', e);
+                    console.debug('Manifest not found or invalid, falling back to dist/site.js', e);
                 }
                 const s = document.createElement('script');
                 s.type = 'module';
-                s.src = '/dist/site.js';
+                s.src = basePath + 'dist/site.js';
                 document.body.appendChild(s);
             }
             chooseSiteScript();
@@ -117,8 +119,9 @@
     <script>
         // Show Groups menu item for Admin users only
         (async function () {
+            const basePath = '@Url.Content("~/")';
             try {
-                const response = await fetch('/api/CurrentUser');
+                const response = await fetch(basePath + 'api/CurrentUser');
                 if (response.ok) {
                     const user = await response.json();
                     if (user.roles && user.roles.includes('Admin')) {
