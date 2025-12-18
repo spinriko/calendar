@@ -129,13 +129,15 @@
 <script type="module">
     (async () => {
         // Try to load the fingerprinted filename from the manifest, fall back to the unhashed path
-        let moduleUrl = '/dist/absences-scheduler.js';
+        const basePath = '@Url.Content("~/")';
+        let moduleUrl = basePath + 'dist/absences-scheduler.js';
         try {
-            const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-store' });
+            const resp = await fetch(basePath + 'dist/asset-manifest.json', { cache: 'no-store' });
             if (resp && resp.ok) {
                 const manifest = await resp.json();
                 if (manifest && manifest['absences-scheduler.js']) {
-                    moduleUrl = manifest['absences-scheduler.js'];
+                    const raw = manifest['absences-scheduler.js'];
+                    moduleUrl = raw.startsWith('/') ? (basePath.replace(/\/$/, '') + raw) : (basePath + raw);
                 }
             }
         } catch (e) {

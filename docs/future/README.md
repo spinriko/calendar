@@ -10,6 +10,8 @@ This folder contains planning, proposal, and draft documentation for future or i
 ### Drafts and Proposals (still in progress)
 
 - [VERSIONING.md](VERSIONING.md): Semantic versioning and MinVer adoption plan (not yet implemented).
+- [DEPLOY-ENHANCEMENTS.md](DEPLOY-ENHANCEMENTS.md): Deploy enhancements — post-deploy checks, pipeline hardening, bundle verification, reverse proxy/PathBase guidance.
+- [ADO-ENVIRONMENTS.md](ADO-ENVIRONMENTS.md): Azure DevOps Environments adoption guide for corp servers.
 
 
 ### Where to find completed docs
@@ -24,4 +26,4 @@ This folder contains planning, proposal, and draft documentation for future or i
 If you are looking for a completed or historical doc, check the appropriate permanent folder above.
 
 ---
-Last updated: December 11, 2025
+Last updated: December 18, 2025
