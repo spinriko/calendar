@@ -263,9 +263,6 @@ stages:
     dependsOn: Publish
     jobs:
       - job: Deploy
-        variables:
-          environment: "Development"
-          sqlConnString: "Server=$(sqlServerDev),$(sqlServerPort);Database=$(dbNameDev);Integrated Security=True;TrustServerCertificate=True;"
 
         steps:
           - checkout: none
@@ -326,18 +323,38 @@ stages:
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
-            displayName: "Apply appsettings.$(Environment).json"
+            displayName: "Set ASPNETCORE_ENVIRONMENT=$(pto-track-env) (Machine)"
             inputs:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
               InlineScript: |
-                if (Test-Path $(tempFolder)\appsettings.$(Environment).json) {
-                  Remove-Item $(tempFolder)\appsettings.$(Environment).json -Force
-                  Copy-Item -Path $(tempFolder)\appsettings.json -Destination $(tempFolder)\appsettings.$(Environment).json
+                Write-Host "Setting ASPNETCORE_ENVIRONMENT=$(pto-track-env) at Machine scope"
+                [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "$(pto-track-env)", "Machine")
+                $envVal = [Environment]::GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Machine")
+                Write-Host "ASPNETCORE_ENVIRONMENT (Machine) now: $envVal"
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
+            displayName: "Set ConnectionStrings__PtoTrackDbContext from variable group"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              InlineScript: |
+                Write-Host "Setting ConnectionStrings__PtoTrackDbContext at Machine scope"
+                if (-not $env:sqlConnectionString -and -not "$(sqlConnectionString)") {
+                  Write-Error "sqlConnectionString variable is not defined"
                 }
-                $content = Get-Content -Path $(tempFolder)\appsettings.$(Environment).json -Raw
-                $content -replace "user-secrets", "$(sqlConnString)" | Set-Content $(tempFolder)\appsettings.$(Environment).json
+                $conn = "$(sqlConnectionString)"
+                if (-not $conn) { $conn = $env:sqlConnectionString }
+                [Environment]::SetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", $conn, "Machine")
+                $current = [Environment]::GetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", "Machine")
+                if ($current) {
+                  Write-Host "ConnectionStrings__PtoTrackDbContext set. Length: $($current.Length)"
+                } else {
+                  Write-Error "Failed to set ConnectionStrings__PtoTrackDbContext"
+                }
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
