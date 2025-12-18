@@ -128,6 +128,9 @@ stages:
           - script: node --version
             displayName: "Check Node.js on agent (Test Job)"          
 
+          - script: npm --version
+            displayName: "Check npmm on agent (Test Job)"
+            
           - script: npm ci --prefix pto.track.tests.js
             displayName: "Install JS test deps (pto.track.tests.js)"
 
