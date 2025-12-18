@@ -22,23 +22,42 @@
 }
 
 <script type="module">
-    import {
-        toggleImpersonationPanel,
-        applyImpersonation,
-        initImpersonationPanel
-    } from '@Url.Content("~/js/impersonation-panel.js")';
+    (async () => {
+        // Try to load the fingerprinted filename from the manifest, fall back to the unhashed path
+        let moduleUrl = '/dist/impersonation-panel.js';
+        try {
+            const resp = await fetch('/dist/asset-manifest.json', { cache: 'no-store' });
+            if (resp && resp.ok) {
+                const manifest = await resp.json();
+                if (manifest && manifest['impersonation-panel.js']) {
+                    moduleUrl = manifest['impersonation-panel.js'];
+                }
+            }
+        } catch (e) {
+            // ignore manifest errors and fall back
+        }
 
-    // Make functions available globally for onclick handlers
-    window.toggleImpersonationPanel = toggleImpersonationPanel;
+        try {
+            const mod = await import(moduleUrl);
+            const toggleImpersonationPanel = mod.toggleImpersonationPanel || mod.default?.toggleImpersonationPanel;
+            const applyImpersonation = mod.applyImpersonation || mod.default?.applyImpersonation;
+            const initImpersonationPanel = mod.initImpersonationPanel || mod.default?.initImpersonationPanel;
 
-    // Initialize the panel when DOM is ready
-    const baseUrl = '@Url.Content("~/")';
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => initImpersonationPanel(baseUrl));
-    } else {
-        initImpersonationPanel(baseUrl);
-    }
+            // Make functions available globally for onclick handlers
+            window.toggleImpersonationPanel = toggleImpersonationPanel;
 
-    // Apply impersonation immediately when dropdown changes
-    document.getElementById('impersonateUser')?.addEventListener('change', () => applyImpersonation());
+            // Initialize the panel when DOM is ready
+            const baseUrl = '@Url.Content("~/")';
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => initImpersonationPanel && initImpersonationPanel(baseUrl));
+            } else {
+                if (initImpersonationPanel) initImpersonationPanel(baseUrl);
+            }
+
+            // Apply impersonation immediately when dropdown changes
+            document.getElementById('impersonateUser')?.addEventListener('change', () => applyImpersonation && applyImpersonation());
+        } catch (err) {
+            console.error('Failed to load impersonation-panel module', err);
+        }
+    })();
 </script>
