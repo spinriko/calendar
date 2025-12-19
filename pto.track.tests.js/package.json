@@ -22,5 +22,9 @@
     "jest-junit": "^16.0.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "glob": "^10",
+    "test-exclude": "^7"
   }
 }

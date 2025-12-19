@@ -71,7 +71,7 @@ namespace pto.track.tests
         public string EnvironmentName { get; set; }
         public string ApplicationName { get; set; }
         public string ContentRootPath { get; set; }
-        public string? WebRootPath { get; set; }
+        public string WebRootPath { get; set; } = string.Empty;
         private IFileProvider? _contentRootFileProvider;
         public IFileProvider ContentRootFileProvider
         {

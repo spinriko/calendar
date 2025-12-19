@@ -148,7 +148,7 @@ try
 {
     var lf = app.Services.GetRequiredService<ILoggerFactory>();
     var tf = lf.GetType();
-    object providersObj = null;
+    object? providersObj = null;
     // common private field
     var providersField = tf.GetField("_providers", BindingFlags.NonPublic | BindingFlags.Instance);
     if (providersField != null)
