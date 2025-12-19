@@ -194,7 +194,6 @@ stages:
             inputs:
               codeCoverageTool: "Cobertura"
               summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage-merged/Cobertura.xml"
-              reportDirectory: "$(Build.SourcesDirectory)/TestResults/coverage-merged"
               failIfCoverageEmpty: true
 
           - task: PublishBuildArtifacts@1
