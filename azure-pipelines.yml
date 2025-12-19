@@ -124,6 +124,10 @@ stages:
         steps:
           - checkout: self
 
+          - powershell: |
+              New-Item -ItemType Directory -Force "$(Build.SourcesDirectory)/TestResults/coverage" | Out-Null
+            displayName: "Ensure coverage output directory"
+
           - script: node --version
             displayName: "Check Node.js on agent (Test Job)"          
 
@@ -150,8 +154,8 @@ stages:
             inputs:
               testRunTitle: "Test Services"
               command: "test"
-              projects: "**/*.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
+              projects: "**/pto.track.services.tests.csproj"
+              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\services" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -160,7 +164,7 @@ stages:
               testRunTitle: "Test App"
               command: "test"
               projects: "**/pto.track.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
+              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\app" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -169,9 +173,16 @@ stages:
               testRunTitle: "Test Data"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
+              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\data" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
+          - powershell: |
+              $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+              if (-not (Get-Command reportgenerator -ErrorAction SilentlyContinue)) {
+                dotnet tool install --global dotnet-reportgenerator-globaltool
+              }
+              reportgenerator "-reports:$(Build.SourcesDirectory)/TestResults/**/coverage.cobertura.xml" "-targetdir:$(Build.SourcesDirectory)/TestResults/coverage-merged" "-reporttypes:Cobertura"
+            displayName: "Merge coverage with ReportGenerator"
           - task: PublishTestResults@2
             inputs:
               testResultsFormat: "VSTest"
@@ -182,8 +193,9 @@ stages:
           - task: PublishCodeCoverageResults@1
             inputs:
               codeCoverageTool: "Cobertura"
-              summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage/coverage.cobertura.xml"
-              reportDirectory: "$(Build.SourcesDirectory)/TestResults/coverage"
+              summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage-merged/Cobertura.xml"
+              reportDirectory: "$(Build.SourcesDirectory)/TestResults/coverage-merged"
+              failIfCoverageEmpty: true
 
           - task: PublishBuildArtifacts@1
             condition: false
