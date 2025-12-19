@@ -124,6 +124,10 @@ stages:
         steps:
           - checkout: self
 
+          - powershell: |
+              New-Item -ItemType Directory -Force "$(Build.SourcesDirectory)/TestResults/coverage" | Out-Null
+            displayName: "Ensure coverage output directory"
+
           - script: node --version
             displayName: "Check Node.js on agent (Test Job)"          
 
@@ -151,7 +155,7 @@ stages:
               testRunTitle: "Test Services"
               command: "test"
               projects: "**/*.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
+              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/services.coverage.cobertura.xml --results-directory "$(Build.SourcesDirectory)\TestResults\services"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -160,7 +164,7 @@ stages:
               testRunTitle: "Test App"
               command: "test"
               projects: "**/pto.track.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
+              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/app.coverage.cobertura.xml --results-directory "$(Build.SourcesDirectory)\TestResults\app"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -169,7 +173,7 @@ stages:
               testRunTitle: "Test Data"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/ --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
+              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage/data.coverage.cobertura.xml --results-directory "$(Build.SourcesDirectory)\TestResults\data"'
               publishTestResults: false # handled in arguments
 
           - task: PublishTestResults@2
@@ -182,8 +186,9 @@ stages:
           - task: PublishCodeCoverageResults@1
             inputs:
               codeCoverageTool: "Cobertura"
-              summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage/coverage.cobertura.xml"
+              summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage/services.coverage.cobertura.xml"
               reportDirectory: "$(Build.SourcesDirectory)/TestResults/coverage"
+              failIfCoverageEmpty: true
 
           - task: PublishBuildArtifacts@1
             condition: false
