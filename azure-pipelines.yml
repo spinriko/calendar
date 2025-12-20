@@ -96,6 +96,10 @@ stages:
               $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
               $ErrorActionPreference = 'Stop'
               
+              $ErrorActionPreference = 'Continue'
+              $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
+              $ErrorActionPreference = 'Stop'
+              
               if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
                 Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
                 $newTag = "v0.1.0"
@@ -117,10 +121,11 @@ stages:
               Write-Host "##[section]Creating and pushing tag: $newTag"
               git tag -a $newTag -m "Auto-increment patch version"
               git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin $newTag
+              git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin $newTag
               
               Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
             displayName: "Auto-increment version tag"
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            condition: false
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
