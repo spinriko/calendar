@@ -8,7 +8,18 @@
 
     <!-- MinVer: Use 'v' prefix for tags (e.g., v1.0.0) -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
+    <!-- MinVer: Fallback version when no tags found -->
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MinVer: Automatic versioning from git tags -->
+    <PackageReference Include="MinVer" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
   <ItemGroup>
     <!-- MinVer: Automatic versioning from git tags -->
