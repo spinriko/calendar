@@ -9,13 +9,14 @@ This folder contains planning, proposal, and draft documentation for future or i
 
 ### Drafts and Proposals (still in progress)
 
-- [VERSIONING.md](VERSIONING.md): Semantic versioning and MinVer adoption plan (not yet implemented).
 - [DEPLOY-ENHANCEMENTS.md](DEPLOY-ENHANCEMENTS.md): Deploy enhancements — post-deploy checks, pipeline hardening, bundle verification, reverse proxy/PathBase guidance.
 - [ADO-ENVIRONMENTS.md](ADO-ENVIRONMENTS.md): Azure DevOps Environments adoption guide for corp servers.
 
 
 ### Where to find completed docs
 
+- Semantic versioning with MinVer: see [docs/run/VERSIONING.md](../run/VERSIONING.md)
+- AI-assisted development workflow: see [docs/run/AI-WORKFLOW.md](../run/AI-WORKFLOW.md)
 - Bundling implementation: see [docs/run/BUNDLING.md](../run/BUNDLING.md)
 - Jest test conversion: see [docs/run/TYPESCRIPT.md](../run/TYPESCRIPT.md)
 - Code metrics/CI gating: see [docs/run/ci-gates.md](../run/ci-gates.md)
@@ -26,4 +27,4 @@ This folder contains planning, proposal, and draft documentation for future or i
 If you are looking for a completed or historical doc, check the appropriate permanent folder above.
 
 ---
-Last updated: December 18, 2025
+Last updated: December 19, 2025

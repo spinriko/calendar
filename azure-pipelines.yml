@@ -75,6 +75,50 @@ stages:
       - job: Build
 
         steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+            fetchTags: true
+
+          - powershell: |
+              git config user.email "devops@example.com"
+              git config user.name "Azure DevOps"
+              
+              # Check if current commit already has a tag (manual override)
+              $currentTag = git tag --points-at HEAD
+              if ($currentTag) {
+                Write-Host "##[section]Manual tag detected: $currentTag. Skipping auto-tag."
+                exit 0
+              }
+              
+              # Get the latest version tag
+              $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" 2>$null
+              if (-not $lastTag) {
+                Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
+                $newTag = "v0.1.0"
+              } else {
+                Write-Host "##[section]Last tag: $lastTag"
+                
+                # Parse version (v1.2.3 -> 1.2.3)
+                $version = $lastTag -replace '^v', ''
+                $parts = $version -split '\.'
+                $major = [int]$parts[0]
+                $minor = [int]$parts[1]
+                $patch = [int]$parts[2]
+                
+                # Increment patch
+                $patch++
+                $newTag = "v$major.$minor.$patch"
+              }
+              
+              Write-Host "##[section]Creating and pushing tag: $newTag"
+              git tag -a $newTag -m "Auto-increment patch version"
+              git push origin $newTag
+              
+              Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
+            displayName: "Auto-increment version tag"
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
           - task: UseDotNet@2
             displayName: "Ensure .NET SDK 9.0 Installed"
             condition: false
@@ -194,7 +238,6 @@ stages:
             inputs:
               codeCoverageTool: "Cobertura"
               summaryFileLocation: "$(Build.SourcesDirectory)/TestResults/coverage-merged/Cobertura.xml"
-              reportDirectory: "$(Build.SourcesDirectory)/TestResults/coverage-merged"
               failIfCoverageEmpty: true
 
           - task: PublishBuildArtifacts@1
