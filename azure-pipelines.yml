@@ -116,11 +116,13 @@ stages:
               
               Write-Host "##[section]Creating and pushing tag: $newTag"
               git tag -a $newTag -m "Auto-increment patch version"
-              git push origin $newTag
+              git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin $newTag
               
               Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
             displayName: "Auto-increment version tag"
             condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
           - task: UseDotNet@2
             displayName: "Ensure .NET SDK 9.0 Installed"
