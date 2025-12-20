@@ -92,8 +92,8 @@ stages:
               }
               
               # Get the latest version tag
-              $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" 2>$null
-              if (-not $lastTag) {
+              $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
+              if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
                 Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
                 $newTag = "v0.1.0"
               } else {
