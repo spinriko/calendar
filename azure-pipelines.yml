@@ -5,10 +5,12 @@ trigger:
     include:
       - main
 
-variables:
-  - group: "DevOps Automation Accounts"
-  - group: "ASBDotNetWebApps-DEV"
+# pr:
+#   branches:
+#     include:
+#       - main
 
+variables:
   - name: "dotnetVersion"
     value: "9.0.100"
 
@@ -96,10 +98,6 @@ stages:
               $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
               $ErrorActionPreference = 'Stop'
               
-              $ErrorActionPreference = 'Continue'
-              $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
-              $ErrorActionPreference = 'Stop'
-              
               if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
                 Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
                 $newTag = "v0.1.0"
@@ -120,14 +118,11 @@ stages:
               
               Write-Host "##[section]Creating and pushing tag: $newTag"
               git tag -a $newTag -m "Auto-increment patch version"
-              git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin $newTag
-              git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin $newTag
+              git push origin $newTag
               
               Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
             displayName: "Auto-increment version tag"
-            condition: false
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+            condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
           - task: UseDotNet@2
             displayName: "Ensure .NET SDK 9.0 Installed"
@@ -260,6 +255,7 @@ stages:
   - stage: Analyze
     displayName: "Run Analyzers and Metrics"
     dependsOn: Test
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - job: Analyze
         steps:
@@ -298,6 +294,7 @@ stages:
   - stage: Publish
     displayName: "Publish Standalone App"
     dependsOn: Analyze
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - job: Publish
         steps:
@@ -325,6 +322,10 @@ stages:
   - stage: DeployDev
     displayName: "Deploy to Development Server"
     dependsOn: Publish
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: "DevOps Automation Accounts"
+      - group: "ASBDotNetWebApps-DEV"
     jobs:
       - job: Deploy
 
