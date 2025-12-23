@@ -99,12 +99,20 @@ stages:
                 exit 0
               }
               
-              # Get the latest version tag
+              # Get the latest version tag (reachable or not)
               $ErrorActionPreference = 'Continue'
-              $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
+              $lastTag = $null
+              # Prefer describe on latest tag commit, regardless of reachability
+              $latestTagCommit = git rev-list --tags --max-count=1
+              if ($latestTagCommit) {
+                $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" $latestTagCommit 2>&1
+              } else {
+                $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
+              }
+              $describeExit = $LASTEXITCODE
               $ErrorActionPreference = 'Stop'
               Write-Host "##[section]git describe output: $lastTag"
-              Write-Host "##[section]git describe exit code: $LASTEXITCODE"
+              Write-Host "##[section]git describe exit code: $describeExit"
               
               if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
                 Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
