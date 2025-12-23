@@ -86,6 +86,9 @@ stages:
               git config user.email "devops@example.com"
               git config user.name "Azure DevOps"
               
+              # Ensure remote tags are available locally
+              git fetch --tags --prune origin
+              
               # Check if current commit already has a tag (manual override)
               $currentTag = git tag --points-at HEAD
               if ($currentTag) {
@@ -119,6 +122,14 @@ stages:
               Write-Host "##[section]Creating and pushing tag: $newTag"
               git tag -a $newTag -m "Auto-increment patch version"
               git push origin $newTag
+
+              # Verify tag exists on remote
+              $remoteTags = git ls-remote --tags origin
+              if ($remoteTags -match [Regex]::Escape($newTag)) {
+                Write-Host "##[section]Verified remote contains tag $newTag"
+              } else {
+                Write-Warning "Remote does NOT show tag $newTag after push. Subsequent builds may re-create initial tag. Check repo permissions."
+              }
               
               Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
 
