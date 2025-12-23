@@ -183,9 +183,8 @@ body .calendar_default_shadow_inner {
 
 /* version display in navbar */
 .version-info {
-    margin-left: 1rem;
-    margin-right: 0.25rem;
     font-size: 0.9rem;
-    color: #cfe1e3;
-    /* light muted color on dark navbar */
+    margin-left: 0.5rem;
+    color: #ffffff;
+    opacity: 0.95;
 }

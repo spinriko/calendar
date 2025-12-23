@@ -48,6 +48,37 @@
 </head>
 
 <body>
+    @using System.Reflection
+    @functions {
+        private string GetAssemblyVersionDisplay()
+        {
+            try
+            {
+                var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+                var info = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                if (!string.IsNullOrEmpty(info))
+                {
+                    var parts = info.Split('+');
+                    if (parts.Length == 2)
+                    {
+                        var shortMeta = parts[1].Length >= 8 ? parts[1].Substring(0, 8) : parts[1];
+                        return $"v{parts[0]}+{shortMeta}";
+                    }
+                    return $"v{info}";
+                }
+
+                var fileVer = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+                if (!string.IsNullOrEmpty(fileVer)) return $"v{fileVer}";
+
+                var ver = assembly.GetName().Version?.ToString();
+                return ver != null ? $"v{ver}" : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+    }
     @{
         var basePath = Context.Request.PathBase.HasValue ? Context.Request.PathBase.Value : "/";
     }
@@ -74,8 +105,7 @@
                     </li>
                 </ul>
             </div>
-            <span id="versionDisplay" class="navbar-text version-info ms-auto"
-                style="color: #ffea7f !important; font-weight:600;">@GetAssemblyVersionDisplay()</span>
+            <span id="versionDisplay" class="navbar-text version-info ms-auto">@GetAssemblyVersionDisplay()</span>
         </div>
     </nav>
 
