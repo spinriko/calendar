@@ -88,6 +88,9 @@ stages:
               
               # Ensure remote tags are available locally
               git fetch --tags --prune origin
+              $fetchExit = $LASTEXITCODE
+              Write-Host "##[section]git fetch --tags exit code: $fetchExit"
+              git tag --list "v*" | Sort-Object | Select-Object -Last 10 | ForEach-Object { Write-Host "tag: $_" }
               
               # Check if current commit already has a tag (manual override)
               $currentTag = git tag --points-at HEAD
@@ -100,6 +103,8 @@ stages:
               $ErrorActionPreference = 'Continue'
               $lastTag = & git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
               $ErrorActionPreference = 'Stop'
+              Write-Host "##[section]git describe output: $lastTag"
+              Write-Host "##[section]git describe exit code: $LASTEXITCODE"
               
               if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
                 Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
