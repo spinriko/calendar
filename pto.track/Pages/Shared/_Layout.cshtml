@@ -2,39 +2,6 @@
 <html lang="en">
 
 @inject Microsoft.Extensions.Hosting.IHostEnvironment Environment
-@using System.Reflection
-
-@functions {
-    private string GetAssemblyVersionDisplay()
-    {
-        var asm = Assembly.GetEntryAssembly() ?? typeof(Program).Assembly ?? Assembly.GetExecutingAssembly();
-
-        // Prefer informational version (may include build metadata like a commit hash)
-        var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (!string.IsNullOrWhiteSpace(info))
-        {
-            // informational version is often in the form: 1.2.3+<commit>
-            var parts = info.Split('+');
-            var ver = parts.Length > 0 ? parts[0] : info;
-            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
-            {
-                var meta = parts[1];
-                // keep a short fingerprint so it's useful but not noisy
-                var shortMeta = meta.Length > 8 ? meta.Substring(0, 8) : meta;
-                return $"v{ver}+{shortMeta}";
-            }
-            return $"v{ver}";
-        }
-
-        var file = asm.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
-        if (!string.IsNullOrWhiteSpace(file)) return "v" + file;
-
-        var nameVer = asm.GetName()?.Version;
-        if (nameVer != null) return $"v{nameVer.Major}.{nameVer.Minor}.{nameVer.Build}";
-
-        return "v0.0.0";
-    }
-}
 
 <head>
     <meta charset="utf-8" />
@@ -48,37 +15,6 @@
 </head>
 
 <body>
-    @using System.Reflection
-    @functions {
-        private string GetAssemblyVersionDisplay()
-        {
-            try
-            {
-                var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
-                var info = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-                if (!string.IsNullOrEmpty(info))
-                {
-                    var parts = info.Split('+');
-                    if (parts.Length == 2)
-                    {
-                        var shortMeta = parts[1].Length >= 8 ? parts[1].Substring(0, 8) : parts[1];
-                        return $"v{parts[0]}+{shortMeta}";
-                    }
-                    return $"v{info}";
-                }
-
-                var fileVer = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
-                if (!string.IsNullOrEmpty(fileVer)) return $"v{fileVer}";
-
-                var ver = assembly.GetName().Version?.ToString();
-                return ver != null ? $"v{ver}" : string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-    }
     @{
         var basePath = Context.Request.PathBase.HasValue ? Context.Request.PathBase.Value : "/";
     }
@@ -105,7 +41,6 @@
                     </li>
                 </ul>
             </div>
-            <span id="versionDisplay" class="navbar-text version-info ms-auto">@GetAssemblyVersionDisplay()</span>
         </div>
     </nav>
 
