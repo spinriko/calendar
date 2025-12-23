@@ -1,5 +1,8 @@
 # PTO Track - Resource Scheduling Calendar
 
+![Version](docs/badges/version.svg)
+[![Build Status (Azure DevOps Server)](https://ado.corp.asbhawaii.com/ASB/ASB%20Dev%20Team/_apis/build/status/148?branchName=main)](https://ado.corp.asbhawaii.com/ASB/ASB%20Dev%20Team/_build/latest?definitionId=148&branchName=main)
+
 A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive scheduler interface powered by DayPilot for managing employee absences and time-off requests.
 
 ## Features
@@ -154,6 +157,53 @@ pto.track.data         → Data access layer (EF Core + Entities)
 
   - The repository keeps analyzers and metrics as separate CI artifacts; analyzers publish to `artifacts/analyzers/` and metrics to `artifacts/metrics/`.
   - We intentionally do not fail the main test job on analyzer warnings; instead analyzers run in their own pipeline stage so their SARIF and logs can be inspected independently. See `docs/run/RUN-CI.md` for example pipeline snippets.
+
+  ### Azure DevOps Server Build Badge
+
+  Replace the placeholders in the badge above with your Azure DevOps Server values:
+
+  - `ADO_SERVER`: base URL of your DevOps Server (e.g., `https://devops.contoso.local/tfs`)
+  - `COLLECTION`: the collection name (for Server/TFS deployments)
+  - `PROJECT`: the project name
+  - `PIPELINE_NAME`: the pipeline name as shown in Pipelines
+  - `DEFINITION_ID`: the numeric pipeline definition ID
+
+  You can also copy the exact badge from Azure DevOps Server UI:
+
+  - Pipelines → select your pipeline → More actions (⋯) → Status badge → copy the Markdown snippet.
+
+  ### Version Badge (Corp Git)
+
+  The version badge at the top is a local SVG (in `docs/badges/version.svg`). You can have the pipeline update it to reflect the latest tag on `main` by writing the SVG during the tagging step.
+
+  Example PowerShell snippet to generate the SVG (runs on main only):
+
+  ```powershell
+  $tag = $env:VersionTag
+  if (-not $tag) { $tag = (git describe --tags --abbrev=0 --match "v*.*.*") }
+  $content = @"
+  <?xml version="1.0" encoding="UTF-8"?>
+  <svg xmlns="http://www.w3.org/2000/svg" width="130" height="20" role="img" aria-label="version: $tag">
+    <linearGradient id="s" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+      <stop offset="1" stop-opacity=".1"/>
+    </linearGradient>
+    <mask id="m"><rect width="130" height="20" rx="3" fill="#fff"/></mask>
+    <g mask="url(#m)">
+      <rect width="60" height="20" fill="#555"/>
+      <rect x="60" width="70" height="20" fill="#007ec6"/>
+      <rect width="130" height="20" fill="url(#s)"/>
+    </g>
+    <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+      <text x="30" y="15">version</text>
+      <text x="94" y="15">$tag</text>
+    </g>
+  </svg>
+  "@
+  Set-Content -Path "$(Build.SourcesDirectory)/docs/badges/version.svg" -Value $content -Encoding UTF8
+  ```
+
+  You can optionally commit this updated badge back to `main` during CI (requires repo Contribute permissions) or host it via a static file server and reference the served URL.
 
   ---
 

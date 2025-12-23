@@ -121,6 +121,47 @@ stages:
               git push origin $newTag
               
               Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
+
+              # Generate version badge SVG in repo (docs/badges/version.svg)
+              $badgeDir = Join-Path $(Build.SourcesDirectory) "docs/badges"
+              if (-not (Test-Path $badgeDir)) { New-Item -ItemType Directory -Path $badgeDir -Force | Out-Null }
+              $badgePath = Join-Path $badgeDir "version.svg"
+              $svg = @"
+              <?xml version="1.0" encoding="UTF-8"?>
+              <svg xmlns="http://www.w3.org/2000/svg" width="130" height="20" role="img" aria-label="version: $newTag">
+                <linearGradient id="s" x2="0" y2="100%">
+                  <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+                  <stop offset="1" stop-opacity=".1"/>
+                </linearGradient>
+                <mask id="m"><rect width="130" height="20" rx="3" fill="#fff"/></mask>
+                <g mask="url(#m)">
+                  <rect width="60" height="20" fill="#555"/>
+                  <rect x="60" width="70" height="20" fill="#007ec6"/>
+                  <rect width="130" height="20" fill="url(#s)"/>
+                </g>
+                <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+                  <text x="30" y="15">version</text>
+                  <text x="94" y="15">$newTag</text>
+                </g>
+              </svg>
+              "@
+              Set-Content -Path $badgePath -Value $svg -Encoding UTF8
+
+              # Commit and push the updated badge to main (skip CI)
+              try {
+                git add $badgePath
+                $staged = git diff --name-only --cached
+                if ($staged) {
+                  $msg = "chore(badges): update version badge to $newTag [skip ci]"
+                  git commit -m $msg
+                  git push origin HEAD:main
+                  Write-Host "##[section]Pushed updated version badge to main"
+                } else {
+                  Write-Host "##[section]No changes to version badge detected; skipping commit"
+                }
+              } catch {
+                Write-Warning "Failed to commit/push version badge: $($_.Exception.Message)"
+              }
             displayName: "Auto-increment version tag"
             condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
