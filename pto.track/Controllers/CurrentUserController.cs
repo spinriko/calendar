@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using pto.track.services;
 using pto.track.services.Authentication;
+using pto.track.services.Identity;
 
 namespace pto.track.Controllers;
 
@@ -15,17 +17,20 @@ public class CurrentUserController : ControllerBase
     private readonly IUserSyncService _userSync;
     private readonly IResourceService _resourceService;
     private readonly IConfiguration _configuration;
+    private readonly IIdentityEnricher _identityEnricher;
 
     public CurrentUserController(
         IUserClaimsProvider claimsProvider,
         IUserSyncService userSync,
         IResourceService resourceService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IIdentityEnricher identityEnricher)
     {
         _claimsProvider = claimsProvider;
         _userSync = userSync;
         _resourceService = resourceService;
         _configuration = configuration;
+        _identityEnricher = identityEnricher;
     }
 
     /// <summary>
@@ -127,5 +132,62 @@ public class CurrentUserController : ControllerBase
 
         var hasRole = _claimsProvider.IsInRole(roleName);
         return Ok(new { role = roleName, hasRole });
+    }
+
+    /// <summary>
+    /// DEBUG: Get all available claims for the current user (development only)
+    /// </summary>
+    [HttpGet("debug/claims")]
+    public async Task<IActionResult> GetAllClaims()
+    {
+        // Check raw HTTP identity (not claims provider) for debugging
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            // Proactively trigger Windows/Negotiate authentication when configured
+            var mode = _configuration["Authentication:Mode"] ?? "Mock";
+            if (string.Equals(mode, "Windows", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(mode, "ActiveDirectory", StringComparison.OrdinalIgnoreCase))
+            {
+                return Challenge(NegotiateDefaults.AuthenticationScheme);
+            }
+
+            return Unauthorized(new { message = "User is not authenticated", rawIdentityName = User.Identity?.Name });
+        }
+
+        var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+        var identity = User.Identity;
+        var normalized = NormalizeIdentityName(identity?.Name);
+        var enriched = normalized != null
+            ? await _identityEnricher.EnrichAsync(normalized, HttpContext.RequestAborted)
+            : new Dictionary<string, string?>();
+
+        return Ok(new
+        {
+            IdentityName = identity?.Name,
+            NormalizedIdentity = normalized,
+            AuthenticationType = identity?.AuthenticationType,
+            IsAuthenticated = identity?.IsAuthenticated,
+            Claims = claims,
+            ClaimCount = claims.Count,
+            Enriched = enriched
+        });
+    }
+
+    private static string? NormalizeIdentityName(string? rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName)) return rawName;
+
+        // Common Windows formats: DOMAIN\\user or user@domain
+        var name = rawName.Trim();
+
+        // If domain\\user, drop the domain prefix
+        var slashIdx = name.IndexOf('\\');
+        if (slashIdx >= 0 && slashIdx < name.Length - 1)
+        {
+            name = name[(slashIdx + 1)..];
+        }
+
+        // Lowercase for stable lookups (UPN/user principal lookups are usually case-insensitive)
+        return name.ToLowerInvariant();
     }
 }

@@ -15,12 +15,40 @@
 </head>
 
 <body>
+    @using System.Reflection
+    @functions {
+        private string GetAssemblyVersionDisplay()
+        {
+            try
+            {
+                var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+                var info = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                if (!string.IsNullOrEmpty(info))
+                {
+                    var parts = info.Split('+');
+                    if (parts.Length == 2)
+                    {
+                        var shortMeta = parts[1].Length >= 8 ? parts[1].Substring(0, 8) : parts[1];
+                        return $"v{parts[0]}+{shortMeta}";
+                    }
+                    return $"v{info}";
+                }
+
+                var fileVer = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+                if (!string.IsNullOrEmpty(fileVer)) return $"v{fileVer}";
+
+                var ver = assembly.GetName().Version?.ToString();
+                return ver != null ? $"v{ver}" : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+    }
     @{
         var basePath = Context.Request.PathBase.HasValue ? Context.Request.PathBase.Value : "/";
     }
-    <div style="background: #ffc; color: #333; border-bottom: 1px solid #cc0; padding: 4px 12px; font-size: 0.95em;">
-        <strong>Debug:</strong> Current PathBase = <code>@basePath</code>
-    </div>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" asp-page="/Index">PTO Track</a>
@@ -41,6 +69,7 @@
                     </li>
                 </ul>
             </div>
+            <span id="versionDisplay" class="navbar-text version-info ms-auto">@GetAssemblyVersionDisplay()</span>
         </div>
     </nav>
 

@@ -55,6 +55,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAbsenceService, AbsenceService>();
         services.AddScoped<IUserSyncService, UserSyncService>();
         services.AddScoped<IGroupService, GroupService>();
+        services.AddSingleton<Identity.IIdentityEnricher, Identity.NoOpIdentityEnricher>();
 
         // Register authentication based on configuration
         var authMode = configuration["Authentication:Mode"] ?? "Mock";
