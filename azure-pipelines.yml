@@ -33,19 +33,19 @@ variables:
     value: "**/pto.track.csproj"
 
   - name: "appName"
-    value: "pto.track"
+              $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
   - name: "tempFolder"
     value: 'c:\self-contained_apps\$(appName)_temp'
 
-  - name: "deploymentFolder"
+              $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
     value: 'c:\self-contained_apps\$(appName)\'
 
   - name: "deploymentBackupFolder"
     value: 'c:\self-contained_apps\$(appName)_backup\'
 
   - name: "executablePath"
-    value: '$(deploymentFolder)$(appName).exe'
+              $gfx.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
 
   - name: "serviceName"
     value: "PTO_Track_Service"
