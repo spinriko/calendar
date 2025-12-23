@@ -180,3 +180,12 @@ body .calendar_default_shadow_inner {
 .calendar_default_main .area_action:hover {
     opacity: 1;
 }
+
+/* version display in navbar */
+.version-info {
+    margin-left: 1rem;
+    margin-right: 0.25rem;
+    font-size: 0.9rem;
+    color: #cfe1e3;
+    /* light muted color on dark navbar */
+}
