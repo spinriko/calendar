@@ -162,6 +162,44 @@ stages:
               } catch {
                 Write-Warning "Failed to commit/push version badge: $($_.Exception.Message)"
               }
+
+              # Also generate a PNG badge for Azure DevOps Server markdown rendering
+              try {
+                Add-Type -AssemblyName System.Drawing
+                $width = 130; $height = 20
+                $bmp = New-Object System.Drawing.Bitmap($width, $height)
+                $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+                $gfx.SmoothingMode = 'AntiAlias'
+                $leftBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x55,0x55,0x55)) # #555
+                $rightBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x00,0x7e,0xc6)) # #007ec6
+                $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(26,0,0,0))
+                $gfx.FillRectangle($leftBrush, 0, 0, 60, $height)
+                $gfx.FillRectangle($rightBrush, 60, 0, $width-60, $height)
+                # light gradient overlay approximation omitted for simplicity
+                $font = New-Object System.Drawing.Font('Verdana', 9, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+                $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+                $format = New-Object System.Drawing.StringFormat
+                $format.Alignment = [System.Drawing.StringAlignment]::Center
+                $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+                $gfx.TextRenderingHint = 'ClearTypeGridFit'
+                $gfx.DrawString('version', $font, $white, (New-Object System.Drawing.RectangleF(0,0,60,$height)), $format)
+                $gfx.DrawString($newTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,$width-60,$height)), $format)
+                $pngPath = Join-Path $badgeDir 'version.png'
+                $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+                $gfx.Dispose(); $bmp.Dispose(); $font.Dispose(); $white.Dispose(); $leftBrush.Dispose(); $rightBrush.Dispose(); $overlay.Dispose()
+                git add $pngPath
+                $stagedPng = git diff --name-only --cached
+                if ($stagedPng) {
+                  $msg2 = "chore(badges): update PNG version badge to $newTag [skip ci]"
+                  git commit -m $msg2
+                  git push origin HEAD:main
+                  Write-Host "##[section]Pushed updated PNG version badge to main"
+                } else {
+                  Write-Host "##[section]No changes to PNG version badge detected; skipping commit"
+                }
+              } catch {
+                Write-Warning "Failed to generate/commit PNG badge: $($_.Exception.Message)"
+              }
             displayName: "Auto-increment version tag"
             condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 

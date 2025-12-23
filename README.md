@@ -1,6 +1,6 @@
 # PTO Track - Resource Scheduling Calendar
 
-![Version](/docs/badges/version.svg)
+![Version](docs/badges/version.png)
 [![Build Status (Azure DevOps Server)](https://ado.corp.asbhawaii.com/ASB/Dev%20Team/_apis/build/status%2Fwebapps-dotnet-pto-track%2Fwebapps-dotnet-pto-track%20CI?branchName=main](https://ado.corp.asbhawaii.com/ASB/Dev%20Team/_build/latest?definitionId=148&branchName=main)
 
 A comprehensive ASP.NET Core resource scheduling and PTO (Paid Time Off) tracking application built with clean architecture principles. Features an interactive scheduler interface powered by DayPilot for managing employee absences and time-off requests.
