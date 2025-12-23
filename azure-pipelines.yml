@@ -33,19 +33,19 @@ variables:
     value: "**/pto.track.csproj"
 
   - name: "appName"
-              $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    value: "pto.track"
 
   - name: "tempFolder"
     value: 'c:\self-contained_apps\$(appName)_temp'
 
-              $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
+  - name: "deploymentFolder"
     value: 'c:\self-contained_apps\$(appName)\'
 
   - name: "deploymentBackupFolder"
     value: 'c:\self-contained_apps\$(appName)_backup\'
 
   - name: "executablePath"
-              $gfx.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
+    value: '$(deploymentFolder)$(appName).exe'
 
   - name: "serviceName"
     value: "PTO_Track_Service"
@@ -169,21 +169,21 @@ stages:
                 $width = 130; $height = 20
                 $bmp = New-Object System.Drawing.Bitmap($width, $height)
                 $gfx = [System.Drawing.Graphics]::FromImage($bmp)
-                $gfx.SmoothingMode = 'AntiAlias'
+                $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
                 $leftBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x55,0x55,0x55)) # #555
                 $rightBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x00,0x7e,0xc6)) # #007ec6
                 $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(26,0,0,0))
                 $gfx.FillRectangle($leftBrush, 0, 0, 60, $height)
-                $gfx.FillRectangle($rightBrush, 60, 0, $width-60, $height)
+                $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
                 # light gradient overlay approximation omitted for simplicity
                 $font = New-Object System.Drawing.Font('Verdana', 9, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
                 $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
                 $format = New-Object System.Drawing.StringFormat
                 $format.Alignment = [System.Drawing.StringAlignment]::Center
                 $format.LineAlignment = [System.Drawing.StringAlignment]::Center
-                $gfx.TextRenderingHint = 'ClearTypeGridFit'
+                $gfx.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
                 $gfx.DrawString('version', $font, $white, (New-Object System.Drawing.RectangleF(0,0,60,$height)), $format)
-                $gfx.DrawString($newTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,$width-60,$height)), $format)
+                $gfx.DrawString($newTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,($width - 60),$height)), $format)
                 $pngPath = Join-Path $badgeDir 'version.png'
                 $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
                 $gfx.Dispose(); $bmp.Dispose(); $font.Dispose(); $white.Dispose(); $leftBrush.Dispose(); $rightBrush.Dispose(); $overlay.Dispose()
