@@ -40,19 +40,6 @@ public class UnitOfWorkTests : TestBase
             await unitOfWork.SaveChangesAsync(cts.Token));
     }
 
-    [Fact(Skip = "InMemory database does not support transactions")]
-    public async Task BeginTransactionAsync_StartsTransaction()
-    {
-        // Arrange
-        var context = CreateInMemoryContext();
-        var unitOfWork = CreateUnitOfWork(context);
-
-        // Act
-        await unitOfWork.BeginTransactionAsync();
-
-        // Assert
-        Assert.NotNull(context.Database.CurrentTransaction);
-    }
 
     [Fact]
     public async Task CommitTransactionAsync_CommitsTransaction()
@@ -78,29 +65,6 @@ public class UnitOfWorkTests : TestBase
         Assert.NotNull(savedResource);
     }
 
-    [Fact(Skip = "InMemory database does not support transactions")]
-    public async Task RollbackTransactionAsync_RollsBackTransaction()
-    {
-        // Arrange
-        var context = CreateInMemoryContext();
-        var unitOfWork = CreateUnitOfWork(context);
-
-        await unitOfWork.BeginTransactionAsync();
-
-        var resource = new Resource { Name = "Test Resource", GroupId = 1 };
-        context.Resources.Add(resource);
-        await unitOfWork.SaveChangesAsync();
-
-        // Act
-        await unitOfWork.RollbackTransactionAsync();
-
-        // Assert
-        Assert.Null(context.Database.CurrentTransaction);
-
-        // Verify data was rolled back
-        var savedResource = await context.Resources.FirstOrDefaultAsync(r => r.Name == "Test Resource");
-        Assert.Null(savedResource);
-    }
 
     [Fact]
     public async Task Transaction_MultipleOperations_CommitsAllOrNothing()
@@ -125,34 +89,6 @@ public class UnitOfWorkTests : TestBase
         Assert.Equal(2, count);
     }
 
-    [Fact(Skip = "InMemory database does not support transactions")]
-    public async Task Transaction_ExceptionDuringOperation_CanBeRolledBack()
-    {
-        // Arrange
-        var context = CreateInMemoryContext();
-        var unitOfWork = CreateUnitOfWork(context);
-
-        await unitOfWork.BeginTransactionAsync();
-
-        try
-        {
-            var resource = new Resource { Name = "Test Resource", GroupId = 1 };
-            context.Resources.Add(resource);
-            await unitOfWork.SaveChangesAsync();
-
-            // Simulate an exception
-            throw new InvalidOperationException("Simulated error");
-        }
-        catch (InvalidOperationException)
-        {
-            // Act
-            await unitOfWork.RollbackTransactionAsync();
-        }
-
-        // Assert
-        var count = await context.Resources.CountAsync();
-        Assert.Equal(0, count);
-    }
 
     [Fact]
     public async Task SaveChangesAsync_WithoutTransaction_SavesImmediately()

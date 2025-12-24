@@ -70,10 +70,13 @@ public static class AppServiceExtensions
 
         // Add authentication - choose scheme based on configuration
         var authMode = builder.Configuration.GetValue<string>("Authentication:Mode") ?? string.Empty;
-        if (string.Equals(authMode, "Windows", StringComparison.OrdinalIgnoreCase) ||
+        if ((string.Equals(authMode, "Windows", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(authMode, "ActiveDirectory", StringComparison.OrdinalIgnoreCase))
+            && !builder.Environment.IsEnvironment("Testing"))
         {
-            // When running under IIS/ANCM with Windows auth enabled, use Negotiate
+            // When running under IIS/ANCM with Windows auth enabled, use Negotiate.
+            // Skip Negotiate during test runs because TestServer doesn't implement
+            // IConnectionItemsFeature and the Negotiate handler will throw.
             builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
                 .AddNegotiate();
         }
