@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -66,26 +68,41 @@ public static class AppServiceExtensions
         // Add HttpContextAccessor for claims access
         builder.Services.AddHttpContextAccessor();
 
-        // Add authentication - using cookie scheme for mock authentication in development
-        builder.Services.AddAuthentication("Cookies")
-            .AddCookie("Cookies", options =>
-            {
-                options.LoginPath = "/Account/Login";
-                options.AccessDeniedPath = "/Account/AccessDenied";
-                options.Events.OnRedirectToLogin = context =>
+        // Add authentication - choose scheme based on configuration
+        var authMode = builder.Configuration.GetValue<string>("Authentication:Mode") ?? string.Empty;
+        if (string.Equals(authMode, "Windows", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(authMode, "ActiveDirectory", StringComparison.OrdinalIgnoreCase))
+        {
+            // When running under IIS/ANCM with Windows auth enabled, use Negotiate
+            builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+                .AddNegotiate();
+        }
+        else
+        {
+            // Default to cookie-based auth for development and tests
+            builder.Services.AddAuthentication("Cookies")
+                .AddCookie("Cookies", options =>
                 {
-                    // For API requests, return 401 instead of redirecting
-                    if (context.Request.Path.StartsWithSegments("/api"))
+                    options.LoginPath = "/Account/Login";
+                    options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.Events.OnRedirectToLogin = context =>
                     {
-                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        // For API requests, return 401 instead of redirecting
+                        if (context.Request.Path.StartsWithSegments("/api"))
+                        {
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            return Task.CompletedTask;
+                        }
+                        context.Response.Redirect(context.RedirectUri);
                         return Task.CompletedTask;
-                    }
-                    context.Response.Redirect(context.RedirectUri);
-                    return Task.CompletedTask;
-                };
-            });
+                    };
+                });
+        }
 
         builder.Services.AddAuthorization();
+
+        // Register default claims enricher (no-op). Tests may override this registration.
+        builder.Services.AddTransient<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ClaimsEnricher>();
 
         // Add Swagger/OpenAPI
         builder.Services.AddEndpointsApiExplorer();
