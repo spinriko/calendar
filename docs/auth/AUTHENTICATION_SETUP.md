@@ -108,6 +108,7 @@ The impersonation state is stored in a cookie that persists for 7 days, so you d
 
 1. **Application starts** → ServiceCollectionExtensions reads `Authentication:Mode` from config
 2. **Mode is "Mock"** → Registers MockUserClaimsProvider
+   - When running under the test environment, the test host forces `Authentication:Mode=Mock` and installs a minimal `Test` authentication scheme used only by integration tests. This prevents production-only authentication schemes (for example, Negotiate/AD) from being registered inside the TestHost where they can throw NotSupportedException.
 3. **User visits /Absences** → JavaScript calls `/api/currentuser`
 4. **CurrentUserController** → Calls UserSyncService.EnsureCurrentUserExistsAsync()
 5. **UserSyncService** → Gets mock claims, creates/updates user in Resources table
@@ -200,6 +201,23 @@ Edit `MockUserClaimsProvider.cs`:
 ```csharp
 public string? GetEmployeeNumber() => "EMP999";
 public IEnumerable<string> GetRoles() => new[] { "Employee" }; // Regular employee
+```
+
+### Integration Tests (TestHost helpers)
+
+The test project supplies a deterministic integration test setup:
+
+- `CustomWebApplicationFactory` enforces `ASPNETCORE_ENVIRONMENT=Testing` and overrides configuration to `Authentication:Mode=Mock` for tests.
+- `TestAuthHandler` is registered as the default scheme in tests — it only authenticates the request and does not add role claims itself.
+- `TestIdentityEnricher` (registered as `IClaimsTransformation`) reads the `X-Test-Claims` header and appends claims/roles to the `ClaimsPrincipal` before authorization runs.
+- Use `X-Test-Claims` in integration test requests to set roles and other claims. If `X-Test-Claims` is absent, some test helpers will fallback to `X-Test-Role` for backwards compatibility.
+
+Example (integration test):
+
+```csharp
+client.DefaultRequestHeaders.Add("X-Test-Claims", "role=Admin,name=Integration Tester,email=test@local");
+var response = await client.GetAsync("/api/groups");
+response.StatusCode.Should().Be(HttpStatusCode.OK);
 ```
 
 ### Test AD Authentication (Corporate)

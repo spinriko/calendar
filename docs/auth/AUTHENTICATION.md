@@ -243,16 +243,34 @@ public async Task TestWithMockUser()
 
 ### Integration Tests
 
-The test projects automatically use mock authentication by default. To test with different users, create custom mock implementations:
+The repository now provides deterministic test support so integration tests can simulate different authenticated users without depending on AD or IIS features.
+
+- Tests run under an enforced `ASPNETCORE_ENVIRONMENT=Testing` and the test host forces `Authentication:Mode=Mock` so the app avoids production-only auth handlers (for example, Negotiate) that are not supported by the TestHost and caused HTTP 500s.
+- The test host installs a minimal `Test` authentication scheme (a small `TestAuthHandler`) that simply marks the request authenticated. Per-request claims are applied by a test-only `IClaimsTransformation` implementation (`TestIdentityEnricher`).
+
+Claim injection for tests is driven by the `X-Test-Claims` HTTP header. The header is a comma-separated list of key=value pairs, for example:
+
+```
+X-Test-Claims: role=Admin,name=Test User,email=test@example.com,employeeNumber=EMP123
+```
+
+`TestIdentityEnricher` parses `X-Test-Claims` and appends the specified claims to the current `ClaimsPrincipal` before authorization runs. This makes role-based authorization behave deterministically in integration tests.
+
+For backward compatibility, some test helpers fall back to the legacy `X-Test-Role` header if `X-Test-Claims` is not present; prefer `X-Test-Claims` for new tests.
+
+If you need to provide programmatic test-only enrichment for controller debug endpoints, the test project also registers a lightweight `IIdentityEnricher` test implementation (`TestIIdentityEnricher`) that controller debug routes call to return enriched attributes.
+
+Example usage (integration test):
 
 ```csharp
-public class TestUserClaimsProvider : IUserClaimsProvider
-{
-    public string TestEmployeeNumber { get; set; } = "EMP999";
-    public List<string> TestRoles { get; set; } = new() { "Employee" };
-    
-    // Implement interface with test values
-}
+// arrange
+client.DefaultRequestHeaders.Add("X-Test-Claims", "role=Admin,name=Integration Tester,email=test@local");
+
+// act
+var resp = await client.GetAsync("/api/currentuser/debug/claims");
+
+// assert
+resp.EnsureSuccessStatusCode();
 ```
 
 ## Security Best Practices

@@ -67,8 +67,12 @@ public static class AppServiceExtensions
         // Add HttpContextAccessor for claims access
         builder.Services.AddHttpContextAccessor();
 
-        // Configure authentication based on configured mode
-        var authMode = builder.Configuration["Authentication:Mode"] ?? "Mock";
+        // Configure authentication based on configured mode. When running in the
+        // Testing environment force `Mock` so test host doesn't register Kestrel-
+        // only handlers like Negotiate which are unsupported by the test server.
+        var authMode = builder.Environment.IsEnvironment("Testing")
+            ? "Mock"
+            : (builder.Configuration["Authentication:Mode"] ?? "Mock");
         if (authMode.Equals("Windows", StringComparison.OrdinalIgnoreCase)
             || authMode.Equals("ActiveDirectory", StringComparison.OrdinalIgnoreCase))
         {

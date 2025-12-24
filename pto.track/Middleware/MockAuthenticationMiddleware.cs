@@ -31,7 +31,28 @@ public class MockAuthenticationMiddleware
         // Only auto-authenticate in Mock mode
         if (authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
         {
-            await HandleMockAuthentication(context);
+            // If tests set an explicit X-Test-Role header, honor it and sign-in
+            // with that role so integration tests can control authorization.
+            var headerRole = context.Request.Headers["X-Test-Role"].ToString();
+            if (!string.IsNullOrEmpty(headerRole))
+            {
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, "TEST"),
+                    new Claim(ClaimTypes.Email, "test@example.com"),
+                    new Claim(ClaimTypes.Name, "Test User"),
+                    new Claim("employeeNumber", "TEST"),
+                    new Claim(ClaimTypes.Role, headerRole)
+                };
+                var identity = new ClaimsIdentity(claims, "MockAuth");
+                var principal = new ClaimsPrincipal(identity);
+                context.User = principal;
+                await context.SignInAsync("Cookies", principal);
+            }
+            else
+            {
+                await HandleMockAuthentication(context);
+            }
         }
 
         await _next(context);

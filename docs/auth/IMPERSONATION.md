@@ -1,3 +1,88 @@
+# User Impersonation (Current Implementation)
+
+This document describes how impersonation currently works in the codebase.
+
+## Summary
+
+- Impersonation is implemented and available in **Mock** (development) mode.
+- A shared UI partial (`pto.track/Pages/Shared/_ImpersonationPanel.cshtml`) renders the impersonation box across pages when enabled.
+- The UI persists impersonation choices to a server cookie (`ImpersonationData`) via the `ImpersonationController` API. Server middleware reads that cookie and applies the impersonated identity for the request.
+- Integration tests do not rely on the UI; tests use the `X-Test-Claims` header together with a test-only `IClaimsTransformation` (`TestIdentityEnricher`) to simulate per-request claims and roles.
+
+## Where the code lives
+
+- UI partial: `pto.track/Pages/Shared/_ImpersonationPanel.cshtml`
+- API controller: `pto.track/Controllers/ImpersonationController.cs` (POST to set, DELETE to clear impersonation)
+- Middleware: `pto.track/Middleware/MockAuthenticationMiddleware.cs` (applies impersonation data when `Authentication:Mode` is `Mock`)
+- Test helpers: `pto.track.tests/CustomWebApplicationFactory.cs`, `pto.track.tests/TestIdentityEnricher.cs`, `pto.track.tests/TestIIdentityEnricher.cs`, `pto.track.tests/Mocks/TestUserClaimsProvider.cs`
+
+## How impersonation works (runtime)
+
+1. The application configuration (`Authentication:Mode`) controls behavior. In development this is typically `Mock` (see `appsettings.Development.json`).
+2. The impersonation UI calls `POST /api/impersonation` with an `ImpersonationRequest` payload; the controller stores a serialized `ImpersonationData` cookie (HttpOnly).
+3. `MockAuthenticationMiddleware` runs on each request in Mock mode; it reads `ImpersonationData`, deserializes it, constructs a `ClaimsPrincipal` with the requested roles/claims, and signs in that principal for the request.
+4. Application code observes the impersonated identity via `IUserClaimsProvider` or `HttpContext.User` as usual.
+
+## How impersonation works (integration tests)
+
+- Integration tests enforce `ASPNETCORE_ENVIRONMENT=Testing` and the test host forces `Authentication:Mode=Mock`, preventing production-only auth handlers (e.g., Negotiate) from being registered in the TestHost.
+- The test project registers a minimal `Test` authentication scheme (`TestAuthHandler`) that only authenticates the request.
+- Per-request claims for tests are applied by `TestIdentityEnricher` (an `IClaimsTransformation` implementation) which reads `X-Test-Claims` and mutates the `ClaimsPrincipal` before authorization runs.
+- `X-Test-Claims` header format: comma-separated key=value pairs. Example:
+
+```
+X-Test-Claims: role=Admin,name=Integration Tester,email=test@example.com,employeeNumber=EMP123
+```
+
+Prefer `X-Test-Claims` in new tests; legacy `X-Test-Role` remains supported by some helpers as a fallback.
+
+## Impersonation API
+
+- POST `/api/impersonation` — body: `{ "employeeNumber": "EMP001", "roles": ["Manager","Employee"] }` — stores `ImpersonationData` cookie (Mock mode only).
+- DELETE `/api/impersonation` — clears the impersonation cookie.
+
+Both endpoints validate that `Authentication:Mode` is `Mock` and return a 400 if impersonation is attempted while not in Mock mode.
+
+## Examples
+
+Client-side (apply impersonation):
+
+```javascript
+await fetch('/api/impersonation', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ employeeNumber: 'EMP002', roles: ['Employee'] })
+});
+window.location.reload();
+```
+
+Integration test (preferred):
+
+```csharp
+client.DefaultRequestHeaders.Add("X-Test-Claims", "role=Admin,name=Test,email=test@local");
+var resp = await client.GetAsync("/api/groups");
+resp.StatusCode.Should().Be(HttpStatusCode.OK);
+```
+
+## Security and operational notes
+
+- UI-driven impersonation must only be enabled in non-production environments. All server-side checks gate impersonation on `Authentication:Mode == "Mock"`.
+- The impersonation cookie is HttpOnly; set `Secure=true` when serving the app over HTTPS in environments where that applies.
+- Tests use header-driven claims injection (`X-Test-Claims`) because it is deterministic and avoids feature gaps in the TestHost.
+
+## Troubleshooting
+
+- If impersonation isn't taking effect:
+  - Confirm `Authentication:Mode` is `Mock` in the configuration used to run the app.
+  - Confirm the `ImpersonationData` cookie exists in the browser (DevTools → Application → Cookies).
+  - Check server logs — `MockAuthenticationMiddleware` logs impersonation events at info/debug level.
+
+## Extensions
+
+- To add extra impersonation attributes, update the `ImpersonationRequest` DTO and the middleware mapping logic.
+- To disable UI impersonation entirely, remove the shared partial or gate it behind a feature flag.
+
+If you want, I can also (a) remove remaining legacy `X-Test-Role` references, or (b) add a short `docs/run/TESTING.md` snippet showing common `X-Test-Claims` usage in integration tests.
 # User Impersonation Feature
 
 ## Overview
@@ -11,6 +96,10 @@ The User Impersonation feature allows administrators and testers to view the app
 ## Current State
 
 Currently, there's an "Impersonate" box on the Absences page that is page-specific and not reusable across the application.
+
+### Test considerations
+
+When running integration tests, impersonation UI is not required — tests use the `X-Test-Claims` header and the test host `TestIdentityEnricher` to simulate per-request claims and roles. This avoids relying on UI-driven impersonation for automated tests and keeps integration tests deterministic.
 
 ## Goal
 
@@ -32,407 +121,92 @@ Create `pto.track/Pages/Shared/_ImpersonationPanel.cshtml`:
     <div class="impersonation-panel position-fixed bottom-0 end-0 m-3 p-3 bg-warning border border-dark shadow-lg" style="z-index: 9999; max-width: 300px;">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <strong>🎭 Impersonation</strong>
-            <button type="button" class="btn-close btn-close-white" onclick="toggleImpersonationPanel()" aria-label="Close"></button>
-        </div>
-        
-        <div class="mb-2">
-            <label for="impersonateUser" class="form-label small">User:</label>
-            <select id="impersonateUser" class="form-select form-select-sm">
-                <option value="EMP001">Development User (Admin)</option>
-                <option value="EMP002">Test Employee</option>
-                <option value="MGR001">Test Manager</option>
-                <option value="APR001">Test Approver</option>
-                <option value="ADMIN001">Administrator</option>
-            </select>
-        </div>
-        
-        <div class="mb-2">
-            <label class="form-label small">Roles:</label>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleEmployee" checked>
-                <label class="form-check-label small" for="roleEmployee">Employee</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleManager">
-                <label class="form-check-label small" for="roleManager">Manager</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleApprover">
-                <label class="form-check-label small" for="roleApprover">Approver</label>
-            </div>
-            <div class="form-check form-check-sm">
-                <input class="form-check-input" type="checkbox" id="roleAdmin">
-                <label class="form-check-label small" for="roleAdmin">Admin</label>
-            </div>
-        </div>
-        
-        <button class="btn btn-sm btn-primary w-100" onclick="applyImpersonation()">Apply</button>
-        <button class="btn btn-sm btn-secondary w-100 mt-1" onclick="clearImpersonation()">Reset to Default</button>
-    </div>
-}
+            # User Impersonation — current state
 
-<script>
-    function toggleImpersonationPanel() {
-        const panel = document.querySelector('.impersonation-panel');
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
-    
-    function applyImpersonation() {
-        const employeeNumber = document.getElementById('impersonateUser').value;
-        const roles = [];
-        
-        if (document.getElementById('roleEmployee').checked) roles.push('Employee');
-        if (document.getElementById('roleManager').checked) roles.push('Manager');
-        if (document.getElementById('roleApprover').checked) roles.push('Approver');
-        if (document.getElementById('roleAdmin').checked) roles.push('Admin');
-        
-        // Store in localStorage for persistence
-        localStorage.setItem('impersonatedUser', JSON.stringify({
-            employeeNumber: employeeNumber,
-            roles: roles
-        }));
-        
-        // Reload page to apply impersonation
-        window.location.reload();
-    }
-    
-    function clearImpersonation() {
-        localStorage.removeItem('impersonatedUser');
-        window.location.reload();
-    }
-    
-    // Load saved impersonation state on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        const saved = localStorage.getItem('impersonatedUser');
-        if (saved) {
-            const data = JSON.parse(saved);
-            document.getElementById('impersonateUser').value = data.employeeNumber;
-            document.getElementById('roleEmployee').checked = data.roles.includes('Employee');
-            document.getElementById('roleManager').checked = data.roles.includes('Manager');
-            document.getElementById('roleApprover').checked = data.roles.includes('Approver');
-            document.getElementById('roleAdmin').checked = data.roles.includes('Admin');
-        }
-    });
-</script>
-```
+            This file used to contain a proposed implementation; that work is now complete and in the codebase. The content below describes the current, accurate behavior and how to work with impersonation safely.
 
-### Step 2: Update MockAuthenticationMiddleware
+            ## Summary
 
-Modify `pto.track/Middleware/MockAuthenticationMiddleware.cs` to check for impersonation data:
+            - Impersonation is implemented and available in **Mock** (development) mode.
+            - The UI partial is included where enabled and stores impersonation state in a cookie (`ImpersonationData`) so the server middleware can apply the impersonated identity.
+            - Integration tests do not rely on the UI; tests use the `X-Test-Claims` header together with a test-only `IClaimsTransformation` (`TestIdentityEnricher`) to simulate per-request claims. This keeps tests deterministic and avoids TestHost issues when production auth handlers are registered.
 
-```csharp
-public async Task InvokeAsync(HttpContext context)
-{
-    var authMode = _configuration["Authentication:Mode"] ?? "Mock";
+            ## Where the code lives
 
-    if (authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
-    {
-        if (!context.User.Identity?.IsAuthenticated ?? true)
-        {
-            // Check for impersonation cookie/header
-            var impersonationData = context.Request.Cookies["ImpersonationData"];
-            
-            List<Claim> claims;
-            
-            if (!string.IsNullOrEmpty(impersonationData))
-            {
-                // Use impersonated user claims
-                var impersonation = System.Text.Json.JsonSerializer.Deserialize<ImpersonationData>(impersonationData);
-                claims = CreateClaimsForImpersonation(impersonation);
-                _logger.LogDebug("Impersonating user: {EmployeeNumber} with roles: {Roles}", 
-                    impersonation.EmployeeNumber, string.Join(", ", impersonation.Roles));
-            }
-            else
-            {
-                // Use default mock user claims
-                claims = CreateDefaultMockClaims();
-                _logger.LogDebug("Auto-authenticating default mock user");
-            }
+            - UI partial: `pto.track/Pages/Shared/_ImpersonationPanel.cshtml` (renders the impersonation controls in Mock mode)
+            - API controller: `pto.track/Controllers/ImpersonationController.cs` (POST to set, DELETE to clear impersonation)
+            - Middleware: `pto.track/Middleware/MockAuthenticationMiddleware.cs` (applies impersonation data when `Authentication:Mode` is `Mock`)
+            - Test helpers: `pto.track.tests/CustomWebApplicationFactory.cs`, `pto.track.tests/TestIdentityEnricher.cs`, `pto.track.tests/TestIIdentityEnricher.cs`, and `pto.track.tests/Mocks/TestUserClaimsProvider.cs`
 
-            var identity = new ClaimsIdentity(claims, "MockAuth");
-            var principal = new ClaimsPrincipal(identity);
-            await context.SignInAsync("Cookies", principal);
-        }
-    }
+            ## How impersonation works (runtime)
 
-    await _next(context);
-}
+            1. The app configuration (`Authentication:Mode`) determines behavior. In development `appsettings.Development.json` it is typically `Mock`.
+            2. The impersonation UI calls `POST /api/impersonation` with an `ImpersonationRequest` payload. The controller stores serialized impersonation data in the `ImpersonationData` cookie (HttpOnly).
+            3. `MockAuthenticationMiddleware` (executing during request processing in Mock mode) reads `ImpersonationData`, deserializes it, and creates a `ClaimsPrincipal` with the requested roles/attributes, then signs in the principal for the request.
+            4. Controllers and services observe the impersonated identity via `IUserClaimsProvider` / `HttpContext.User` as usual.
 
-private List<Claim> CreateDefaultMockClaims()
-{
-    return new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, "EMP001"),
-        new Claim(ClaimTypes.Email, "developer@example.com"),
-        new Claim(ClaimTypes.Name, "Development User"),
-        new Claim("employeeNumber", "EMP001"),
-        new Claim("objectGUID", "mock-ad-guid-12345"),
-        new Claim(ClaimTypes.Role, "Employee"),
-        new Claim(ClaimTypes.Role, "Manager"),
-        new Claim(ClaimTypes.Role, "Approver"),
-        new Claim(ClaimTypes.Role, "Admin")
-    };
-}
+            ## How impersonation works (integration tests)
 
-private List<Claim> CreateClaimsForImpersonation(ImpersonationData impersonation)
-{
-    var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, impersonation.EmployeeNumber),
-        new Claim(ClaimTypes.Email, $"{impersonation.EmployeeNumber.ToLower()}@example.com"),
-        new Claim(ClaimTypes.Name, GetDisplayNameForEmployee(impersonation.EmployeeNumber)),
-        new Claim("employeeNumber", impersonation.EmployeeNumber),
-        new Claim("objectGUID", $"mock-guid-{impersonation.EmployeeNumber}")
-    };
+            - Tests force `ASPNETCORE_ENVIRONMENT=Testing` and the test host forces `Authentication:Mode=Mock` so production-only auth handlers (e.g., Negotiate) are not registered inside the TestHost.
+            - Tests register a minimal `Test` authentication scheme (`TestAuthHandler`) that simply authenticates the request.
+            - Per-request claims are injected by `TestIdentityEnricher` (registered as `IClaimsTransformation`) which reads the `X-Test-Claims` header and appends claims to the `ClaimsPrincipal` before authorization runs.
+            - Example header format:
 
-    foreach (var role in impersonation.Roles)
-    {
-        claims.Add(new Claim(ClaimTypes.Role, role));
-    }
+            ```
+            X-Test-Claims: role=Admin,name=Integration Tester,email=test@example.com,employeeNumber=EMP123
+            ```
 
-    return claims;
-}
+            Prefer `X-Test-Claims` in new tests. Some legacy helpers still accept `X-Test-Role` as a fallback.
 
-private string GetDisplayNameForEmployee(string employeeNumber)
-{
-    return employeeNumber switch
-    {
-        "EMP001" => "Development User",
-        "EMP002" => "Test Employee",
-        "EMP003" => "Test Manager",
-        "EMP004" => "Test Approver",
-        "EMP005" => "Administrator",
-        _ => $"User {employeeNumber}"
-    };
-}
+            ## API: Impersonation endpoints
 
-private class ImpersonationData
-{
-    public string EmployeeNumber { get; set; } = string.Empty;
-    public List<string> Roles { get; set; } = new();
-}
-```
+            - POST `/api/impersonation` — body: `{ "employeeNumber": "EMP001", "roles": ["Manager","Employee"] }` — Stores `ImpersonationData` cookie (Mock mode only).
+            - DELETE `/api/impersonation` — Clears the impersonation cookie.
 
-### Step 3: Create an API Endpoint for Impersonation
+            These endpoints validate `Authentication:Mode` and return 400 if impersonation is attempted in non-Mock modes.
 
-Create `pto.track/Controllers/ImpersonationController.cs`:
+            ## Examples
 
-```csharp
-using Microsoft.AspNetCore.Mvc;
+            Client-side (apply impersonation):
 
-namespace pto.track.Controllers;
-
-/// <summary>
-/// API controller for managing user impersonation (development/mock mode only).
-/// </summary>
-[ApiController]
-[Route("api/impersonation")]
-public class ImpersonationController : Controller
-{
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<ImpersonationController> _logger;
-
-    public ImpersonationController(
-        IConfiguration configuration,
-        ILogger<ImpersonationController> logger)
-    {
-        _configuration = configuration;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Sets impersonation data for the current session.
-    /// Only works when Authentication:Mode is "Mock".
-    /// </summary>
-    [HttpPost]
-    public IActionResult SetImpersonation([FromBody] ImpersonationRequest request)
-    {
-        var authMode = _configuration["Authentication:Mode"] ?? "Mock";
-        
-        if (!authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { message = "Impersonation only available in Mock authentication mode" });
-        }
-
-        var impersonationData = System.Text.Json.JsonSerializer.Serialize(request);
-        
-        Response.Cookies.Append("ImpersonationData", impersonationData, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = false, // Set to true in production with HTTPS
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromHours(8)
-        });
-
-        _logger.LogInformation("Impersonation set for {EmployeeNumber} with roles {Roles}", 
-            request.EmployeeNumber, string.Join(", ", request.Roles));
-
-        return Ok(new { message = "Impersonation applied" });
-    }
-
-    /// <summary>
-    /// Clears impersonation data, reverting to default mock user.
-    /// </summary>
-    [HttpDelete]
-    public IActionResult ClearImpersonation()
-    {
-        Response.Cookies.Delete("ImpersonationData");
-        
-        _logger.LogInformation("Impersonation cleared");
-        
-        return Ok(new { message = "Impersonation cleared" });
-    }
-}
-
-public class ImpersonationRequest
-{
-    public string EmployeeNumber { get; set; } = string.Empty;
-    public List<string> Roles { get; set; } = new();
-}
-```
-
-### Step 4: Update the JavaScript to Use the API
-
-Update the script in `_ImpersonationPanel.cshtml`:
-
-```javascript
-async function applyImpersonation() {
-    const employeeNumber = document.getElementById('impersonateUser').value;
-    const roles = [];
-    
-    if (document.getElementById('roleEmployee').checked) roles.push('Employee');
-    if (document.getElementById('roleManager').checked) roles.push('Manager');
-    if (document.getElementById('roleApprover').checked) roles.push('Approver');
-    if (document.getElementById('roleAdmin').checked) roles.push('Admin');
-    
-    try {
-        const response = await fetch('/api/impersonation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                employeeNumber: employeeNumber,
-                roles: roles
-            })
-        });
-        
-        if (response.ok) {
-            // Store in localStorage for UI state persistence
-            localStorage.setItem('impersonatedUser', JSON.stringify({
-                employeeNumber: employeeNumber,
-                roles: roles
-            }));
-            
-            // Force re-authentication with new impersonation
-            await fetch('/api/CurrentUser'); // This will trigger re-auth
-            
-            // Reload page to apply impersonation
+            ```javascript
+            await fetch('/api/impersonation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ employeeNumber: 'EMP002', roles: ['Employee'] })
+            });
             window.location.reload();
-        } else {
-            alert('Failed to apply impersonation');
-        }
-    } catch (error) {
-        console.error('Error applying impersonation:', error);
-        alert('Error applying impersonation');
-    }
-}
+            ```
 
-async function clearImpersonation() {
-    try {
-        const response = await fetch('/api/impersonation', {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            localStorage.removeItem('impersonatedUser');
-            window.location.reload();
-        } else {
-            alert('Failed to clear impersonation');
-        }
-    } catch (error) {
-        console.error('Error clearing impersonation:', error);
-        alert('Error clearing impersonation');
-    }
-}
-```
+            Integration test (preferred):
 
-### Step 5: Add Impersonation Panel to Layout
+            ```csharp
+            client.DefaultRequestHeaders.Add("X-Test-Claims", "role=Admin,name=Test,email=test@local");
+            var resp = await client.GetAsync("/api/groups");
+            resp.StatusCode.Should().Be(HttpStatusCode.OK);
+            ```
 
-Update `pto.track/Pages/Shared/_Layout.cshtml` to include the impersonation panel:
+            ## Security and operational notes
 
-```cshtml
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <!-- ... existing head content ... -->
-</head>
-<body>
-    <!-- ... existing body content ... -->
-    
-    @if (ViewData["ShowImpersonation"] as bool? ?? false)
-    {
-        <partial name="_ImpersonationPanel" />
-    }
-    
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
-</html>
-```
+            - Impersonation must only be enabled in non-production environments. The middleware and controller explicitly check `Authentication:Mode == "Mock"` before accepting impersonation data.
+            - The impersonation cookie is HttpOnly but may be configured `Secure`/`SameSite` depending on your environment. Do not enable UI-driven impersonation in production.
+            - Tests use header-driven claims injection (`X-Test-Claims`) instead of cookie-based UI impersonation to keep automated runs deterministic and avoid server feature gaps in the TestHost.
 
-### Step 6: Enable Impersonation in Development
+            ## Troubleshooting
 
-Update each page's code-behind to enable impersonation in development. For example, in `Absences.cshtml.cs`:
+            - If impersonation does not apply:
+              - Confirm `Authentication:Mode` is `Mock` in the app config used to run the site.
+              - Confirm the `ImpersonationData` cookie is present (browser dev tools → Application → Cookies).
+              - Check server logs — `MockAuthenticationMiddleware` logs impersonation events at debug/info level.
 
-```csharp
-public class AbsencesModel : PageModel
-{
-    private readonly IConfiguration _configuration;
-    
-    public AbsencesModel(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-    
-    public void OnGet()
-    {
-        // Enable impersonation panel in Mock mode only
-        var authMode = _configuration["Authentication:Mode"] ?? "Mock";
-        ViewData["ShowImpersonation"] = authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase);
-    }
-}
-```
+            ## Extending or changing behavior
 
-### Step 7: Create a Base Page Model (Optional)
+            - To add new attributes to impersonation, update the `ImpersonationRequest` DTO and the middleware code that maps DTO fields to claims.
+            - To disable UI-driven impersonation entirely, remove the partial or guard it behind a feature flag.
 
-To avoid repeating the impersonation setup on every page, create a base page model:
+            ---
 
-```csharp
-namespace pto.track.Pages;
-
-public abstract class BasePageModel : PageModel
-{
-    protected readonly IConfiguration Configuration;
-    
-    protected BasePageModel(IConfiguration configuration)
-    {
-        Configuration = configuration;
-    }
-    
-    protected void EnableImpersonationIfMockMode()
-    {
-        var authMode = Configuration["Authentication:Mode"] ?? "Mock";
-        ViewData["ShowImpersonation"] = authMode.Equals("Mock", StringComparison.OrdinalIgnoreCase);
-    }
-    
-    protected override void OnPageHandlerExecuting(PageHandlerExecutingContext context)
-    {
-        base.OnPageHandlerExecuting(context);
-        EnableImpersonationIfMockMode();
-    }
-}
-```
-
-Then update page models to inherit from it:
-
+            If you'd like, I can also: (a) remove remaining legacy references to `X-Test-Role`, or (b) add a short developer note in `docs/run/TESTING.md` showing common `X-Test-Claims` test patterns.
 ```csharp
 public class AbsencesModel : BasePageModel
 {
