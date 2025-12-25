@@ -3,10 +3,17 @@ param(
     [string]$AppPoolName = 'pto-track',
     [string]$AppName = 'pto-track',
     [string]$AppPoolUser = '',
-    [string]$AppPoolPassword = ''
+    [SecureString]$AppPoolPassword = ''
 )
 
 function Write-Log($m) { Write-Host "[finish-deploy] $m" }
+function Convert-SecureStringToPlain {
+    param([SecureString]$Secure)
+    if (-not $Secure) { return '' }
+    $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
+    try { return [Runtime.InteropServices.Marshal]::PtrToStringUni($ptr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+}
 
 Write-Log "Loading WebAdministration or fallback modules..."
 try { Import-Module WebAdministration -ErrorAction Stop; Write-Log 'Imported WebAdministration' } catch {
@@ -20,7 +27,7 @@ if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
     Write-Log "Creating app pool $AppPoolName"
     New-WebAppPool -Name $AppPoolName
     $pool = Get-Item "IIS:\AppPools\$AppPoolName"
-    if ($AppPoolUser) { $pool.processModel.identityType = 3; $pool.processModel.userName = $AppPoolUser; $pool.processModel.password = $AppPoolPassword }
+    if ($AppPoolUser) { $pool.processModel.identityType = 3; $pool.processModel.userName = $AppPoolUser; $pool.processModel.password = (Convert-SecureStringToPlain $AppPoolPassword) }
     Set-Item "IIS:\AppPools\$AppPoolName" $pool
     Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ''
 }
@@ -30,7 +37,7 @@ else {
     if ($AppPoolUser -and ($pool.processModel.userName -ne $AppPoolUser)) {
         Write-Log "Updating app pool identity to $AppPoolUser"
         $pool.processModel.userName = $AppPoolUser
-        $pool.processModel.password = $AppPoolPassword
+        $pool.processModel.password = (Convert-SecureStringToPlain $AppPoolPassword)
         $pool.processModel.identityType = 3
         Set-Item "IIS:\AppPools\$AppPoolName" $pool
     }
