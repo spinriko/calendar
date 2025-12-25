@@ -129,6 +129,11 @@ pto.track.data         → Data access layer (EF Core + Entities)
   dotnet test .\pto.track.sln
   ```
 
+  Notes on integration test authentication:
+
+  - The test host forces `ASPNETCORE_ENVIRONMENT=Testing` and overrides configuration so `Authentication:Mode` is `Mock`. This prevents production-only authentication handlers (such as Negotiate/AD) from being registered inside the TestHost where they cause runtime errors.
+  - Integration tests use a minimal `Test` authentication scheme (registered only for tests) plus a test-only `IClaimsTransformation` (`TestIdentityEnricher`) that reads a per-request `X-Test-Claims` header and appends claims/roles to the current principal before authorization runs. Prefer `X-Test-Claims` in new tests. Legacy `X-Test-Role` is still supported as a fallback by some helpers.
+
   - Frontend tests live in `pto.track.tests.js` — run `npm ci` and `npm test` inside that folder to run Jest tests and ESLint validation.
 
   ---

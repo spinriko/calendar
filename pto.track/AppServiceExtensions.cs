@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -68,21 +67,22 @@ public static class AppServiceExtensions
         // Add HttpContextAccessor for claims access
         builder.Services.AddHttpContextAccessor();
 
-        // Add authentication - choose scheme based on configuration
-        var authMode = builder.Configuration.GetValue<string>("Authentication:Mode") ?? string.Empty;
-        if ((string.Equals(authMode, "Windows", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(authMode, "ActiveDirectory", StringComparison.OrdinalIgnoreCase))
-            && !builder.Environment.IsEnvironment("Testing"))
+        // Configure authentication based on configured mode. When running in the
+        // Testing environment force `Mock` so test host doesn't register Kestrel-
+        // only handlers like Negotiate which are unsupported by the test server.
+        var authMode = builder.Environment.IsEnvironment("Testing")
+            ? "Mock"
+            : (builder.Configuration["Authentication:Mode"] ?? "Mock");
+        if (authMode.Equals("Windows", StringComparison.OrdinalIgnoreCase)
+            || authMode.Equals("ActiveDirectory", StringComparison.OrdinalIgnoreCase))
         {
-            // When running under IIS/ANCM with Windows auth enabled, use Negotiate.
-            // Skip Negotiate during test runs because TestServer doesn't implement
-            // IConnectionItemsFeature and the Negotiate handler will throw.
+            // Enable Windows/Negotiate authentication when requested.
             builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
                 .AddNegotiate();
         }
         else
         {
-            // Default to cookie-based auth for development and tests
+            // Default to cookie-based mock authentication
             builder.Services.AddAuthentication("Cookies")
                 .AddCookie("Cookies", options =>
                 {

@@ -11,7 +11,35 @@
             "cwd": "${workspaceFolder}/pto.track",
             "stopAtEntry": false,
             "serverReadyAction": {
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "pattern": "\\bNow listening on:\\s+(http://\\S+)",
+                "uriFormat": "%s",
+                "action": "openExternally"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "local",
+                "ASPNETCORE_URLS": "http://localhost:5139"
+            }
+        },
+        {
+            "name": ".NET Core Launch (web - watch)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run",
+                "--no-build",
+                "--project",
+                "${workspaceFolder}/pto.track/pto.track.csproj",
+                "--launch-profile",
+                "http"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "serverReadyAction": {
+                "pattern": "\\bNow listening on:\\s+(http://\\S+)",
                 "uriFormat": "%s",
                 "action": "openExternally"
             },

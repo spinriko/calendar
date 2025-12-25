@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -8,6 +9,7 @@ using pto.track;
 using pto.track.data;
 using pto.track.services.Authentication;
 using pto.track.tests.Mocks;
+using Microsoft.AspNetCore.Builder;
 
 namespace pto.track.tests
 {
@@ -22,7 +24,23 @@ namespace pto.track.tests
             System.Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
             builder.UseEnvironment("Testing");
 
-            builder.ConfigureServices(services =>
+            // Ensure tests run with Mock authentication mode regardless of
+            // appsettings.json to avoid registering Negotiate (Kestrel-only)
+            // authentication handlers in the test server.
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                var env = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                if (string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase))
+                {
+                    var dict = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        ["Authentication:Mode"] = "Mock"
+                    };
+                    config.AddInMemoryCollection(dict!);
+                }
+            });
+
+            builder.ConfigureTestServices(services =>
             {
                 // Remove existing IUserClaimsProvider registration (so tests can inject test provider)
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IUserClaimsProvider));
@@ -33,10 +51,47 @@ namespace pto.track.tests
                 // Register TestUserClaimsProvider for tests
                 services.AddScoped<IUserClaimsProvider, TestUserClaimsProvider>();
 
-                // Add test authentication scheme
-                services.AddAuthentication("Test")
-                    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(
-                        "Test", options => { });
+                // Ensure IHttpContextAccessor is available for TestIdentityEnricher
+                services.AddHttpContextAccessor();
+
+                // Ensure a safe IIdentityEnricher is registered for tests so enrichment
+                // doesn't attempt external lookups or throw. Replace any existing
+                // registration with the NoOp implementation used in the app by default.
+                var enricherDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(pto.track.services.Identity.IIdentityEnricher));
+                if (enricherDescriptor != null)
+                {
+                    services.Remove(enricherDescriptor);
+                }
+                // Use a test implementation for IIdentityEnricher which reads X-Test-Claims
+                // so tests can drive enriched attribute responses without external dependencies.
+                services.AddSingleton<pto.track.services.Identity.IIdentityEnricher, TestIIdentityEnricher>();
+
+                // Register a test ClaimsTransformation that can augment the ClaimsPrincipal
+                // from headers like X-Test-Claims. This runs after authentication and
+                // before authorization so tests can control roles/claims per-request.
+                services.AddSingleton<Microsoft.AspNetCore.Authentication.IClaimsTransformation, TestIdentityEnricher>();
+
+                // Add test authentication scheme and make it the default for tests
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "Test";
+                    options.DefaultChallengeScheme = "Test";
+                })
+                .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(
+                    "Test", options => { });
+
+                // Ensure Test is the effective default even if the app registered
+                // other schemes (like Cookies) earlier. Post-configure authentication
+                // options so the Test scheme is chosen during authorization.
+                services.PostConfigure<Microsoft.AspNetCore.Authentication.AuthenticationOptions>(opts =>
+                {
+                    opts.DefaultAuthenticateScheme = "Test";
+                    opts.DefaultChallengeScheme = "Test";
+                    opts.DefaultSignInScheme = "Test";
+                });
+
+                // Previously we injected a startup filter to set HttpContext.User from headers.
+                // With the ClaimsTransformation approach we no longer need that startup filter.
 
                 // If running under Testing environment, ensure the app uses a shared InMemoryDatabaseRoot
                 // so test code and the app share the same in-memory database instance.
@@ -71,13 +126,10 @@ namespace pto.track.tests
 
         protected override Task<Microsoft.AspNetCore.Authentication.AuthenticateResult> HandleAuthenticateAsync()
         {
-            var role = Context.Request.Headers["X-Test-Role"].ToString();
-            var claims = new List<System.Security.Claims.Claim>();
-            if (!string.IsNullOrEmpty(role))
-            {
-                claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role));
-            }
-            var identity = new System.Security.Claims.ClaimsIdentity(claims, "Test");
+            // Minimal test authentication: mark the request authenticated but do not
+            // inject role claims here. `IClaimsTransformation` will apply role/claim
+            // enrichment controlled by `X-Test-Claims`.
+            var identity = new System.Security.Claims.ClaimsIdentity(authenticationType: "Test");
             var principal = new System.Security.Claims.ClaimsPrincipal(identity);
             var ticket = new Microsoft.AspNetCore.Authentication.AuthenticationTicket(principal, "Test");
             return Task.FromResult(Microsoft.AspNetCore.Authentication.AuthenticateResult.Success(ticket));

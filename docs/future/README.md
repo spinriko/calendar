@@ -11,6 +11,7 @@ This folder contains planning, proposal, and draft documentation for future or i
 
 - [DEPLOY-ENHANCEMENTS.md](DEPLOY-ENHANCEMENTS.md): Deploy enhancements — post-deploy checks, pipeline hardening, bundle verification, reverse proxy/PathBase guidance.
 - [ADO-ENVIRONMENTS.md](ADO-ENVIRONMENTS.md): Azure DevOps Environments adoption guide for corp servers.
+- [WINDOWS-AUTH-ENRICHER.md](WINDOWS-AUTH-ENRICHER.md): Windows auth debug notes, Negotiate setup, and future identity enrichment plan.
 
 
 ### Where to find completed docs
