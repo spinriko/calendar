@@ -3,18 +3,10 @@ param(
     [string]$AppPoolName = 'pto-track',
     [string]$AppName = 'pto-track',
     [string]$AppPoolUser = '',
-    [SecureString]$AppPoolPassword = '',
     [switch]$StopIISIfNeeded
 )
 
 function Write-Log($m) { Write-Host "[before-deploy] $m" }
-function Convert-SecureStringToPlain {
-    param([SecureString]$Secure)
-    if (-not $Secure) { return '' }
-    $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
-    try { return [Runtime.InteropServices.Marshal]::PtrToStringUni($ptr) }
-    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
-}
 
 Write-Log "Loading WebAdministration or fallback modules..."
 try {
