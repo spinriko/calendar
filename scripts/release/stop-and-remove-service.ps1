@@ -13,7 +13,7 @@ try {
         Write-Log "Service '$ServiceName' exists. Stopping and removing..."
         Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
         sc.exe delete $ServiceName
-        Write-Log "✓ Service '$ServiceName' was stopped and removed."
+        Write-Log "Service '$ServiceName' was stopped and removed."
         exit 0
     }
     else {

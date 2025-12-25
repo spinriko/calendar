@@ -16,5 +16,5 @@ if (-not $feature.Installed) {
     exit 1
 }
 
-Write-Log "✓ IIS feature '$FeatureName' is installed."
+Write-Log "IIS feature '$FeatureName' is installed."
 exit 0

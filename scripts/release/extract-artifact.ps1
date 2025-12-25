@@ -19,7 +19,7 @@ try {
         Write-Log "Extracting $($zip.Name) to $DestinationFolder..."
         Expand-Archive -Path $zip.FullName -DestinationPath $DestinationFolder -Force
         Remove-Item -Path $zip.FullName -Force
-        Write-Log "✓ Extracted and removed $($zip.Name)"
+        Write-Log "Extracted and removed $($zip.Name)"
     }
     
     Write-Log "Done."

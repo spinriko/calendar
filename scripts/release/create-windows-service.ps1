@@ -9,7 +9,7 @@ param(
     [string]$ServiceAccountName,
 
     [Parameter(Mandatory = $true)]
-    [string]$ServiceAccountPassword,
+    [SecureString]$ServiceAccountPassword,
 
     [Parameter(Mandatory = $true)]
     [string]$ServiceDescription

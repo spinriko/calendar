@@ -18,13 +18,23 @@ try {
     
     Write-Host "Running health checks..."
     
-    $response = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec $TimeoutSeconds -SkipCertificateCheck
+    # PowerShell 5.1-compatible certificate bypass (UseBasicParsing is required on 5.1)
+    $prevCallback = [System.Net.ServicePointManager]::ServerCertificateValidationCallback
+    try {
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+        $response = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec $TimeoutSeconds
+    }
+    finally {
+        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $prevCallback
+    }
     
     if ($response.StatusCode -eq 200) {
-        Write-Log "✓ Health check passed (HTTP 200)"
+        Write-Log "Health check passed (HTTP 200)"
         Write-Host "##vso[task.complete result=Succeeded;]Health check passed"
         exit 0
-    } else {
+    }
+    else {
         throw "Health check returned HTTP $($response.StatusCode)"
     }
 }

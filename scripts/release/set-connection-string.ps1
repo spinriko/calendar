@@ -16,7 +16,7 @@ try {
     $current = [Environment]::GetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", "Machine")
     
     if ($current) {
-        Write-Log "✓ ConnectionStrings__PtoTrackDbContext set (length: $($current.Length))"
+        Write-Log "ConnectionStrings__PtoTrackDbContext set (length: $($current.Length))"
         exit 0
     } else {
         Write-Error "Failed to set ConnectionStrings__PtoTrackDbContext"

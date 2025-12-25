@@ -28,7 +28,7 @@ try {
     Write-Log "Moving new deployment from $TempFolder to $DeploymentFolder..."
     Move-Item -Path $TempFolder -Destination $DeploymentFolder -Force
     
-    Write-Log "✓ Deployment swap complete"
+    Write-Log "Deployment swap complete"
     exit 0
 } catch {
     Write-Error "Error swapping deployment folders: $_"

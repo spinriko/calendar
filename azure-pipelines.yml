@@ -105,9 +105,7 @@ stages:
               arguments: install --global dotnet-ef --version $(efToolVersion)
 
           - script: node --version
-            displayName: "Check Node.js on agent"
-
-          
+            displayName: "Check Node.js on agent"          
 
           - script: npm ci --prefix pto.track
             displayName: "Install frontend dependencies (pto.track)"
@@ -164,7 +162,7 @@ stages:
           - task: DotNetCoreCLI@2
             displayName: "Test Services"
             inputs:
-              testRunTitle: "Test Services"
+              testRunTitle: "Test Services Layer"
               command: "test"
               projects: "**/pto.track.services.tests.csproj"
               arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\services" --collect:"XPlat Code Coverage"'
@@ -173,14 +171,14 @@ stages:
           - task: DotNetCoreCLI@2
             displayName: "Test App"
             inputs:
-              testRunTitle: "Test App"
+              testRunTitle: "Test Application Layer"
               command: "test"
               projects: "**/pto.track.tests.csproj"
               arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\app" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
-            displayName: "Test Data"
+            displayName: "Test Data Layer"
             inputs:
               testRunTitle: "Test Data"
               command: "test"
@@ -244,10 +242,23 @@ stages:
               projects: "**/metrics-runner"
               arguments: "-- '$(Build.SourcesDirectory)'"
 
+          - task: PowerShell@2
+            displayName: "Generate metrics HTML report"
+            inputs:
+              filePath: "./scripts/ci/metrics-report.ps1"
+              arguments: "-MetricsJsonPath '$(System.DefaultWorkingDirectory)/artifacts/metrics/metrics.json' -OutputDirectory '$(System.DefaultWorkingDirectory)/artifacts/metrics-report'"
+
           - task: PublishBuildArtifacts@1
             inputs:
               pathToPublish: "$(System.DefaultWorkingDirectory)/artifacts/metrics"
               artifactName: "metrics"
+              publishLocation: "Container"
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish metrics HTML report"
+            inputs:
+              pathToPublish: "$(System.DefaultWorkingDirectory)/artifacts/metrics-report"
+              artifactName: "metrics-report"
               publishLocation: "Container"
 
   - stage: Publish

@@ -31,7 +31,7 @@ try {
     }
     
     # Add HTTP rewrite rule
-    Write-Log "Adding HTTP forward rule → $ForwardHttpUrl"
+    Write-Log "Adding HTTP forward rule -> $ForwardHttpUrl"
     $httpRule = $webConfigXml.CreateElement("rule")
     $httpRule.SetAttribute('name', 'Forward HTTP')
     $httpRule.SetAttribute('stopProcessing', 'true')
@@ -42,7 +42,7 @@ try {
     $rulesNode.AppendChild($httpRule) | Out-Null
     
     # Add HTTPS rewrite rule
-    Write-Log "Adding HTTPS forward rule → $ForwardHttpsUrl"
+    Write-Log "Adding HTTPS forward rule -> $ForwardHttpsUrl"
     $httpsRule = $webConfigXml.CreateElement('rule')
     $httpsRule.SetAttribute('name', 'Forward HTTPS')
     $httpsRule.SetAttribute('stopProcessing', 'true')
@@ -56,7 +56,7 @@ try {
     Write-Log "Saving updated web.config..."
     $webConfigXml.Save($WebConfigPath)
     
-    Write-Log "✓ Rewrite rules added successfully"
+    Write-Log "Rewrite rules added successfully"
     exit 0
 } catch {
     Write-Error "Error updating rewrite rules: $_"

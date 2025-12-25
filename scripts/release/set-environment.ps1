@@ -11,7 +11,7 @@ try {
     $current = [Environment]::GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Machine")
     
     if ($current -eq $EnvironmentName) {
-        Write-Log "✓ ASPNETCORE_ENVIRONMENT set to '$current'"
+        Write-Log "ASPNETCORE_ENVIRONMENT set to '$current'"
         exit 0
     } else {
         Write-Error "Failed to set ASPNETCORE_ENVIRONMENT (current='$current', expected='$EnvironmentName')"

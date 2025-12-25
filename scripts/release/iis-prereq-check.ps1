@@ -11,7 +11,7 @@ try {
     # Try to import WebAdministration module
     Import-Module WebAdministration -ErrorAction Stop
     
-    Write-Log "✓ WebAdministration module available"
+    Write-Log "WebAdministration module available"
     Write-Host "IIS prerequisites verified successfully"
     
     exit 0
