@@ -12,10 +12,10 @@ trigger:
 
 variables:
   - name: "dotnetVersion"
-    value: "9.0.100"
+    value: "8.0.100"
 
   - name: "efToolVersion"
-    value: "9.0.*"
+    value: "8.0.*"
 
   - name: "nodeVersion"
     value: "20.x"
@@ -83,152 +83,12 @@ stages:
             fetchTags: true
 
           - powershell: |
-              git config user.email "devops@example.com"
-              git config user.name "Azure DevOps"
-              
-              # Ensure remote tags are available locally
-              git fetch --tags --prune origin
-              $fetchExit = $LASTEXITCODE
-              Write-Host "##[section]git fetch --tags exit code: $fetchExit"
-              git tag --list "v*" | Sort-Object | Select-Object -Last 10 | ForEach-Object { Write-Host "tag: $_" }
-              
-              # Check if current commit already has a tag (manual override)
-              $currentTag = git tag --points-at HEAD
-              if ($currentTag) {
-                Write-Host "##[section]Manual tag detected: $currentTag. Skipping auto-tag."
-                exit 0
-              }
-              
-              # Get the latest version tag (reachable or not)
-              $ErrorActionPreference = 'Continue'
-              $lastTag = $null
-              # Prefer describe on latest tag commit, regardless of reachability
-              $latestTagCommit = git rev-list --tags --max-count=1
-              if ($latestTagCommit) {
-                $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" $latestTagCommit 2>&1
-              } else {
-                $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" 2>&1
-              }
-              $describeExit = $LASTEXITCODE
-              $ErrorActionPreference = 'Stop'
-              Write-Host "##[section]git describe output: $lastTag"
-              Write-Host "##[section]git describe exit code: $describeExit"
-              
-              if ($LASTEXITCODE -ne 0 -or -not $lastTag) {
-                Write-Host "##[warning]No version tags found. Creating initial tag v0.1.0"
-                $newTag = "v0.1.0"
-              } else {
-                Write-Host "##[section]Last tag: $lastTag"
-                
-                # Parse version (v1.2.3 -> 1.2.3)
-                $version = $lastTag -replace '^v', ''
-                $parts = $version -split '\.'
-                $major = [int]$parts[0]
-                $minor = [int]$parts[1]
-                $patch = [int]$parts[2]
-                
-                # Increment patch
-                $patch++
-                $newTag = "v$major.$minor.$patch"
-              }
-              
-              Write-Host "##[section]Creating and pushing tag: $newTag"
-              git tag -a $newTag -m "Auto-increment patch version"
-              git push origin $newTag
-
-              # Verify tag exists on remote
-              $remoteTags = git ls-remote --tags origin
-              if ($remoteTags -match [Regex]::Escape($newTag)) {
-                Write-Host "##[section]Verified remote contains tag $newTag"
-              } else {
-                Write-Warning "Remote does NOT show tag $newTag after push. Subsequent builds may re-create initial tag. Check repo permissions."
-              }
-              
-              Write-Host "##vso[task.setvariable variable=VersionTag]$newTag"
-
-              # Generate version badge SVG in repo (docs/badges/version.svg)
-              $badgeDir = Join-Path $(Build.SourcesDirectory) "docs/badges"
-              if (-not (Test-Path $badgeDir)) { New-Item -ItemType Directory -Path $badgeDir -Force | Out-Null }
-              $badgePath = Join-Path $badgeDir "version.svg"
-              $svg = @"
-              <?xml version="1.0" encoding="UTF-8"?>
-              <svg xmlns="http://www.w3.org/2000/svg" width="130" height="20" role="img" aria-label="version: $newTag">
-                <linearGradient id="s" x2="0" y2="100%">
-                  <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
-                  <stop offset="1" stop-opacity=".1"/>
-                </linearGradient>
-                <mask id="m"><rect width="130" height="20" rx="3" fill="#fff"/></mask>
-                <g mask="url(#m)">
-                  <rect width="60" height="20" fill="#555"/>
-                  <rect x="60" width="70" height="20" fill="#007ec6"/>
-                  <rect width="130" height="20" fill="url(#s)"/>
-                </g>
-                <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-                  <text x="30" y="15">version</text>
-                  <text x="94" y="15">$newTag</text>
-                </g>
-              </svg>
-              "@
-              Set-Content -Path $badgePath -Value $svg -Encoding UTF8
-
-              # Commit and push the updated badge to main (skip CI)
-              try {
-                git add $badgePath
-                $staged = git diff --name-only --cached
-                if ($staged) {
-                  $msg = "chore(badges): update version badge to $newTag [skip ci]"
-                  git commit -m $msg
-                  git push origin HEAD:main
-                  Write-Host "##[section]Pushed updated version badge to main"
-                } else {
-                  Write-Host "##[section]No changes to version badge detected; skipping commit"
-                }
-              } catch {
-                Write-Warning "Failed to commit/push version badge: $($_.Exception.Message)"
-              }
-
-              # Also generate a PNG badge for Azure DevOps Server markdown rendering
-              try {
-                Add-Type -AssemblyName System.Drawing
-                $width = 130; $height = 20
-                $bmp = New-Object System.Drawing.Bitmap($width, $height)
-                $gfx = [System.Drawing.Graphics]::FromImage($bmp)
-                $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-                $leftBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x55,0x55,0x55)) # #555
-                $rightBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x00,0x7e,0xc6)) # #007ec6
-                $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(26,0,0,0))
-                $gfx.FillRectangle($leftBrush, 0, 0, 60, $height)
-                $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
-                # light gradient overlay approximation omitted for simplicity
-                $font = New-Object System.Drawing.Font('Verdana', 9, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
-                $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-                $format = New-Object System.Drawing.StringFormat
-                $format.Alignment = [System.Drawing.StringAlignment]::Center
-                $format.LineAlignment = [System.Drawing.StringAlignment]::Center
-                $gfx.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::ClearTypeGridFit
-                $gfx.DrawString('version', $font, $white, (New-Object System.Drawing.RectangleF(0,0,60,$height)), $format)
-                $gfx.DrawString($newTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,($width - 60),$height)), $format)
-                $pngPath = Join-Path $badgeDir 'version.png'
-                $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
-                $gfx.Dispose(); $bmp.Dispose(); $font.Dispose(); $white.Dispose(); $leftBrush.Dispose(); $rightBrush.Dispose(); $overlay.Dispose()
-                git add $pngPath
-                $stagedPng = git diff --name-only --cached
-                if ($stagedPng) {
-                  $msg2 = "chore(badges): update PNG version badge to $newTag [skip ci]"
-                  git commit -m $msg2
-                  git push origin HEAD:main
-                  Write-Host "##[section]Pushed updated PNG version badge to main"
-                } else {
-                  Write-Host "##[section]No changes to PNG version badge detected; skipping commit"
-                }
-              } catch {
-                Write-Warning "Failed to generate/commit PNG badge: $($_.Exception.Message)"
-              }
+              & .\scripts\ci\version-tag.ps1 -BuildSourcesDirectory "$(Build.SourcesDirectory)"
             displayName: "Auto-increment version tag"
             condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
           - task: UseDotNet@2
-            displayName: "Ensure .NET SDK 9.0 Installed"
+            displayName: "Ensure .NET SDK 8.0 Installed"
             condition: false
             inputs:
               packageType: "sdk"
@@ -329,11 +189,7 @@ stages:
               publishTestResults: false # handled in arguments
 
           - powershell: |
-              $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
-              if (-not (Get-Command reportgenerator -ErrorAction SilentlyContinue)) {
-                dotnet tool install --global dotnet-reportgenerator-globaltool
-              }
-              reportgenerator "-reports:$(Build.SourcesDirectory)/TestResults/**/coverage.cobertura.xml" "-targetdir:$(Build.SourcesDirectory)/TestResults/coverage-merged" "-reporttypes:Cobertura"
+              & .\scripts\ci\coverage-merge.ps1 -SourcesDirectory "$(Build.SourcesDirectory)"
             displayName: "Merge coverage with ReportGenerator"
           - task: PublishTestResults@2
             inputs:
@@ -442,12 +298,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                $iisFeature = Get-WindowsFeature -Name Web-Server
-                if (-not $iisFeature.Installed) {
-                    Write-Error "IIS (Web-Server) is not installed. Deployment cannot continue."
-                    exit 1
-                }
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\check-iis-installed.ps1'
+              ScriptArguments: '-FeatureName "Web-Server"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -456,16 +308,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-
-                if (Get-Service -Name $(serviceName)) {
-                  Write-Host "Service $(serviceName) exists. Stopping and removing..."
-                  Stop-Service -Name $(serviceName) -Force -ErrorAction SilentlyContinue
-                  sc.exe delete $(serviceName)                
-                  Write-Host "Service $(serviceName) was stopped and removed."
-                } else {
-                  Write-Host "Service $(serviceName) did not exist OR there was an error getting the service."
-                }
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\stop-and-remove-service.ps1'
+              ScriptArguments: '-ServiceName "$(serviceName)"'
               CommunicationProtocol: "Http"
 
           - task: WindowsMachineFileCopy@2
@@ -484,10 +328,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                $zip = Get-ChildItem -Path $(tempFolder)\ -Recurse | where {$_.Name -match ".zip"}
-                $zip | Expand-Archive -DestinationPath $(tempFolder)\
-                $zip | Remove-Item
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\extract-artifact.ps1'
+              ScriptArguments: '-SourceFolder "$(tempFolder)" -DestinationFolder "$(tempFolder)"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -496,11 +338,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                Write-Host "Setting ASPNETCORE_ENVIRONMENT=$(pto-track-env) at Machine scope"
-                [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "$(pto-track-env)", "Machine")
-                $envVal = [Environment]::GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Machine")
-                Write-Host "ASPNETCORE_ENVIRONMENT (Machine) now: $envVal"
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\set-environment.ps1'
+              ScriptArguments: '-EnvironmentName "$(pto-track-env)"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -509,20 +348,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                Write-Host "Setting ConnectionStrings__PtoTrackDbContext at Machine scope"
-                if (-not $env:sqlConnectionString -and -not "$(sqlConnectionString)") {
-                  Write-Error "sqlConnectionString variable is not defined"
-                }
-                $conn = "$(sqlConnectionString)"
-                if (-not $conn) { $conn = $env:sqlConnectionString }
-                [Environment]::SetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", $conn, "Machine")
-                $current = [Environment]::GetEnvironmentVariable("ConnectionStrings__PtoTrackDbContext", "Machine")
-                if ($current) {
-                  Write-Host "ConnectionStrings__PtoTrackDbContext set. Length: $($current.Length)"
-                } else {
-                  Write-Error "Failed to set ConnectionStrings__PtoTrackDbContext"
-                }
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\set-connection-string.ps1'
+              ScriptArguments: '-ConnectionString "$(sqlConnectionString)"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -531,12 +358,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                if (Test-Path $(deploymentBackupFolder)){
-                  Remove-Item $(deploymentBackupFolder) -Recurse -Force
-                }
-                Move-Item -Path $(deploymentFolder) -Destination $(deploymentBackupFolder)
-                Move-Item -Path $(tempFolder)\ -Destination $(deploymentFolder)
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\swap-deployment-folders.ps1'
+              ScriptArguments: '-DeploymentPath "$(deploymentFolder)" -BackupPath "$(deploymentBackupFolder)" -TempPath "$(tempFolder)"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -546,43 +369,8 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                $webConfigPath = "$(webConfigPath)"
-                [xml]$webConfigXml = Get-Content $webConfigPath -Raw
-
-                # build out XML nodes if they do not exist
-                $rulesNode = $webConfigXml.configuration.location.'system.webServer'.rewrite.rules
-                if (-not $rulesNode){
-                    $rewriteNode = $webConfigXml.configuration.location.'system.webServer'.rewrite
-                    if (-not $rewriteNode) {
-                        $systemWebServerNode = $webConfigXml.configuration.location.'system.webServer'
-                        $rewriteNode = $webConfigXml.CreateElement("rewrite")
-                        $systemWebServerNode.AppendChild($rewriteNode) | Out-Null
-                    }
-                    $rulesNode = $webConfigXml.CreateElement("rules")
-                    $rewriteNode.AppendChild($rulesNode) | Out-Null
-                }
-
-                # Add HTTP rule
-                $httpRule = $webConfigXml.CreateElement("rule")
-                $httpRule.SetAttribute('name', 'Forward HTTP')
-                $httpRule.SetAttribute('stopProcessing', 'true')
-                $httpAction = $webConfigXml.CreateElement('action')
-                $httpAction.SetAttribute('type', 'Rewrite')
-                $httpAction.SetAttribute('url', "$(forwardedHttpUrl)")
-                $httpRule.AppendChild($httpAction)
-                $rulesNode.AppendChild($httpRule)
-
-                # Add HTTPS rule
-                $httpsRule = $webConfigXml.CreateElement('rule')
-                $httpsRule.SetAttribute('name', 'Forward HTTPS')
-                $httpsRule.SetAttribute('stopProcessing', 'true')
-                $httpsAction = $webConfigXml.CreateElement('action')
-                $httpsAction.SetAttribute('type', 'Rewrite')
-                $httpsAction.SetAttribute('url', "$(forwardedHttpsUrl)")
-                $httpsRule.AppendChild($httpsAction)
-                $rulesNode.AppendChild($httpsRule)
-                $webConfigXml.Save($webConfigPath)
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\update-rewrite-rules.ps1'
+              ScriptArguments: '-WebConfigPath "$(webConfigPath)" -ForwardedHttpUrl "$(forwardedHttpUrl)" -ForwardedHttpsUrl "$(forwardedHttpsUrl)"'
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
@@ -591,9 +379,62 @@ stages:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                Write-Host "Creating service $(serviceName)..."
-                sc.exe create $(serviceName) binPath= "$(executablePath)" start= auto obj= $(serviceAccountName) password= "$(serviceAccountPassword)"
-                sc.exe description $(serviceName) "$(serviceDescription)"
-                Start-Service -Name $(serviceName)
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\create-windows-service.ps1'
+              ScriptArguments: '-ServiceName "$(serviceName)" -ExecutablePath "$(executablePath)" -ServiceAccountName "$(serviceAccountName)" -ServiceAccountPassword "$(serviceAccountPassword)" -ServiceDescription "$(serviceDescription)"'
               CommunicationProtocol: "Http"
+
+  # Optional IIS in-process deployment stage (Windows Server 2022+ with IIS)
+  # Enable by setting: deployToIIS=true in variable group or uncommenting condition
+  - stage: DeployToIIS
+    displayName: "Deploy to IIS (In-Process)"
+    dependsOn: Build
+    condition: false  # Change to: eq(variables['deployToIIS'], 'true')
+    jobs:
+      - deployment: DeployIIS
+        displayName: "Deploy pto-track to IIS"
+        environment: 'production'
+        strategy:
+          runOnce:
+            preDeploy:
+              steps:
+                - powershell: |
+                    & .\scripts\release\iis-prereq-check.ps1
+                  workingDirectory: '$(Build.SourcesDirectory)'
+                  displayName: 'Pre-deploy: Check IIS'
+
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+                  displayName: 'Download Build Artifacts'
+
+                - powershell: |
+                    $PublishPath = "$(Pipeline.Workspace)/drop/pto-track"
+                    $DeployPath = "C:\inetpub\wwwroot\pto-track"
+                    Write-Host "Copying $PublishPath → $DeployPath"
+                    if (Test-Path $DeployPath) { Remove-Item $DeployPath -Recurse -Force }
+                    Copy-Item -Path $PublishPath -Destination $DeployPath -Recurse -Force
+                    Write-Host "✓ Files deployed"
+                  displayName: 'Deploy: Copy Published Files'
+
+                - powershell: |
+                    & .\scripts\release\before-deploy-iis.ps1 `
+                      -PhysicalPath 'C:\inetpub\wwwroot\pto-track' `
+                      -AppPoolUser 'IIS APPPOOL\pto-track' `
+                      -StopIISIfNeeded:$false
+                  workingDirectory: '$(Build.SourcesDirectory)'
+                  displayName: 'Pre-deploy: IIS Checks'
+
+                - powershell: |
+                    & .\scripts\release\finish-deploy-iis.ps1 `
+                      -PhysicalPath 'C:\inetpub\wwwroot\pto-track' `
+                      -AppPoolUser 'IIS APPPOOL\pto-track'
+                  workingDirectory: '$(Build.SourcesDirectory)'
+                  displayName: 'Post-deploy: Configure IIS App & Auth'
+
+            postRouteTraffic:
+              steps:
+                - powershell: |
+                    & .\scripts\release\iis-health-check.ps1 -HealthUrl "https://localhost/pto-track/health" -TimeoutSeconds 15
+                  workingDirectory: '$(Build.SourcesDirectory)'
+                  displayName: 'Post-deploy: Health Check'

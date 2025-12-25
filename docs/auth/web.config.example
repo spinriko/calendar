@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <security>
+      <requestFiltering />
+    </security>
+    <!-- In-process hosting with AspNetCoreModuleV2 -->
+    <!-- processPath: path to the self-contained executable (e.g., pto.track.exe) -->
+    <!-- hostingModel: InProcess runs the app inside w3wp; use OutOfProcess for standalone Kestrel behind ANCM -->
+    <aspNetCore processPath=".\pto.track.exe" 
+                hostingModel="InProcess"
+                stdoutLogEnabled="false"
+                stdoutLogFile=".\logs\stdout" />
+  </system.webServer>
+</configuration>
