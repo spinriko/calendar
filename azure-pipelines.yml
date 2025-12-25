@@ -344,13 +344,23 @@ stages:
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
-            displayName: "Set ASPNETCORE_ENVIRONMENT=$(pto-track-env) (Machine)"
+            displayName: "Token replace ASPNETCORE_ENVIRONMENT in web.config"
             inputs:
               Machines: "$(webServerDev)"
               UserName: "$(automationAcctName)"
               UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\set-environment.ps1'
-              ScriptArguments: '-EnvironmentName "$(pto-track-env)"'
+              InlineScript: |
+                $webConfig = Join-Path "$(tempFolder)" "web.config"
+                if (Test-Path $webConfig) {
+                  Write-Host "Replacing environment token in web.config"
+                  $content = Get-Content -Path $webConfig -Raw
+                  $replaced = $content -replace '__ASPNETCORE_ENVIRONMENT__', '$(pto-track-env)'
+                  Set-Content -Path $webConfig -Value $replaced
+                  Write-Host "Token replaced"
+                }
+                else {
+                  Write-Host "web.config not found at $webConfig"
+                }
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3

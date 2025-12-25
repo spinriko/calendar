@@ -15,7 +15,6 @@ All scripts are located in `scripts/release/` and follow a consistent pattern wi
 | **check-iis-installed.ps1** | Validate IIS Web-Server feature | `-FeatureName` (e.g., "Web-Server") |
 | **stop-and-remove-service.ps1** | Stop and remove Windows service | `-ServiceName` |
 | **extract-artifact.ps1** | Extract ZIP artifact to destination | `-SourceFolder`, `-DestinationFolder` |
-| **set-environment.ps1** | Set ASPNETCORE_ENVIRONMENT variable at machine scope | `-EnvironmentName` |
 | **set-connection-string.ps1** | Set ConnectionStrings__PtoTrackDbContext at machine scope | `-ConnectionString` |
 | **swap-deployment-folders.ps1** | Rotate deployment folders (backup/current/temp) | `-DeploymentPath`, `-BackupPath`, `-TempPath` |
 | **update-rewrite-rules.ps1** | Add HTTP/HTTPS rewrite rules to web.config | `-WebConfigPath`, `-ForwardedHttpUrl`, `-ForwardedHttpsUrl` |
@@ -57,7 +56,7 @@ All scripts include:
 1. **check-iis-installed.ps1** - Verify IIS Web-Server feature
 2. **stop-and-remove-service.ps1** - Stop existing Windows service
 3. **extract-artifact.ps1** - Extract published application ZIP
-4. **set-environment.ps1** - Configure ASPNETCORE_ENVIRONMENT
+4. (Pipeline inline) Token-replace ASPNETCORE_ENVIRONMENT in web.config
 5. **set-connection-string.ps1** - Configure database connection
 6. **swap-deployment-folders.ps1** - Rotate folders (backup current, deploy new)
 7. **update-rewrite-rules.ps1** (optional, disabled) - Configure rewrite rules
@@ -66,7 +65,7 @@ All scripts include:
 ## Notes
 
 - All scripts are designed to be **runnable both from the pipeline and manually on servers**
-- Machine-level environment variables persist after reboot
+- ASPNETCORE_ENVIRONMENT is now managed via token replacement in web.config during DeployDev
 - The `swap-deployment-folders.ps1` provides rollback capability via backup folder
 - `update-rewrite-rules.ps1` is currently disabled (condition: false) pending further testing
 
