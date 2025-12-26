@@ -314,6 +314,16 @@ stages:
               CommunicationProtocol: "Http"
 
           - task: PowerShellOnTargetMachines@3
+            displayName: "Prepare Deployment Target"
+            inputs:
+              Machines: "$(webServerDev)"
+              UserName: "$(automationAcctName)"
+              UserPassword: "$(automationAcctPass)"
+              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\prepare-deployment-target.ps1'
+              ScriptArguments: '-DeploymentFolder "$(deploymentFolder)" -BackupFolder "$(deploymentBackupFolder)" -TempFolder "$(tempFolder)" -ServiceAccount "$(serviceAccountName)"'
+              CommunicationProtocol: "Http"
+
+          - task: PowerShellOnTargetMachines@3
             displayName: "Stop and remove current service"
             inputs:
               Machines: "$(webServerDev)"
