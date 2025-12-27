@@ -80,10 +80,14 @@ stages:
               arguments: install --global dotnet-ef --version $(efToolVersion)
 
           - powershell: |
+              $npmDir = Split-Path "$(npmPath)"
+              $env:PATH = "$npmDir;$env:PATH"
               & "$(npmPath)" ci --prefix pto.track
             displayName: "Install frontend dependencies (pto.track)"
 
           - powershell: |
+              $npmDir = Split-Path "$(npmPath)"
+              $env:PATH = "$npmDir;$env:PATH"
               & "$(npmPath)" run build:js --prefix pto.track
             displayName: "Build frontend assets (pto.track)"
 
