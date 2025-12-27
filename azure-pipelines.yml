@@ -143,7 +143,7 @@ stages:
           #    PUPPETEER_SKIP_DOWNLOAD: true
 
           - task: DotNetCoreCLI@2
-            displayName: "Test Services"
+            displayName: "Test Services Layer"
             inputs:
               testRunTitle: "Test Services Layer"
               command: "test"
@@ -152,7 +152,7 @@ stages:
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
-            displayName: "Test App"
+            displayName: "Test Application Layer"
             inputs:
               testRunTitle: "Test Application Layer"
               command: "test"
@@ -163,7 +163,7 @@ stages:
           - task: DotNetCoreCLI@2
             displayName: "Test Data Layer"
             inputs:
-              testRunTitle: "Test Data"
+              testRunTitle: "Test Data Layer"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
               arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\data" --collect:"XPlat Code Coverage"'
@@ -254,6 +254,12 @@ stages:
         steps:
           - checkout: none
           - download: current
+
+          - powershell: |
+              $npmDir = Split-Path "$(npmPath)"
+              [System.Environment]::SetEnvironmentVariable('PATH', "$npmDir;$env:PATH", 'Process')
+              Write-Host "PATH set to include: $npmDir"
+            displayName: "Setup Node/npm PATH for publish"
 
           - task: DotNetCoreCLI@2
             displayName: "Generate Self-Contained App"
