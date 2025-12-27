@@ -363,7 +363,8 @@ stages:
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/finish-deploy-iis.ps1" `
                 -WebSiteName '$(websiteName)' `
                 -PhysicalPath '$(deploymentFolder)' `
-                -AppPoolUser '$(appServiceAccount)'
+                -AppPoolUser '$(appServiceAccount)' `
+                -AppPoolPassword '$(appServiceAccountPassword)'
             displayName: 'Post-deploy: Configure IIS App & Auth'
             failOnStderr: false
 
