@@ -1,5 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$PhysicalPath,
+    [string]$WebSiteName = 'Default Web Site',
     [string]$AppPoolName = 'pto-track',
     [string]$AppName = 'pto-track',
     [string]$AppPoolUser = '',
@@ -43,29 +44,35 @@ else {
     }
 }
 
-# Create or update application under Default Web Site
-if (-not (Test-Path "IIS:\Sites\Default Web Site\$AppName")) {
-    Write-Log "Creating application Default Web Site/$AppName -> $PhysicalPath"
-    New-WebApplication -Site 'Default Web Site' -Name $AppName -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName
+# Ensure web site exists
+if (-not (Test-Path "IIS:\Sites\$WebSiteName")) {
+    Write-Log "Creating web site $WebSiteName"
+    New-WebSite -Name $WebSiteName -PhysicalPath 'C:\inetpub\wwwroot' -Force | Out-Null
+}
+
+# Create or update application under web site
+if (-not (Test-Path "IIS:\Sites\$WebSiteName\$AppName")) {
+    Write-Log "Creating application $WebSiteName/$AppName -> $PhysicalPath"
+    New-WebApplication -Site $WebSiteName -Name $AppName -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName
 }
 else {
     Write-Log "Application exists; ensuring application pool and physical path"
-    $app = Get-WebApplication -Site 'Default Web Site' -Name $AppName
-    if ($app.applicationPool -ne $AppPoolName) { Set-ItemProperty "IIS:\Sites\Default Web Site\$AppName" -Name applicationPool -Value $AppPoolName }
-    if ($app.physicalPath -ne $PhysicalPath) { Set-ItemProperty "IIS:\Sites\Default Web Site\$AppName" -Name physicalPath -Value $PhysicalPath }
+    $app = Get-WebApplication -Site $WebSiteName -Name $AppName
+    if ($app.applicationPool -ne $AppPoolName) { Set-ItemProperty "IIS:\Sites\$WebSiteName\$AppName" -Name applicationPool -Value $AppPoolName }
+    if ($app.physicalPath -ne $PhysicalPath) { Set-ItemProperty "IIS:\Sites\$WebSiteName\$AppName" -Name physicalPath -Value $PhysicalPath }
 }
 
 # Configure authentication: anonymous off, windows auth on
 Write-Log "Configuring authentication for application"
-Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name enabled -Value false
-Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name enabled -Value true
+Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name enabled -Value false
+Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name enabled -Value true
 
 # Ensure Negotiate provider present first (fallback to NTLM)
 Write-Log "Configuring Windows auth providers (Negotiate,NTLM)"
-Remove-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name "." -AtElement @{value = 'Negotiate' } -ErrorAction SilentlyContinue
-Remove-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name "." -AtElement @{value = 'NTLM' } -ErrorAction SilentlyContinue
-Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name "." -Value @{value = 'Negotiate' }
-Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "Default Web Site/$AppName" -Name "." -Value @{value = 'NTLM' }
+Remove-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -AtElement @{value = 'Negotiate' } -ErrorAction SilentlyContinue
+Remove-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -AtElement @{value = 'NTLM' } -ErrorAction SilentlyContinue
+Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -Value @{value = 'Negotiate' }
+Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -Value @{value = 'NTLM' }
 
 Write-Log "Recycling app pool"
 Restart-WebAppPool $AppPoolName
