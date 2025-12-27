@@ -392,6 +392,51 @@ stages:
             failOnStderr: false
 
           - powershell: |
+              $providers = @("ASP.NET Core Module V2", ".NET Runtime")
+              $startTime = (Get-Date).AddHours(-2)
+              foreach ($p in $providers) {
+                Write-Host "=== Events for provider: $p (since $startTime) ==="
+                try {
+                  Get-WinEvent -FilterHashtable @{ ProviderName = $p; StartTime = $startTime } -ErrorAction Stop |
+                    Select-Object TimeCreated, Id, LevelDisplayName, ProviderName, Message |
+                    Sort-Object TimeCreated |
+                    ForEach-Object {
+                      "{0:yyyy-MM-dd HH:mm:ss} [{1}] ({2}) {3}`n{4}" -f $_.TimeCreated, $_.LevelDisplayName, $_.Id, $_.ProviderName, $_.Message
+                    }
+                } catch {
+                  Write-Host "No events or access denied for $p: $($_.Exception.Message)"
+                }
+              }
+            displayName: 'Post-deploy: Export ANCM/.NET errors'
+            condition: always()
+            failOnStderr: false
+
+          - powershell: |
+              $siteName = '$(websiteName)'
+              try {
+                $site = Get-Website -Name $siteName
+                $siteId = $site.Id
+                $logDir = Join-Path "C:\inetpub\logs\LogFiles" ("W3SVC{0}" -f $siteId)
+                Write-Host "IIS logs dir: $logDir"
+                if (Test-Path $logDir) {
+                  $latest = Get-ChildItem $logDir -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                  if ($latest) {
+                    Write-Host "Latest IIS log: $($latest.FullName)"
+                    Get-Content $latest.FullName -Tail 200
+                  } else {
+                    Write-Host "No log files found in $logDir"
+                  }
+                } else {
+                  Write-Host "IIS logs folder not found for site '$siteName' at $logDir"
+                }
+              } catch {
+                Write-Host "Failed to tail IIS logs for site '$siteName': $($_.Exception.Message)"
+              }
+            displayName: 'Post-deploy: Tail IIS logs'
+            condition: always()
+            failOnStderr: false
+
+          - powershell: |
               $logDir = "$(deploymentFolder)\logs"
               Write-Host "Inspecting stdout logs at $logDir"
               if (Test-Path $logDir) {
