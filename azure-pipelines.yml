@@ -158,7 +158,7 @@ stages:
             inputs:
               testRunTitle: "Test Services Layer"
               command: "test"
-              projects: "**/pto.track.services.tests.csproj"
+              projects: "build-output/pto.track.services.tests/pto.track.services.tests.csproj"
               arguments: '--configuration Release --no-build --logger "trx;LogFileName=services_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\services" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
@@ -167,7 +167,7 @@ stages:
             inputs:
               testRunTitle: "Test Application Layer"
               command: "test"
-              projects: "**/pto.track.tests.csproj"
+              projects: "build-output/pto.track.tests/pto.track.tests.csproj"
               arguments: '--configuration Release --no-build --logger "trx;LogFileName=app_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\app" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
@@ -176,7 +176,7 @@ stages:
             inputs:
               testRunTitle: "Test Data Layer"
               command: "test"
-              projects: "**/pto.track.data.tests.csproj"
+              projects: "build-output/pto.track.data.tests/pto.track.data.tests.csproj"
               arguments: '--configuration Release --no-build --logger "trx;LogFileName=data_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\data" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
