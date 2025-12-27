@@ -329,6 +329,15 @@ stages:
             failOnStderr: false
 
           - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/scripts/release/prepare-deployment-target.ps1" `
+                -DeploymentFolder '$(deploymentFolder)' `
+                -BackupFolder '$(deploymentBackupFolder)' `
+                -TempFolder '$(tempFolder)' `
+                -ServiceAccount '$(appServiceAccount)'
+            displayName: 'Pre-deploy: Prepare target & ACLs'
+            failOnStderr: false
+
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/before-deploy-iis.ps1" `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)' `
