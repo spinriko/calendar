@@ -96,6 +96,7 @@ stages:
             inputs:
               command: "restore"
               projects: "$(solutionPath)"
+              arguments: "--runtime win-x64"
 
           - task: DotNetCoreCLI@2
             displayName: "Build Solution"
@@ -278,7 +279,7 @@ stages:
           - powershell: |
               $projPath = @(Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter "pto.track.csproj" -Recurse)[0].FullName
               Write-Host "Found project: $projPath"
-              & dotnet publish $projPath --configuration Release --framework net8.0 --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish --no-build
+              & dotnet publish $projPath --configuration Release --framework net8.0 --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish --no-build --no-restore
             displayName: "Package Self-Contained App from Built Binaries"
 
           - powershell: |
