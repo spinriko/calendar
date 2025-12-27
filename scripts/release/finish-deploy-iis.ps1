@@ -3,7 +3,7 @@ param(
     [string]$AppPoolName = 'pto-track',
     [string]$AppName = 'pto-track',
     [string]$AppPoolUser = '',
-    [SecureString]$AppPoolPassword = ''
+    [string]$AppPoolPassword = ''
 )
 
 function Write-Log($m) { Write-Host "[finish-deploy] $m" }
@@ -27,7 +27,7 @@ if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
     Write-Log "Creating app pool $AppPoolName"
     New-WebAppPool -Name $AppPoolName
     $pool = Get-Item "IIS:\AppPools\$AppPoolName"
-    if ($AppPoolUser) { $pool.processModel.identityType = 3; $pool.processModel.userName = $AppPoolUser; $pool.processModel.password = (Convert-SecureStringToPlain $AppPoolPassword) }
+    if ($AppPoolUser) { $pool.processModel.identityType = 3; $pool.processModel.userName = $AppPoolUser; $pool.processModel.password = $AppPoolPassword }
     Set-Item "IIS:\AppPools\$AppPoolName" $pool
     Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ''
 }
@@ -37,7 +37,7 @@ else {
     if ($AppPoolUser -and ($pool.processModel.userName -ne $AppPoolUser)) {
         Write-Log "Updating app pool identity to $AppPoolUser"
         $pool.processModel.userName = $AppPoolUser
-        $pool.processModel.password = (Convert-SecureStringToPlain $AppPoolPassword)
+        $pool.processModel.password = $AppPoolPassword
         $pool.processModel.identityType = 3
         Set-Item "IIS:\AppPools\$AppPoolName" $pool
     }
