@@ -13,12 +13,12 @@ All scripts are located in `scripts/release/` and follow a consistent pattern wi
 | **before-deploy-iis.ps1** | Pre-deployment IIS validation & cleanup | `-PhysicalPath`, `-AppPoolUser`, `-StopIISIfNeeded` |
 | **finish-deploy-iis.ps1** | Post-deployment IIS configuration | `-PhysicalPath`, `-AppPoolUser` |
 | **check-iis-installed.ps1** | Validate IIS Web-Server feature | `-FeatureName` (e.g., "Web-Server") |
-| **stop-and-remove-service.ps1** | Stop and remove Windows service | `-ServiceName` |
 | **extract-artifact.ps1** | Extract ZIP artifact to destination | `-SourceFolder`, `-DestinationFolder` |
 | **set-connection-string.ps1** | Set ConnectionStrings__PtoTrackDbContext at machine scope | `-ConnectionString` |
 | **swap-deployment-folders.ps1** | Rotate deployment folders (backup/current/temp) | `-DeploymentPath`, `-BackupPath`, `-TempPath` |
 | **update-rewrite-rules.ps1** | Add HTTP/HTTPS rewrite rules to web.config | `-WebConfigPath`, `-ForwardedHttpUrl`, `-ForwardedHttpsUrl` |
-| **create-windows-service.ps1** | Create/configure Windows service | `-ServiceName`, `-ExecutablePath`, `-ServiceAccountName`, `-ServiceAccountPassword`, `-ServiceDescription` |
+| **iis-health-check.ps1** | Post-deployment health check via HTTP endpoint | `-HealthUrl`, `-TimeoutSeconds` |
+| **iis-prereq-check.ps1** | Pre-deployment validation of IIS configuration | (ad-hoc) |
 
 ## Azure Pipeline Integration
 

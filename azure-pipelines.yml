@@ -35,44 +35,14 @@ variables:
   - name: "projectPath"
     value: "**/pto.track.csproj"
 
-  - name: "appName"
-    value: "pto.track"
-
   - name: "tempFolder"
-    value: 'c:\self-contained_apps\$(appName)_temp'
-
-  - name: "deploymentFolder"
-    value: 'c:\self-contained_apps\$(appName)\'
+    value: '$(deploymentFolder)_temp'
 
   - name: "deploymentBackupFolder"
-    value: 'c:\self-contained_apps\$(appName)_backup\'
-
-  - name: "executablePath"
-    value: '$(deploymentFolder)$(appName).exe'
-
-  - name: "serviceName"
-    value: "PTO_Track_Service"
-
-  - name: "appPoolName"
-    value: "pto-track"
-
-  - name: "serviceDescription"
-    value: "PTO Track .NET Core Web Application"
+    value: '$(deploymentFolder)_backup\'
 
   - name: "webConfigPath"
-    value: 'c:\self-contained_apps\$(appName)\web.config'
-
-  - name: "forwardedHttpUrl"
-    value: "http://localhost:5139"
-
-  - name: "forwardedHttpsUrl"
-    value: "https://localhost:7241"
-
-  # Set to 'true' at queue time to allow deploy stages on non-main branches
-  - name: "forceDeploy"
-    value: "false"
-
-  # additional variables are pulled from the UI
+    value: '$(deploymentFolder)\web.config'
 
 pool:
   name: DVO
@@ -299,137 +269,11 @@ stages:
               PathtoPublish: "$(Build.ArtifactStagingDirectory)/publish"
               ArtifactName: "build_artifact"
 
-  - stage: DeployDev
-    displayName: "Deploy to Development Server"
+  # IIS in-process deployment stage (Windows Server 2022+ with IIS)
+  - stage: DeployDevToIIS
+    displayName: "Deploy Dev to IIS (In-Process)"
     dependsOn: Publish
     condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['forceDeploy'], 'true')))
-    variables:
-      - group: "DevOps Automation Accounts"
-      - group: "ASBDotNetWebApps-DEV"
-    jobs:
-      - job: Deploy
-
-        steps:
-          - checkout: none
-          - download: current
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Check IIS Installation"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\check-iis-installed.ps1'
-              ScriptArguments: '-FeatureName "Web-Server"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Prepare Deployment Target"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\prepare-deployment-target.ps1'
-              ScriptArguments: '-DeploymentFolder "$(deploymentFolder)" -BackupFolder "$(deploymentBackupFolder)" -TempFolder "$(tempFolder)" -ServiceAccount "$(serviceAccountName)"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Stop and remove current service"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\stop-and-remove-service.ps1'
-              ScriptArguments: '-ServiceName "$(serviceName)"'
-              CommunicationProtocol: "Http"
-
-          - task: WindowsMachineFileCopy@2
-            displayName: "Copy Build Artifact to Web Server"
-            inputs:
-              SourcePath: "$(Pipeline.Workspace)/build_artifact/pto.track.zip"
-              MachineNames: "$(webServerDev)"
-              AdminUserName: "$(automationAcctName)"
-              AdminPassword: "$(automationAcctPass)"
-              TargetPath: '\\$(webServerDev)\$(tempFolder)\'
-              CleanTargetBeforeCopy: true
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Extract Artifact"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\extract-artifact.ps1'
-              ScriptArguments: '-SourceFolder "$(tempFolder)" -DestinationFolder "$(tempFolder)"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Token replace ASPNETCORE_ENVIRONMENT in web.config"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              InlineScript: |
-                $webConfig = Join-Path "$(tempFolder)" "web.config"
-                if (Test-Path $webConfig) {
-                  Write-Host "Replacing environment token in web.config"
-                  $content = Get-Content -Path $webConfig -Raw
-                  $replaced = $content -replace '__ASPNETCORE_ENVIRONMENT__', '$(pto-track-env)'
-                  Set-Content -Path $webConfig -Value $replaced
-                  Write-Host "Token replaced"
-                }
-                else {
-                  Write-Host "web.config not found at $webConfig"
-                }
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Set ConnectionStrings__PtoTrackDbContext from variable group"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\set-connection-string.ps1'
-              ScriptArguments: '-ConnectionString "$(sqlConnectionString)"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Replace Previous App Files/Folders"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\swap-deployment-folders.ps1'
-              ScriptArguments: '-DeploymentPath "$(deploymentFolder)" -BackupPath "$(deploymentBackupFolder)" -TempPath "$(tempFolder)"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Update IIS Rewrite Rules"
-            condition: false # disabled until further testing and evaluation
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\update-rewrite-rules.ps1'
-              ScriptArguments: '-WebConfigPath "$(webConfigPath)" -ForwardedHttpUrl "$(forwardedHttpUrl)" -ForwardedHttpsUrl "$(forwardedHttpsUrl)"'
-              CommunicationProtocol: "Http"
-
-          - task: PowerShellOnTargetMachines@3
-            displayName: "Create New Windows Service And Start"
-            inputs:
-              Machines: "$(webServerDev)"
-              UserName: "$(automationAcctName)"
-              UserPassword: "$(automationAcctPass)"
-              ScriptPath: '$(Build.SourcesDirectory)\scripts\release\create-windows-service.ps1'
-              ScriptArguments: '-ServiceName "$(serviceName)" -ExecutablePath "$(executablePath)" -ServiceAccountName "$(serviceAccountName)" -ServiceAccountPassword "$(serviceAccountPassword)" -ServiceDescription "$(serviceDescription)"'
-              CommunicationProtocol: "Http"
-
-  # Optional IIS in-process deployment stage (Windows Server 2022+ with IIS)
-  # Enable by setting: deployToIIS=true in variable group or uncommenting condition
-  - stage: DeployToIIS
-    displayName: "Deploy to IIS (In-Process)"
-    dependsOn: Build
-    condition: false  # Change to: eq(variables['deployToIIS'], 'true')
     jobs:
       - deployment: DeployIIS
         displayName: "Deploy pto-track to IIS"
@@ -447,32 +291,38 @@ stages:
             deploy:
               steps:
                 - download: current
-                  artifact: drop
+                  artifact: build_artifact
                   displayName: 'Download Build Artifacts'
 
                 - powershell: |
-                    $PublishPath = "$(Pipeline.Workspace)/drop/pto-track"
-                    $DeployPath = "C:\inetpub\wwwroot\pto-track"
-                    Write-Host "Copying $PublishPath → $DeployPath"
+                    $PublishPath = "$(Pipeline.Workspace)/build_artifact"
+                    $DeployPath = "$(deploymentFolder)"
+                    Write-Host "Copying $PublishPath -> $DeployPath"
                     if (Test-Path $DeployPath) { Remove-Item $DeployPath -Recurse -Force }
                     Copy-Item -Path $PublishPath -Destination $DeployPath -Recurse -Force
-                    Write-Host "✓ Files deployed"
+                    Write-Host "[OK] Files deployed"
                   displayName: 'Deploy: Copy Published Files'
                   failOnStderr: false
 
                 - powershell: |
                     & .\scripts\release\before-deploy-iis.ps1 `
-                      -PhysicalPath 'C:\inetpub\wwwroot\pto-track' `
-                      -AppPoolUser 'IIS APPPOOL\pto-track' `
+                      -PhysicalPath '$(deploymentFolder)' `
+                      -AppPoolUser '$(appServiceAccount)' `
                       -StopIISIfNeeded:$false
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Pre-deploy: IIS Checks'
                   failOnStderr: false
 
                 - powershell: |
+                    & .\scripts\release\set-connection-string.ps1 -ConnectionString "$(sqlConnectionString)"
+                  workingDirectory: '$(Build.SourcesDirectory)'
+                  displayName: 'Set ConnectionStrings__PtoTrackDbContext'
+                  failOnStderr: false
+
+                - powershell: |
                     & .\scripts\release\finish-deploy-iis.ps1 `
-                      -PhysicalPath 'C:\inetpub\wwwroot\pto-track' `
-                      -AppPoolUser 'IIS APPPOOL\pto-track'
+                      -PhysicalPath '$(deploymentFolder)' `
+                      -AppPoolUser '$(appServiceAccount)'
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Post-deploy: Configure IIS App & Auth'
                   failOnStderr: false
@@ -480,7 +330,7 @@ stages:
             postRouteTraffic:
               steps:
                 - powershell: |
-                    & .\scripts\release\iis-health-check.ps1 -HealthUrl "https://localhost/pto-track/health" -TimeoutSeconds 15
+                    & .\scripts\release\iis-health-check.ps1 -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Post-deploy: Health Check'
                   failOnStderr: false
