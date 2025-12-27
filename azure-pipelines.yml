@@ -314,6 +314,15 @@ stages:
             failOnStderr: true
 
           - powershell: |
+              $modulePath = Join-Path $env:ProgramFiles "IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
+              Write-Host "Checking AspNetCoreModuleV2 at $modulePath"
+              if (-not (Test-Path $modulePath)) {
+                Write-Error "AspNetCoreModuleV2 not found. Install 'ASP.NET Core Module' IIS feature."
+              } else { Write-Host "AspNetCoreModuleV2 present." }
+            displayName: 'Pre-deploy: Verify AspNetCoreModuleV2'
+            failOnStderr: false
+
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"
             displayName: 'Pre-deploy: Check IIS'
             failOnStderr: false
@@ -362,3 +371,17 @@ stages:
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-health-check.ps1" -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
             displayName: 'Post-deploy: Health Check'
             failOnStderr: false
+
+          - powershell: |
+              $logDir = "$(deploymentFolder)\logs"
+              Write-Host "Inspecting stdout logs at $logDir"
+              if (Test-Path $logDir) {
+                Get-ChildItem -Path $logDir -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object {
+                  Write-Host "Latest log: $($_.FullName)"
+                  Get-Content -Path $_.FullName -Tail 200
+                }
+              } else {
+                Write-Host "No logs directory found at $logDir"
+              }
+            displayName: 'Post-deploy: Dump stdout logs'
+            condition: always()
