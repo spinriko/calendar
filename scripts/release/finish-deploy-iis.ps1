@@ -81,7 +81,22 @@ Remove-WebConfigurationProperty -Filter "/system.webServer/security/authenticati
 Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -Value @{value = 'Negotiate' }
 Add-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -PSPath 'IIS:\' -Location "$WebSiteName/$AppName" -Name "." -Value @{value = 'NTLM' }
 
-Write-Log "Recycling app pool"
-Restart-WebAppPool $AppPoolName
+Write-Log "Starting app pool (if stopped) and verifying"
+$pool = Get-Item "IIS:\AppPools\$AppPoolName"
+if ($pool.State -ne 'Started') {
+    Write-Log "App pool is $($pool.State). Starting..."
+    Start-WebAppPool $AppPoolName
+    Start-Sleep -Seconds 2
+    $pool = Get-Item "IIS:\AppPools\$AppPoolName"
+    if ($pool.State -ne 'Started') {
+        Write-Error "App pool failed to start. State: $($pool.State). Check identity credentials and 'Log on as a service' rights for $AppPoolUser"
+        exit 1
+    }
+    Write-Log "App pool started successfully"
+}
+else {
+    Write-Log "App pool already running. Recycling..."
+    Restart-WebAppPool $AppPoolName
+}
 
 Write-Log "Done."

@@ -359,6 +359,23 @@ stages:
             displayName: 'Set ConnectionStrings__PtoTrackDbContext'
             failOnStderr: false
 
+          - task: replacetokens@5
+            displayName: 'Replace tokens in web.config'
+            inputs:
+              targetFiles: '$(deploymentFolder)/web.config'
+              tokenPrefix: '__'
+              tokenSuffix: '__'
+              actionOnMissing: 'warn'
+
+          - powershell: |
+              $logsDir = "$(deploymentFolder)\logs"
+              New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
+              Write-Host "Created logs directory: $logsDir"
+              icacls $logsDir /grant "$(appServiceAccount):(OI)(CI)M" /T
+              Write-Host "Granted Modify permissions to $(appServiceAccount) on logs directory"
+            displayName: 'Create logs folder and set permissions'
+            failOnStderr: false
+
           - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/finish-deploy-iis.ps1" `
                 -WebSiteName '$(websiteName)' `
