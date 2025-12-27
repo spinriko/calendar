@@ -252,7 +252,7 @@ stages:
     jobs:
       - job: Publish
         steps:
-          - checkout: none
+          - checkout: self
           - download: current
 
           - powershell: |
@@ -260,6 +260,13 @@ stages:
               $env:PATH = "$npmDir;$env:PATH"
               & dotnet publish "$(projectPath)" --configuration Release --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish
             displayName: "Generate Self-Contained App"
+
+          - powershell: |
+              $dest = "$(Build.ArtifactStagingDirectory)/publish/scripts/release"
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+              Copy-Item -Path "$(Build.SourcesDirectory)/scripts/release" -Destination $dest -Recurse -Force
+              Write-Host "Release scripts copied to artifact payload: $dest"
+            displayName: "Package release scripts"
 
           - task: PublishBuildArtifacts@1
             displayName: "Publish Build Artifact"
@@ -281,8 +288,7 @@ stages:
             preDeploy:
               steps:
                 - powershell: |
-                    & .\scripts\release\iis-prereq-check.ps1
-                  workingDirectory: '$(Build.SourcesDirectory)'
+                    & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"
                   displayName: 'Pre-deploy: Check IIS'
                   failOnStderr: false
 
@@ -303,32 +309,28 @@ stages:
                   failOnStderr: false
 
                 - powershell: |
-                    & .\scripts\release\before-deploy-iis.ps1 `
+                    & "$(Pipeline.Workspace)/build_artifact/scripts/release/before-deploy-iis.ps1" `
                       -PhysicalPath '$(deploymentFolder)' `
                       -AppPoolUser '$(appServiceAccount)' `
                       -StopIISIfNeeded:$false
-                  workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Pre-deploy: IIS Checks'
                   failOnStderr: false
 
                 - powershell: |
-                    & .\scripts\release\set-connection-string.ps1 -ConnectionString "$(sqlConnectionString)"
-                  workingDirectory: '$(Build.SourcesDirectory)'
+                    & "$(Pipeline.Workspace)/build_artifact/scripts/release/set-connection-string.ps1" -ConnectionString "$(sqlConnectionString)"
                   displayName: 'Set ConnectionStrings__PtoTrackDbContext'
                   failOnStderr: false
 
                 - powershell: |
-                    & .\scripts\release\finish-deploy-iis.ps1 `
+                    & "$(Pipeline.Workspace)/build_artifact/scripts/release/finish-deploy-iis.ps1" `
                       -PhysicalPath '$(deploymentFolder)' `
                       -AppPoolUser '$(appServiceAccount)'
-                  workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Post-deploy: Configure IIS App & Auth'
                   failOnStderr: false
 
             postRouteTraffic:
               steps:
                 - powershell: |
-                    & .\scripts\release\iis-health-check.ps1 -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
-                  workingDirectory: '$(Build.SourcesDirectory)'
+                    & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-health-check.ps1" -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
                   displayName: 'Post-deploy: Health Check'
                   failOnStderr: false

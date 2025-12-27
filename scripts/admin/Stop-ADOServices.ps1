@@ -21,6 +21,9 @@ $ErrorActionPreference = "Stop"
 $services = @(
     @{ Name = "vstsagent.localhost.DVO.QUANTUM-DVO"; DisplayName = "Azure Pipelines Agent (QUANTUM-DVO)" },
     @{ Name = "W3SVC"; DisplayName = "IIS World Wide Web Publishing Service" },
+    @{ Name = "WAS"; DisplayName = "Windows Process Activation Service" },
+    @{ Name = "WMSVC"; DisplayName = "IIS Web Management Service" },
+    @{ Name = "SQLSERVERAGENT"; DisplayName = "SQL Server Agent (MSSQLSERVER)" },
     @{ Name = "MSSQLSERVER"; DisplayName = "SQL Server (MSSQLSERVER)" }
 )
 
@@ -52,7 +55,8 @@ foreach ($service in $services) {
         if ($Force) {
             Write-Host "→ Force stopping: $($service.DisplayName)..." -ForegroundColor Cyan
             Stop-Service -Name $service.Name -Force -ErrorAction Stop
-        } else {
+        }
+        else {
             Write-Host "→ Stopping: $($service.DisplayName)..." -ForegroundColor Cyan
             Stop-Service -Name $service.Name -ErrorAction Stop
         }
@@ -65,7 +69,8 @@ foreach ($service in $services) {
         if ($svc.Status -eq "Stopped") {
             Write-Host "✓ SUCCESS: $($service.DisplayName) stopped" -ForegroundColor Green
             $stoppedCount++
-        } else {
+        }
+        else {
             Write-Host "⚠ WARNING: $($service.DisplayName) did not stop cleanly (status: $($svc.Status))" -ForegroundColor Yellow
             if (-not $Force) {
                 Write-Host "  → Retry with -Force flag if needed" -ForegroundColor Yellow

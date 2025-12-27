@@ -19,7 +19,10 @@ $ErrorActionPreference = "Stop"
 # Define services in startup order (dependencies first)
 $services = @(
     @{ Name = "MSSQLSERVER"; DisplayName = "SQL Server (MSSQLSERVER)" },
+    @{ Name = "SQLSERVERAGENT"; DisplayName = "SQL Server Agent (MSSQLSERVER)" },
+    @{ Name = "WAS"; DisplayName = "Windows Process Activation Service" },
     @{ Name = "W3SVC"; DisplayName = "IIS World Wide Web Publishing Service" },
+    @{ Name = "WMSVC"; DisplayName = "IIS Web Management Service" },
     @{ Name = "vstsagent.localhost.DVO.QUANTUM-DVO"; DisplayName = "Azure Pipelines Agent (QUANTUM-DVO)" }
 )
 
