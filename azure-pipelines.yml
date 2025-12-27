@@ -257,21 +257,9 @@ stages:
 
           - powershell: |
               $npmDir = Split-Path "$(npmPath)"
-              [System.Environment]::SetEnvironmentVariable('PATH', "$npmDir;$env:PATH", 'Process')
-              Write-Host "PATH set to include: $npmDir"
-            displayName: "Setup Node/npm PATH for publish"
-
-          - task: DotNetCoreCLI@2
+              $env:PATH = "$npmDir;$env:PATH"
+              & dotnet publish "$(projectPath)" --configuration Release --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish
             displayName: "Generate Self-Contained App"
-            inputs:
-              command: "publish"
-              publishWebProjects: false
-              projects: "$(projectPath)"
-              arguments: >
-                --configuration Release
-                --runtime win-x64
-                --self-contained true
-                --output $(Build.ArtifactStagingDirectory)/publish
 
           - task: PublishBuildArtifacts@1
             displayName: "Publish Build Artifact"
