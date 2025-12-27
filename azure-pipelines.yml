@@ -273,7 +273,7 @@ stages:
           - task: PublishBuildArtifacts@1
             displayName: "Publish Build Artifact"
             inputs:
-              PathtoPublish: "$(Build.ArtifactStagingDirectory)/publish"
+              pathToPublish: "$(Build.ArtifactStagingDirectory)/publish"
               ArtifactName: "build_artifact"
 
   # IIS in-process deployment stage (Windows Server 2022+ with IIS)
@@ -290,6 +290,12 @@ stages:
           - download: current
             artifact: build_artifact
             displayName: 'Download Build Artifacts'
+
+          - powershell: |
+              Write-Host "Listing downloaded artifact at $(Pipeline.Workspace)/build_artifact"
+              Get-ChildItem -Recurse "$(Pipeline.Workspace)/build_artifact" | Select-Object FullName
+            displayName: 'Debug: List build_artifact contents'
+            failOnStderr: false
 
           - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"

@@ -65,7 +65,7 @@ namespace pto.track.tests.Mocks
                     .Select(p =>
                     {
                         var idx = p.IndexOf('=');
-                        if (idx <= 0) return (key: (string)null, value: (string)null);
+                        if (idx <= 0) return (key: (string?)null, value: (string?)null);
                         return (key: p.Substring(0, idx).Trim(), value: p.Substring(idx + 1).Trim());
                     })
                     .Where(kv => kv.key != null && kv.value != null && string.Equals(kv.key, "role", StringComparison.OrdinalIgnoreCase))
