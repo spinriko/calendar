@@ -12,6 +12,7 @@ This folder contains planning, proposal, and draft documentation for future or i
 - [DEPLOY-ENHANCEMENTS.md](DEPLOY-ENHANCEMENTS.md): Deploy enhancements — post-deploy checks, pipeline hardening, bundle verification, reverse proxy/PathBase guidance.
 - [ADO-ENVIRONMENTS.md](ADO-ENVIRONMENTS.md): Azure DevOps Environments adoption guide for corp servers.
 - [WINDOWS-AUTH-ENRICHER.md](WINDOWS-AUTH-ENRICHER.md): Windows auth debug notes, Negotiate setup, and future identity enrichment plan.
+- [IDENTITY-SYNC-PLAN.md](IDENTITY-SYNC-PLAN.md): Plan to rely on pre-synced AD/ADP identity service, resolve users from local store only, and reject not-yet-synced accounts.
 
 
 ### Where to find completed docs
@@ -28,4 +29,4 @@ This folder contains planning, proposal, and draft documentation for future or i
 If you are looking for a completed or historical doc, check the appropriate permanent folder above.
 
 ---
-Last updated: December 19, 2025
+Last updated: December 27, 2025
