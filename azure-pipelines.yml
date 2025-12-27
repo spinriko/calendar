@@ -11,6 +11,9 @@ trigger:
 #       - main
 
 variables:
+  - group: "DevOps Automation Accounts"
+  - group: "ASBDotNetWebApps-DEV"
+
   - name: "dotnetVersion"
     value: "8.0.100"
 
@@ -65,6 +68,10 @@ variables:
   - name: "forwardedHttpsUrl"
     value: "https://localhost:7241"
 
+  # Set to 'true' at queue time to allow deploy stages on non-main branches
+  - name: "forceDeploy"
+    value: "false"
+
   # additional variables are pulled from the UI
 
 pool:
@@ -85,6 +92,7 @@ stages:
           - powershell: |
               & .\scripts\ci\version-tag.ps1 -BuildSourcesDirectory "$(Build.SourcesDirectory)"
             displayName: "Auto-increment version tag"
+            failOnStderr: false
             condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
           - task: UseDotNet@2
@@ -137,6 +145,7 @@ stages:
           - powershell: |
               New-Item -ItemType Directory -Force "$(Build.SourcesDirectory)/TestResults/coverage" | Out-Null
             displayName: "Ensure coverage output directory"
+            failOnStderr: false
 
           - script: node --version
             displayName: "Check Node.js on agent (Test Job)"          
@@ -189,6 +198,7 @@ stages:
           - powershell: |
               & .\scripts\ci\coverage-merge.ps1 -SourcesDirectory "$(Build.SourcesDirectory)"
             displayName: "Merge coverage with ReportGenerator"
+            failOnStderr: false
           - task: PublishTestResults@2
             inputs:
               testResultsFormat: "VSTest"
@@ -212,7 +222,7 @@ stages:
   - stage: Analyze
     displayName: "Run Analyzers and Metrics"
     dependsOn: Test
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['forceDeploy'], 'true')))
     jobs:
       - job: Analyze
         steps:
@@ -264,7 +274,7 @@ stages:
   - stage: Publish
     displayName: "Publish Standalone App"
     dependsOn: Analyze
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['forceDeploy'], 'true')))
     jobs:
       - job: Publish
         steps:
@@ -292,7 +302,7 @@ stages:
   - stage: DeployDev
     displayName: "Deploy to Development Server"
     dependsOn: Publish
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['forceDeploy'], 'true')))
     variables:
       - group: "DevOps Automation Accounts"
       - group: "ASBDotNetWebApps-DEV"
@@ -432,6 +442,7 @@ stages:
                     & .\scripts\release\iis-prereq-check.ps1
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Pre-deploy: Check IIS'
+                  failOnStderr: false
 
             deploy:
               steps:
@@ -447,6 +458,7 @@ stages:
                     Copy-Item -Path $PublishPath -Destination $DeployPath -Recurse -Force
                     Write-Host "✓ Files deployed"
                   displayName: 'Deploy: Copy Published Files'
+                  failOnStderr: false
 
                 - powershell: |
                     & .\scripts\release\before-deploy-iis.ps1 `
@@ -455,6 +467,7 @@ stages:
                       -StopIISIfNeeded:$false
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Pre-deploy: IIS Checks'
+                  failOnStderr: false
 
                 - powershell: |
                     & .\scripts\release\finish-deploy-iis.ps1 `
@@ -462,6 +475,7 @@ stages:
                       -AppPoolUser 'IIS APPPOOL\pto-track'
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Post-deploy: Configure IIS App & Auth'
+                  failOnStderr: false
 
             postRouteTraffic:
               steps:
@@ -469,3 +483,4 @@ stages:
                     & .\scripts\release\iis-health-check.ps1 -HealthUrl "https://localhost/pto-track/health" -TimeoutSeconds 15
                   workingDirectory: '$(Build.SourcesDirectory)'
                   displayName: 'Post-deploy: Health Check'
+                  failOnStderr: false
