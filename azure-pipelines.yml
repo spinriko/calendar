@@ -287,8 +287,8 @@ stages:
       - job: DeployIIS
         displayName: "Deploy pto-track to IIS"
         steps:
-          - powershell: |
-              & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"
+            - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/iis-prereq-check.ps1"
             displayName: 'Pre-deploy: Check IIS'
             failOnStderr: false
 
@@ -296,8 +296,8 @@ stages:
             artifact: build_artifact
             displayName: 'Download Build Artifacts'
 
-          - powershell: |
-              $PublishPath = "$(Pipeline.Workspace)/build_artifact"
+            - powershell: |
+              $PublishPath = "$(Pipeline.Workspace)/build_artifact/publish"
               $DeployPath = "$(deploymentFolder)"
               Write-Host "Copying $PublishPath -> $DeployPath"
               if (Test-Path $DeployPath) { Remove-Item $DeployPath -Recurse -Force }
@@ -306,27 +306,27 @@ stages:
             displayName: 'Deploy: Copy Published Files'
             failOnStderr: false
 
-          - powershell: |
-              & "$(Pipeline.Workspace)/build_artifact/scripts/release/before-deploy-iis.ps1" `
+            - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/before-deploy-iis.ps1" `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)' `
                 -StopIISIfNeeded:$false
             displayName: 'Pre-deploy: IIS Checks'
             failOnStderr: false
 
-          - powershell: |
-              & "$(Pipeline.Workspace)/build_artifact/scripts/release/set-connection-string.ps1" -ConnectionString "$(sqlConnectionString)"
+            - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/set-connection-string.ps1" -ConnectionString "$(sqlConnectionString)"
             displayName: 'Set ConnectionStrings__PtoTrackDbContext'
             failOnStderr: false
 
-          - powershell: |
-              & "$(Pipeline.Workspace)/build_artifact/scripts/release/finish-deploy-iis.ps1" `
+            - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/finish-deploy-iis.ps1" `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)'
             displayName: 'Post-deploy: Configure IIS App & Auth'
             failOnStderr: false
 
-          - powershell: |
-              & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-health-check.ps1" -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
+            - powershell: |
+              & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/iis-health-check.ps1" -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
             displayName: 'Post-deploy: Health Check'
             failOnStderr: false
