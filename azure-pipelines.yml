@@ -109,6 +109,7 @@ stages:
             inputs:
               pathToPublish: "$(Build.SourcesDirectory)"
               ArtifactName: "build-output"
+              excludePathsPattern: "**/node_modules/**"
 
   - stage: Test
     displayName: "Run Tests and Coverage"
