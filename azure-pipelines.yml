@@ -343,6 +343,7 @@ stages:
 
           - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/finish-deploy-iis.ps1" `
+                -WebSiteName '$(websiteName)' `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)'
             displayName: 'Post-deploy: Configure IIS App & Auth'

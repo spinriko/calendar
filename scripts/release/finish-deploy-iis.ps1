@@ -4,7 +4,8 @@ param(
     [string]$AppPoolName = 'pto-track',
     [string]$AppName = 'pto-track',
     [string]$AppPoolUser = '',
-    [string]$AppPoolPassword = ''
+    [string]$AppPoolPassword = '',
+    [switch]$CreateSiteIfMissing = $false
 )
 
 function Write-Log($m) { Write-Host "[finish-deploy] $m" }
@@ -46,8 +47,14 @@ else {
 
 # Ensure web site exists
 if (-not (Test-Path "IIS:\Sites\$WebSiteName")) {
-    Write-Log "Creating web site $WebSiteName"
-    New-WebSite -Name $WebSiteName -PhysicalPath 'C:\inetpub\wwwroot' -Force | Out-Null
+    if ($CreateSiteIfMissing) {
+        Write-Log "Creating web site $WebSiteName"
+        New-WebSite -Name $WebSiteName -PhysicalPath 'C:\inetpub\wwwroot' -Force | Out-Null
+    }
+    else {
+        Write-Error "Web site '$WebSiteName' not found. Pass -CreateSiteIfMissing to create it or set the correct name."
+        exit 1
+    }
 }
 
 # Create or update application under web site
