@@ -359,13 +359,14 @@ stages:
             displayName: 'Set ConnectionStrings__PtoTrackDbContext'
             failOnStderr: false
 
-          - task: replacetokens@5
+          - powershell: |
+              $webConfig = "$(deploymentFolder)\web.config"
+              $content = Get-Content $webConfig -Raw
+              $content = $content -replace '__pto-track-env__', '$(pto-track-env)'
+              Set-Content $webConfig -Value $content -NoNewline
+              Write-Host "Replaced __pto-track-env__ with $(pto-track-env) in web.config"
             displayName: 'Replace tokens in web.config'
-            inputs:
-              targetFiles: '$(deploymentFolder)/web.config'
-              tokenPrefix: '__'
-              tokenSuffix: '__'
-              actionOnMissing: 'warn'
+            failOnStderr: false
 
           - powershell: |
               $logsDir = "$(deploymentFolder)\logs"
