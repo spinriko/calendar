@@ -20,9 +20,6 @@ variables:
   - name: "efToolVersion"
     value: "8.0.*"
 
-  - name: "nodeVersion"
-    value: "20.x"
-
   - name: "typescriptPath"
     value: 'C:\admin\typescript-5.9.3.tgz'
 
@@ -83,16 +80,11 @@ stages:
               arguments: install --global dotnet-ef --version $(efToolVersion)
 
           - powershell: |
-              node --version
-            displayName: "Check Node.js on agent"
-            condition: false
-
-          - powershell: |
-              npm ci --prefix pto.track
+              & "$(npmPath)" ci --prefix pto.track
             displayName: "Install frontend dependencies (pto.track)"
 
           - powershell: |
-              npm run build:js --prefix pto.track
+              & "$(npmPath)" run build:js --prefix pto.track
             displayName: "Build frontend assets (pto.track)"
 
           - task: DotNetCoreCLI@2
