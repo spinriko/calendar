@@ -98,11 +98,18 @@ stages:
               projects: "$(solutionPath)"
 
           - task: DotNetCoreCLI@2
-            displayName: "Build Project"
+            displayName: "Build Solution"
             inputs:
               command: "build"
               projects: "$(solutionPath)"
               arguments: "--configuration Release --no-restore"
+
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Build Artifacts"
+            inputs:
+              targetPath: "$(Build.SourcesDirectory)"
+              artifactName: "build-output"
+              publishLocation: "pipeline"
 
   - stage: Test
     displayName: "Run Tests and Coverage"
@@ -110,7 +117,11 @@ stages:
     jobs:
       - job: Test
         steps:
-          - checkout: self
+          - task: DownloadPipelineArtifact@2
+            displayName: "Download Build Artifacts"
+            inputs:
+              artifactName: "build-output"
+              targetPath: "$(Build.SourcesDirectory)"
 
           - powershell: |
               New-Item -ItemType Directory -Force "$(Build.SourcesDirectory)/TestResults/coverage" | Out-Null
@@ -148,7 +159,7 @@ stages:
               testRunTitle: "Test Services Layer"
               command: "test"
               projects: "**/pto.track.services.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=services_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\services" --collect:"XPlat Code Coverage"'
+              arguments: '--configuration Release --no-build --logger "trx;LogFileName=services_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\services" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -157,7 +168,7 @@ stages:
               testRunTitle: "Test Application Layer"
               command: "test"
               projects: "**/pto.track.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=app_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\app" --collect:"XPlat Code Coverage"'
+              arguments: '--configuration Release --no-build --logger "trx;LogFileName=app_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\app" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - task: DotNetCoreCLI@2
@@ -166,7 +177,7 @@ stages:
               testRunTitle: "Test Data Layer"
               command: "test"
               projects: "**/pto.track.data.tests.csproj"
-              arguments: '--configuration Release --logger "trx;LogFileName=data_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\data" --collect:"XPlat Code Coverage"'
+              arguments: '--configuration Release --no-build --logger "trx;LogFileName=data_tests.trx" --results-directory "$(Build.SourcesDirectory)\TestResults\data" --collect:"XPlat Code Coverage"'
               publishTestResults: false # handled in arguments
 
           - powershell: |
@@ -200,6 +211,12 @@ stages:
     jobs:
       - job: Analyze
         steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: "Download Build Artifacts"
+            inputs:
+              artifactName: "build-output"
+              targetPath: "$(Build.SourcesDirectory)"
+
           - task: PowerShell@2
             displayName: "Run Roslyn Analyzers"
             inputs:
@@ -252,16 +269,17 @@ stages:
     jobs:
       - job: Publish
         steps:
-          - checkout: self
-          - download: current
+          - task: DownloadPipelineArtifact@2
+            displayName: "Download Build Artifacts"
+            inputs:
+              artifactName: "build-output"
+              targetPath: "$(Build.SourcesDirectory)"
 
           - powershell: |
-              $npmDir = Split-Path "$(npmPath)"
-              $env:PATH = "$npmDir;$env:PATH"
               $projPath = @(Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter "pto.track.csproj" -Recurse)[0].FullName
               Write-Host "Found project: $projPath"
-              & dotnet publish $projPath --configuration Release --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish
-            displayName: "Generate Self-Contained App"
+              & dotnet publish $projPath --configuration Release --framework net8.0 --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish --no-build
+            displayName: "Package Self-Contained App from Built Binaries"
 
           - powershell: |
               $source = "$(Build.SourcesDirectory)/scripts/release"
