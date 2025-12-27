@@ -264,10 +264,18 @@ stages:
             displayName: "Generate Self-Contained App"
 
           - powershell: |
+              $source = "$(Build.SourcesDirectory)/scripts/release"
               $dest = "$(Build.ArtifactStagingDirectory)/publish/scripts/release"
+              if (-not (Test-Path $source)) {
+                Write-Error "Source scripts folder missing: $source"
+              }
               New-Item -ItemType Directory -Force -Path $dest | Out-Null
-              Copy-Item -Path "$(Build.SourcesDirectory)/scripts/release" -Destination $dest -Recurse -Force
+              Copy-Item -Path "$source/*" -Destination $dest -Recurse -Force
+              if (-not (Test-Path "$dest/iis-prereq-check.ps1")) {
+                Write-Error "Expected script not found at $dest/iis-prereq-check.ps1"
+              }
               Write-Host "Release scripts copied to artifact payload: $dest"
+              Get-ChildItem -Recurse $dest | Select-Object FullName
             displayName: "Package release scripts"
 
           - task: PublishBuildArtifacts@1
@@ -296,6 +304,14 @@ stages:
               Get-ChildItem -Recurse "$(Pipeline.Workspace)/build_artifact" | Select-Object FullName
             displayName: 'Debug: List build_artifact contents'
             failOnStderr: false
+
+          - powershell: |
+              if (-not (Test-Path "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1")) {
+                Get-ChildItem -Recurse "$(Pipeline.Workspace)/build_artifact" | Select-Object FullName
+                throw "Missing script: $(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"
+              }
+            displayName: 'Debug: Assert prereq script exists'
+            failOnStderr: true
 
           - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/scripts/release/iis-prereq-check.ps1"
