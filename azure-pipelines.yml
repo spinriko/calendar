@@ -286,6 +286,7 @@ stages:
     jobs:
       - deployment: DeployIIS
         displayName: "Deploy pto-track to IIS"
+        environment: 'DevIIS' # required by azure but name won't matter til we use environments
         strategy:
           runOnce:
             preDeploy:
