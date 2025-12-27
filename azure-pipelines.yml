@@ -104,12 +104,11 @@ stages:
               projects: "$(solutionPath)"
               arguments: "--configuration Release --no-restore"
 
-          - task: PublishPipelineArtifact@1
+          - task: PublishBuildArtifacts@1
             displayName: "Publish Build Artifacts"
             inputs:
-              targetPath: "$(Build.SourcesDirectory)"
-              artifactName: "build-output"
-              publishLocation: "pipeline"
+              pathToPublish: "$(Build.SourcesDirectory)"
+              ArtifactName: "build-output"
 
   - stage: Test
     displayName: "Run Tests and Coverage"
@@ -117,11 +116,11 @@ stages:
     jobs:
       - job: Test
         steps:
-          - task: DownloadPipelineArtifact@2
+          - task: DownloadBuildArtifacts@0
             displayName: "Download Build Artifacts"
             inputs:
               artifactName: "build-output"
-              targetPath: "$(Build.SourcesDirectory)"
+              downloadPath: "$(Build.SourcesDirectory)"
 
           - powershell: |
               New-Item -ItemType Directory -Force "$(Build.SourcesDirectory)/TestResults/coverage" | Out-Null
@@ -211,11 +210,11 @@ stages:
     jobs:
       - job: Analyze
         steps:
-          - task: DownloadPipelineArtifact@2
+          - task: DownloadBuildArtifacts@0
             displayName: "Download Build Artifacts"
             inputs:
               artifactName: "build-output"
-              targetPath: "$(Build.SourcesDirectory)"
+              downloadPath: "$(Build.SourcesDirectory)"
 
           - task: PowerShell@2
             displayName: "Run Roslyn Analyzers"
@@ -269,11 +268,11 @@ stages:
     jobs:
       - job: Publish
         steps:
-          - task: DownloadPipelineArtifact@2
+          - task: DownloadBuildArtifacts@0
             displayName: "Download Build Artifacts"
             inputs:
               artifactName: "build-output"
-              targetPath: "$(Build.SourcesDirectory)"
+              downloadPath: "$(Build.SourcesDirectory)"
 
           - powershell: |
               $projPath = @(Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter "pto.track.csproj" -Recurse)[0].FullName
