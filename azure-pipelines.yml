@@ -82,13 +82,16 @@ stages:
               custom: "tool"
               arguments: install --global dotnet-ef --version $(efToolVersion)
 
-          - script: node --version
-            displayName: "Check Node.js on agent"          
+          - powershell: |
+              node --version
+            displayName: "Check Node.js on agent"
 
-          - script: npm ci --prefix pto.track
+          - powershell: |
+              npm ci --prefix pto.track
             displayName: "Install frontend dependencies (pto.track)"
 
-          - script: npm run build:js --prefix pto.track
+          - powershell: |
+              npm run build:js --prefix pto.track
             displayName: "Build frontend assets (pto.track)"
 
           - task: DotNetCoreCLI@2
@@ -117,10 +120,12 @@ stages:
             displayName: "Ensure coverage output directory"
             failOnStderr: false
 
-          - script: node --version
-            displayName: "Check Node.js on agent (Test Job)"          
+          - powershell: |
+              node --version
+            displayName: "Check Node.js on agent (Test Job)"
 
-          - script: npm --version
+          - powershell: |
+              npm --version
             displayName: "Check npm on agent (Test Job)"
             
           # Run JavaScript tests (Jest). Puppeteer Chromium download is skipped
