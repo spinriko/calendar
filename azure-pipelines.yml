@@ -258,7 +258,9 @@ stages:
           - powershell: |
               $npmDir = Split-Path "$(npmPath)"
               $env:PATH = "$npmDir;$env:PATH"
-              & dotnet publish "$(projectPath)" --configuration Release --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish
+              $projPath = @(Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter "pto.track.csproj" -Recurse)[0].FullName
+              Write-Host "Found project: $projPath"
+              & dotnet publish $projPath --configuration Release --runtime win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)/publish
             displayName: "Generate Self-Contained App"
 
           - powershell: |
