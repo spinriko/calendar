@@ -281,10 +281,11 @@ stages:
     displayName: "Deploy Dev to IIS (In-Process)"
     dependsOn: Publish
     condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['forceDeploy'], 'true')))
+    pool:
+      name: DVO
     jobs:
       - deployment: DeployIIS
         displayName: "Deploy pto-track to IIS"
-        environment: 'production'
         strategy:
           runOnce:
             preDeploy:
