@@ -85,6 +85,7 @@ stages:
           - powershell: |
               node --version
             displayName: "Check Node.js on agent"
+            condition: false
 
           - powershell: |
               npm ci --prefix pto.track
@@ -123,10 +124,12 @@ stages:
           - powershell: |
               node --version
             displayName: "Check Node.js on agent (Test Job)"
+            condition: false
 
           - powershell: |
               npm --version
             displayName: "Check npm on agent (Test Job)"
+            condition: false
             
           # Run JavaScript tests (Jest). Puppeteer Chromium download is skipped
           # to avoid headless/browser installs on restricted build agents.
