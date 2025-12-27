@@ -287,7 +287,7 @@ stages:
       - job: DeployIIS
         displayName: "Deploy pto-track to IIS"
         steps:
-            - powershell: |
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/iis-prereq-check.ps1"
             displayName: 'Pre-deploy: Check IIS'
             failOnStderr: false
@@ -296,7 +296,7 @@ stages:
             artifact: build_artifact
             displayName: 'Download Build Artifacts'
 
-            - powershell: |
+          - powershell: |
               $PublishPath = "$(Pipeline.Workspace)/build_artifact/publish"
               $DeployPath = "$(deploymentFolder)"
               Write-Host "Copying $PublishPath -> $DeployPath"
@@ -306,7 +306,7 @@ stages:
             displayName: 'Deploy: Copy Published Files'
             failOnStderr: false
 
-            - powershell: |
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/before-deploy-iis.ps1" `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)' `
@@ -314,19 +314,19 @@ stages:
             displayName: 'Pre-deploy: IIS Checks'
             failOnStderr: false
 
-            - powershell: |
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/set-connection-string.ps1" -ConnectionString "$(sqlConnectionString)"
             displayName: 'Set ConnectionStrings__PtoTrackDbContext'
             failOnStderr: false
 
-            - powershell: |
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/finish-deploy-iis.ps1" `
                 -PhysicalPath '$(deploymentFolder)' `
                 -AppPoolUser '$(appServiceAccount)'
             displayName: 'Post-deploy: Configure IIS App & Auth'
             failOnStderr: false
 
-            - powershell: |
+          - powershell: |
               & "$(Pipeline.Workspace)/build_artifact/publish/scripts/release/iis-health-check.ps1" -HealthUrl "$(healthUrl)" -TimeoutSeconds 15
             displayName: 'Post-deploy: Health Check'
             failOnStderr: false
