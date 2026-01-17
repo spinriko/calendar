@@ -203,12 +203,40 @@ public static class HostingExtensions
 
     public static WebApplication ConfigureHealthEndpoints(this WebApplication app)
     {
-        app.MapHealthChecks("/health");
-        app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        // Liveness: very fast, unauthenticated probe used by deploys/load-balancers
+        app.MapGet("/health/live", () => Results.Ok("OK")).AllowAnonymous();
+
+        // Readiness: run checks that are tagged 'ready' (e.g., DB connectivity)
+        var ready = app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains("ready")
+            Predicate = check => check.Tags.Contains("ready"),
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var payload = new
+                {
+                    status = report.Status.ToString(),
+                    checks = report.Entries.Select(e => new { name = e.Key, status = e.Value.Status.ToString(), description = e.Value.Description })
+                };
+                await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(payload));
+            }
+        }).WithMetadata(new Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute());
+
+        // General health endpoint (runs all checks) — preserve default auth behavior
+        app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                context.Response.ContentType = "application/json";
+                var payload = new
+                {
+                    status = report.Status.ToString(),
+                    checks = report.Entries.Select(e => new { name = e.Key, status = e.Value.Status.ToString(), description = e.Value.Description })
+                };
+                await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(payload));
+            }
         });
-        app.MapHealthChecks("/health/live");
+
         return app;
     }
 

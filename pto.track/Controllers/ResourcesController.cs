@@ -2,6 +2,7 @@
 
 namespace pto.track.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using pto.track.services;
 using pto.track.services.DTOs;
@@ -10,6 +11,7 @@ using pto.track.services.DTOs;
 /// <summary>
 /// API controller for managing resources (employees).
 /// </summary>
+[Authorize]
 [Produces("application/json")]
 [Route("api/resources")]
 public class ResourcesController : Controller

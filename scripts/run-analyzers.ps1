@@ -22,7 +22,7 @@ if ($Execute) {
         Write-Host "SARIF error log written to: $sarifFile"
     }
     else {
-        Write-Host "SARIF file was not created by MSBuild ΓÇö creating an empty SARIF skeleton for CI consumers."
+        Write-Host "SARIF file was not created by MSBuild -- creating an empty SARIF skeleton for CI consumers."
         $sarifSkeleton = @'
 {
   "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
@@ -62,6 +62,6 @@ if ($RunMetrics) {
         exit $LASTEXITCODE
     }
     else {
-        Write-Host "CodeMetricsAnalyzer completed ΓÇö check artifacts in: $metricsDir"
+        Write-Host "CodeMetricsAnalyzer completed -- check artifacts in: $metricsDir"
     }
 }

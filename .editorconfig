@@ -1,0 +1,89 @@
+root = true
+
+###############################################################
+# GLOBAL SETTINGS
+###############################################################
+
+dotnet_language_version = latest
+dotnet_analyzer_diagnostic.severity = warning
+
+indent_style = space
+indent_size = 4
+charset = utf-8
+
+###############################################################
+# MICROSOFT RECOMMENDED ANALYZERS
+###############################################################
+
+dotnet_code_quality.enable_analyzers = true
+dotnet_code_quality.analysis_mode = recommended
+
+dotnet_style_qualification_for_field = true:warning
+dotnet_style_qualification_for_property = true:warning
+dotnet_style_qualification_for_method = true:warning
+dotnet_style_qualification_for_event = true:warning
+
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+
+###############################################################
+# STYLECOP — ENABLED RULES (WITH YOUR MODIFICATIONS)
+###############################################################
+
+# Require 'this.' prefix everywhere
+dotnet_diagnostic.SA1101.severity = error
+
+# Enforce consistent using placement
+dotnet_diagnostic.SA1200.severity = error
+
+# Member ordering — now an error
+dotnet_diagnostic.SA1201.severity = error
+dotnet_diagnostic.SA1202.severity = error
+dotnet_diagnostic.SA1203.severity = error
+
+# File must match type name — now an error
+dotnet_diagnostic.SA1649.severity = error
+
+# Spacing rules (still warnings)
+dotnet_diagnostic.SA1000.severity = warning
+dotnet_diagnostic.SA1001.severity = warning
+dotnet_diagnostic.SA1002.severity = warning
+dotnet_diagnostic.SA1003.severity = warning
+dotnet_diagnostic.SA1005.severity = warning
+
+###############################################################
+# STYLECOP — DISABLED RULES (NOISE REDUCTION)
+###############################################################
+
+# XML documentation rules
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1604.severity = none
+dotnet_diagnostic.SA1609.severity = none
+
+# Underscore prefix allowed
+dotnet_diagnostic.SA1309.severity = none
+
+# Readability rules that conflict with modern C#
+dotnet_diagnostic.SA1116.severity = none
+dotnet_diagnostic.SA1117.severity = none
+dotnet_diagnostic.SA1118.severity = none
+
+# Documentation text rules
+dotnet_diagnostic.SA1623.severity = none
+dotnet_diagnostic.SA1629.severity = none
+
+###############################################################
+# OPTIONAL STRICT MODE FOR CI
+###############################################################
+# Uncomment when ready:
+#
+# [*.cs]
+# dotnet_analyzer_diagnostic.severity = error
+#
+###############################################################

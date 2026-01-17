@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -76,9 +77,18 @@ public static class AppServiceExtensions
         if (authMode.Equals("Windows", StringComparison.OrdinalIgnoreCase)
             || authMode.Equals("ActiveDirectory", StringComparison.OrdinalIgnoreCase))
         {
-            // Enable Windows/Negotiate authentication when requested.
-            builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-                .AddNegotiate();
+            // Enable Windows authentication. Use IIS integration when hosted by IIS,
+            // otherwise use Negotiate for Kestrel/self-host scenarios.
+            var iisHosted = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_APPL_PATH"));
+            if (iisHosted)
+            {
+                builder.Services.AddAuthentication(IISDefaults.AuthenticationScheme);
+            }
+            else
+            {
+                builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+                    .AddNegotiate();
+            }
         }
         else
         {
@@ -103,6 +113,9 @@ public static class AppServiceExtensions
         }
 
         builder.Services.AddAuthorization();
+
+        // Register default claims enricher (no-op). Tests may override this registration.
+        builder.Services.AddTransient<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ClaimsEnricher>();
 
         // Add Swagger/OpenAPI
         builder.Services.AddEndpointsApiExplorer();

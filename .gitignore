@@ -56,8 +56,10 @@ Thumbs.db
 *.wmv
 
 /.vs
+/.venv
 /**/bin
 /**/obj
+/.vscode/settings.json
 
 # Published output
 publish/

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using pto.track.data;
 using pto.track.services;
@@ -9,6 +10,7 @@ namespace pto.track.Controllers;
 /// <summary>
 /// API controller for managing employee absence requests.
 /// </summary>
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class AbsencesController : ControllerBase

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using pto.track.Models;
 
@@ -6,6 +7,7 @@ namespace pto.track.Controllers;
 /// <summary>
 /// API controller for managing user impersonation (development/mock mode only).
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/impersonation")]
 public class ImpersonationController : Controller

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using pto.track.services;
@@ -9,6 +10,7 @@ namespace pto.track.Controllers;
 /// <summary>
 /// API endpoint for current user information
 /// </summary>
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class CurrentUserController : ControllerBase

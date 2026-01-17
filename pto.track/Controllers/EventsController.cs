@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using pto.track.services;
 using pto.track.services.DTOs;
 
@@ -7,6 +8,7 @@ namespace pto.track.Controllers;
 /// <summary>
 /// API controller for managing calendar events.
 /// </summary>
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class EventsController(IEventService eventService, ILogger<EventsController> logger) : ControllerBase

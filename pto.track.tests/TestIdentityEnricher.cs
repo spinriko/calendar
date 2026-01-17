@@ -21,8 +21,10 @@ namespace pto.track.tests
 
         public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
         {
+            principal ??= new ClaimsPrincipal();
+
             var context = _httpContextAccessor.HttpContext;
-            if (context == null || principal == null)
+            if (context == null)
             {
                 return Task.FromResult(principal);
             }
@@ -38,7 +40,7 @@ namespace pto.track.tests
                 .Select(part =>
                 {
                     var idx = part.IndexOf('=');
-                    if (idx <= 0) return (type: (string)null, value: (string)null);
+                    if (idx <= 0) return (type: (string?)null, value: (string?)null);
                     var k = part.Substring(0, idx).Trim();
                     var v = part.Substring(idx + 1).Trim();
                     return (type: k, value: v);

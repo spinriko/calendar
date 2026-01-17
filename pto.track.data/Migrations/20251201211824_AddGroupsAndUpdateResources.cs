@@ -98,6 +98,11 @@ namespace pto.track.data.Migrations
                 columns: new[] { "GroupId", "Name" },
                 values: new object[] { 1, "Administrator" });
 
+            // Ensure all remaining resources are assigned to a valid group before adding FK constraint.
+            // If migration runs multiple times, orphaned records with GroupId=0 must be updated.
+            migrationBuilder.Sql(
+                "UPDATE Resources SET GroupId = 1 WHERE GroupId = 0;");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Resources_GroupId",
                 table: "Resources",

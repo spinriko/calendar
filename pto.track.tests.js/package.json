@@ -2,14 +2,13 @@
   "type": "module",
   "scripts": {
     "lint": "eslint .",
-    "test": "npm run lint && jest --config jest.config.cjs",
-    "test:coverage": "npm run lint && c8 jest --config jest.config.cjs",
-    "test:watch": "jest --config jest.config.cjs --watch"
+    "test": "npm run lint && jest --config jest.config.js",
+    "test:coverage": "npm run lint && c8 jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch"
   },
   "dependencies": {
     "express": "^5.2.1",
-    "pto": "file:..",
-    "puppeteer": "^24.31.0"
+    "pto": "file:.."
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
