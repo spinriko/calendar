@@ -243,7 +243,7 @@ stages:
                 }
 
                 Write-Host "ls-remote succeeded. Authentication is working."
-            pwsh: false
+              pwsh: false
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
