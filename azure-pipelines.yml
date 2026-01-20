@@ -196,6 +196,25 @@ stages:
           )
         steps:
           - task: PowerShell@2
+            displayName: "DEBUG: Git User"'
+            inputs:
+              targetType: inline
+              script: inline |
+                Write-Host "=== WHOAMI ==="
+                whoami
+
+                Write-Host "=== GIT CONFIG USER ==="
+                git config --global user.name
+                git config --global user.environmentVariables
+
+                Write-Host "=== GIT VERSION ==="
+                git --version
+
+                Write-Host "=== ENVIROPNMENT VARIABLES ==="
+                Get-ChildItem env: | Sort-Object Name
+              pwsh: false
+
+          - task: PowerShell@2
             displayName: "Auto-tag patch version"
             inputs:
               targetType: inline
