@@ -234,11 +234,8 @@ stages:
         dependsOn: BuildAndTest
         condition: |
           and(
-            succeeded(),
-            or(
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-              eq(variables['forceDeploy'], 'true')
-            )
+            succeeded(),            
+            eq(variables['Build.SourceBranch'], 'refs/heads/main')            
           )
         steps:
         # ---------------------------------------------------------
