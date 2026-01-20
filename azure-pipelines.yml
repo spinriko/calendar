@@ -243,18 +243,15 @@ stages:
                 }
 
                 Write-Host "ls-remote succeeded. Authentication is working."
-              pwsh: false
+            pwsh: false
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
           - task: PowerShell@2
             displayName: "Auto-tag patch version"
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             inputs:
               targetType: inline
               script: |
-                git config http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
                 $ErrorActionPreference = 'Stop'
 
                 function Run-Git($cmd) {
@@ -324,11 +321,9 @@ stages:
             displayName: "Update version badges"
             inputs:
               targetType: inline
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               script: |
                 Write-Host "Starting badge update..."
-                git config http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
+
                 # Fetch tags to ensure we have the latest
                 git fetch --tags --prune origin
 
