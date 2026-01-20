@@ -192,7 +192,10 @@ stages:
         condition: |
           and(
             succeeded(),
-            eq(variables['Build.SourceBranch'], 'refs/heads/main')
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['forceDeploy'], 'true')
+            )
           )
         steps:
           - task: PowerShell@2
