@@ -877,6 +877,7 @@ stages:
             displayName: "Health check (live)"
             inputs:
               targetType: inline
+              workingDirectory: $(Agent.TempDirectory)
               pwsh: false
               script: |
                   Write-Host "Checking live health at $env:healthUrl"
@@ -890,8 +891,10 @@ stages:
 
           - task: PowerShell@2
             displayName: "Health check (ready)"
+            condition: false            
             inputs:
               targetType: inline
+              workingDirectory: $(Agent.TempDirectory)
               pwsh: false
               script: |
                   if ($env:checkReady -ne "true" -and $env:checkReady -ne "True") {
@@ -915,6 +918,7 @@ stages:
             inputs:
               targetType: inline
               pwsh: false
+              workingDirectory: $(Agent.TempDirectory)
               script: |
 
                 Write-Host "***************************RANT START***************************"
