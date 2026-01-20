@@ -50,24 +50,25 @@ stages:
               targetType: inline
               script: |
                 Write-Host "Checking for leftover http.extraHeader..."
-                $header = git config --get http.extraHeader 2>$null
-                $globalHeader = git config --global --get http.extraHeader 2>$null
 
-                if ($header) {
-                    Write-Host "Found leftover header: $header"
+                git config --get http.extraHeader 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "No leftover header found."
+                } else {
+                    Write-Host "Found leftover header!!"
                     Write-Host "Removing..."
                     git config --unset http.extraHeader
                     Write-Host "Header removed."
-                } else {
-                    Write-Host "No leftover header found."
                 }
-                if ($globalHeader) {
-                    Write-Host "Found leftover header: $globalHeader"
+
+                git config --global --get http.extraHeader 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "No leftover global header found."
+                } else {
+                    Write-Host "Found leftover global header!!"
                     Write-Host "Removing..."
                     git config --global --unset http.extraHeader
                     Write-Host "Global header removed."
-                } else {
-                    Write-Host "No leftover global header found."
                 }
               pwsh: false
 
