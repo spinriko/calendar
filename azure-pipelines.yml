@@ -222,23 +222,44 @@ stages:
             inputs:
               targetType: inline
               script: |
+                $ErrorActionPreference = 'Stop'
+
+                function Run-Git($cmd) {
+                    Write-Host "Running: git $cmd"
+                    git $cmd
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Git command failed: git $cmd (exit code $LASTEXITCODE)"
+                    }
+                }
+
                 Write-Host "Starting auto-tagging process..."
 
-                # Fetch tags to ensure we have the latest
-                git fetch --tags --prune origin
+                # Fetch tags
+                Run-Git "fetch --tags --prune origin"
                 Write-Host "Fetched remote tags"
 
                 # Check if current commit already has a tag
                 $currentTag = git tag --points-at HEAD
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Git command failed: git tag --points-at HEAD"
+                }
+
                 if ($currentTag) {
                     Write-Host "Commit already tagged with $currentTag. Skipping auto-tag."
                     exit 0
                 }
 
-                # Get latest version tag (vX.Y.Z)
+                # Get latest version tag
                 $latestTagCommit = git rev-list --tags --max-count=1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Git command failed: git rev-list --tags --max-count=1"
+                }
+
                 if ($latestTagCommit) {
                     $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" $latestTagCommit 2>$null
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Git command failed: git describe --tags"
+                    }
                 } else {
                     $lastTag = $null
                 }
@@ -249,22 +270,20 @@ stages:
                 } else {
                     Write-Host "Last tag found: $lastTag"
 
-                    # Parse version
                     $version = $lastTag -replace '^v', ''
                     $parts = $version -split '\.'
                     $major = [int]$parts[0]
                     $minor = [int]$parts[1]
                     $patch = [int]$parts[2]
 
-                    # Increment patch
                     $patch++
                     $newTag = "v$major.$minor.$patch"
                 }
 
                 Write-Host "Creating new tag: $newTag"
-                git tag -a $newTag -m "Auto-increment patch version"
-                git push origin $newTag
+                Run-Git "tag -a $newTag -m 'Auto-increment patch version'"
 
+                Run-Git "push origin $newTag"
                 Write-Host "Tag $newTag pushed successfully"
               pwsh: false
 
