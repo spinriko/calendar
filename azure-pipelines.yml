@@ -218,6 +218,36 @@ stages:
               pwsh: false
 
           - task: PowerShell@2
+            displayName: "Test Git auth with System.AccessToken"
+            inputs:
+              targetType: inline
+              script: |
+                $ErrorActionPreference = 'Stop'
+
+                Write-Host "=== Checking token ==="
+                if (-not $env:SYSTEM_ACCESSTOKEN) {
+                    Write-Error "System.AccessToken is EMPTY. OAuth token access is likely disabled."
+                    exit 1
+                }
+
+                Write-Host "Token length: $($env:SYSTEM_ACCESSTOKEN.Length)"
+
+                Write-Host "=== Configuring Git auth ==="
+                git config --global http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
+
+                Write-Host "=== Running ls-remote ==="
+                git ls-remote https://ado.corp.asbhawaii.com/ASB/Dev%20Team/_git/webapps-dotnet-pto-track
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw "git ls-remote failed with exit code $LASTEXITCODE"
+                }
+
+                Write-Host "ls-remote succeeded. Authentication is working."
+            pwsh: false
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+          - task: PowerShell@2
             displayName: "Auto-tag patch version"
             inputs:
               targetType: inline
