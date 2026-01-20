@@ -196,10 +196,10 @@ stages:
           )
         steps:
           - task: PowerShell@2
-            displayName: "DEBUG: Git User"'
+            displayName: "DEBUG: Git User"
             inputs:
               targetType: inline
-              script: inline |
+              script: |
                 Write-Host "=== WHOAMI ==="
                 whoami
 
