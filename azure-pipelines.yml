@@ -36,8 +36,9 @@ stages:
     displayName: "Build, test, analyze"
     jobs:
       - job: BuildAndTest
+        checkout: none
+
         steps:
-          - checkout: none
 
           - task: PowerShell@2
             displayName: "PRECAUTIONARY: Clear leftover Git Auth Header"
