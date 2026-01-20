@@ -36,6 +36,10 @@ stages:
     displayName: "Build, test, analyze"
     jobs:
 
+  #======================================================================
+  # This job required to ensure leftover headers from the tagging and
+  # badge updates do not affect future runs
+  #======================================================================
       - job: EnsureGitHeadersCleared
         steps:
           - checkout: none
@@ -227,7 +231,10 @@ stages:
         condition: |
           and(
             succeeded(),
-            eq(variables['Build.SourceBranch'], 'refs/heads/main')
+            or(
+              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+              eq(variables['forceDeploy'], 'true')
+            )
           )
         steps:
         # ---------------------------------------------------------
