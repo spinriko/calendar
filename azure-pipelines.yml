@@ -35,10 +35,10 @@ stages:
   - stage: Build
     displayName: "Build, test, analyze"
     jobs:
-      - job: BuildAndTest
-        checkout: none
 
+      - job: EnsureGitHeadersCleared
         steps:
+          - checkout: none
 
           - task: PowerShell@2
             displayName: "PRECAUTIONARY: Clear leftover Git Auth Header"
@@ -66,6 +66,9 @@ stages:
                     Write-Host "No leftover global header found."
                 }
               pwsh: false
+
+      - job: BuildAndTest
+        steps:
           
           - checkout: self
 
