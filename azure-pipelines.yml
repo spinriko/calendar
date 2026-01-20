@@ -38,6 +38,33 @@ stages:
       - job: BuildAndTest
         steps:
           - task: PowerShell@2
+            displayName: "PRECAUTIONARY: Clear leftover Git Auth Header"
+            inputs:
+              targetType: inline
+              script: |
+                Write-Host "Checking for leftover http.extraHeader..."
+                $header = git config --get http.extraHeader 2>$null
+                $globalHeader = git config --global --get http.extraHeader 2>$null
+
+                if ($header) {
+                    Write-Host "Found leftover header: $header"
+                    Write-Host "Removing..."
+                    git config --unset http.extraHeader
+                    Write-Host "Header removed."
+                } else {
+                    Write-Host "No leftover header found."
+                }
+                if ($globalHeader) {
+                    Write-Host "Found leftover header: $globalHeader"
+                    Write-Host "Removing..."
+                    git config --global --unset http.extraHeader
+                    Write-Host "Global header removed."
+                } else {
+                    Write-Host "No leftover global header found."
+                }
+              pwsh: false
+
+          - task: PowerShell@2
             displayName: "Ensure TestResults folder exists"
             inputs:
               pwsh: false
@@ -84,6 +111,7 @@ stages:
 
           - task: PowerShell@2
             displayName: 'debug list sdks and runtimes'
+            condition: false
             inputs:
               targetType: inline
               script: |
@@ -120,8 +148,7 @@ stages:
                 /p:CollectCoverage=true
                 /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/coverage
                 /p:CoverletOutputFormat=cobertura
-
-            continueOnError: false
+              continueOnError: false
 
           - task: PublishTestResults@2
             displayName: "Publish test results"
@@ -192,248 +219,206 @@ stages:
         condition: |
           and(
             succeeded(),
-            or(
-              eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-              eq(variables['forceDeploy'], 'true')
-            )
+            eq(variables['Build.SourceBranch'], 'refs/heads/main')
           )
         steps:
-          - task: PowerShell@2
-            displayName: "DEBUG: Git User"
-            inputs:
-              targetType: inline
-              script: |
-                Write-Host "=== WHOAMI ==="
-                whoami
-
-                Write-Host "=== GIT CONFIG USER ==="
-                git config --global user.name
-                git config --global user.environmentVariables
-
-                Write-Host "=== GIT VERSION ==="
-                git --version
-
-                Write-Host "=== ENVIROPNMENT VARIABLES ==="
-                Get-ChildItem env: | Sort-Object Name
-              pwsh: false
-
-          - task: PowerShell@2
-            displayName: "Test Git auth with System.AccessToken"
-            inputs:
-              targetType: inline
-              script: |
-                $ErrorActionPreference = 'Stop'
-
-                Write-Host "=== Checking token ==="
-                if (-not $env:SYSTEM_ACCESSTOKEN) {
-                    Write-Error "System.AccessToken is EMPTY. OAuth token access is likely disabled."
-                    exit 1
-                }
-
-                Write-Host "Token length: $($env:SYSTEM_ACCESSTOKEN.Length)"
-
-                Write-Host "=== Configuring Git auth ==="
-                git config --global http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
-
-                Write-Host "=== Running ls-remote ==="
-                git ls-remote https://ado.corp.asbhawaii.com/ASB/Dev%20Team/_git/webapps-dotnet-pto-track
-
-                if ($LASTEXITCODE -ne 0) {
-                    throw "git ls-remote failed with exit code $LASTEXITCODE"
-                }
-
-                Write-Host "ls-remote succeeded. Authentication is working."
+        # ---------------------------------------------------------
+        # 1. Add Git auth header (local repo only)
+        # ---------------------------------------------------------
+        - task: PowerShell@2
+          displayName: "Configure Git Auth (local)"
+          env:
+            SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          inputs:
+            targetType: inline
+            script: |
+              Write-Host "Adding bearer token to local Git config..."
+              git config http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
             pwsh: false
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
-          - task: PowerShell@2
-            displayName: "Auto-tag patch version"
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-            inputs:
-              targetType: inline
-              script: |
-                git config http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
-                $ErrorActionPreference = 'Stop'
 
-                function Run-Git($cmd) {
-                    Write-Host "Running: git $cmd"
-                    git $cmd
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Git command failed: git $cmd (exit code $LASTEXITCODE)"
-                    }
-                }
+        # ---------------------------------------------------------
+        # 2. Auto-tag patch version (uses the header)
+        # ---------------------------------------------------------
+        - task: PowerShell@2
+          displayName: "Auto-tag patch version"
+          env:
+            SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          inputs:
+            targetType: inline
+            script: |
+              $ErrorActionPreference = 'Stop'
 
-                Write-Host "Starting auto-tagging process..."
+              Write-Host "Starting auto-tagging process..."
 
-                # Fetch tags
-                Run-Git "fetch --tags --prune origin"
-                Write-Host "Fetched remote tags"
+              # Fetch tags
+              git fetch --tags --prune origin
+              if ($LASTEXITCODE -ne 0) { throw "git fetch failed" }
+              Write-Host "Fetched remote tags"
 
-                # Check if current commit already has a tag
-                $currentTag = git tag --points-at HEAD
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Git command failed: git tag --points-at HEAD"
-                }
+              # Check if current commit already has a tag
+              $currentTag = git tag --points-at HEAD
+              if ($currentTag) {
+                  Write-Host "Commit already tagged with $currentTag. Skipping auto-tag."
+                  exit 0
+              }
 
-                if ($currentTag) {
-                    Write-Host "Commit already tagged with $currentTag. Skipping auto-tag."
-                    exit 0
-                }
+              # Get latest version tag
+              $latestTagCommit = git rev-list --tags --max-count=1
+              if ($latestTagCommit) {
+                  $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" $latestTagCommit 2>$null
+              } else {
+                  $lastTag = $null
+              }
 
-                # Get latest version tag
-                $latestTagCommit = git rev-list --tags --max-count=1
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Git command failed: git rev-list --tags --max-count=1"
-                }
+              if (-not $lastTag) {
+                  Write-Host "No version tags found. Initializing with v0.1.0"
+                  $newTag = "v0.1.0"
+              } else {
+                  Write-Host "Last tag found: $lastTag"
 
-                if ($latestTagCommit) {
-                    $lastTag = git describe --tags --abbrev=0 --match "v*.*.*" $latestTagCommit 2>$null
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Git command failed: git describe --tags"
-                    }
-                } else {
-                    $lastTag = $null
-                }
+                  $version = $lastTag -replace '^v', ''
+                  $parts = $version -split '\.'
+                  $major = [int]$parts[0]
+                  $minor = [int]$parts[1]
+                  $patch = [int]$parts[2]
 
-                if (-not $lastTag) {
-                    Write-Host "No version tags found. Initializing with v0.1.0"
-                    $newTag = "v0.1.0"
-                } else {
-                    Write-Host "Last tag found: $lastTag"
+                  $patch++
+                  $newTag = "v$major.$minor.$patch"
+              }
 
-                    $version = $lastTag -replace '^v', ''
-                    $parts = $version -split '\.'
-                    $major = [int]$parts[0]
-                    $minor = [int]$parts[1]
-                    $patch = [int]$parts[2]
+              Write-Host "Creating new tag: $newTag"
+              git tag -a $newTag -m "Auto-increment patch version"
+              if ($LASTEXITCODE -ne 0) { throw "git tag failed" }
 
-                    $patch++
-                    $newTag = "v$major.$minor.$patch"
-                }
+              git push origin $newTag
+              if ($LASTEXITCODE -ne 0) { throw "git push failed" }
 
-                Write-Host "Creating new tag: $newTag"
-                Run-Git "tag -a $newTag -m 'Auto-increment patch version'"
+              Write-Host "Tag $newTag pushed successfully"
+            pwsh: false
 
-                Run-Git "push origin $newTag"
-                Write-Host "Tag $newTag pushed successfully"
-              pwsh: false
 
-          - task: PowerShell@2
-            displayName: "Update version badges"
-            inputs:
-              targetType: inline
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              script: |
-                Write-Host "Starting badge update..."
-                git config http.extraHeader "AUTHORIZATION: bearer $env:SYSTEM_ACCESSTOKEN"
-                # Fetch tags to ensure we have the latest
-                git fetch --tags --prune origin
+        # ---------------------------------------------------------
+        # 3. Update version badges (uses the header)
+        # ---------------------------------------------------------
+        - task: PowerShell@2
+          displayName: "Update version badges"
+          env:
+            SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          inputs:
+            targetType: inline
+            script: |
+              Write-Host "Starting badge update..."
 
-                # Get latest version tag
-                $latestTagCommit = git rev-list --tags --max-count=1
-                if (-not $latestTagCommit) {
-                    Write-Host "No tags found. Cannot update badges."
-                    exit 0
-                }
+              git fetch --tags --prune origin
+              if ($LASTEXITCODE -ne 0) { throw "git fetch failed" }
 
-                $versionTag = git describe --tags --abbrev=0 $latestTagCommit 2>$null
-                if (-not $versionTag) {
-                    Write-Host "Unable to resolve latest tag. Skipping badge update."
-                    exit 0
-                }
+              $latestTagCommit = git rev-list --tags --max-count=1
+              if (-not $latestTagCommit) {
+                  Write-Host "No tags found. Cannot update badges."
+                  exit 0
+              }
 
-                Write-Host "Latest version tag: $versionTag"
+              $versionTag = git describe --tags --abbrev=0 $latestTagCommit 2>$null
+              if (-not $versionTag) {
+                  Write-Host "Unable to resolve latest tag. Skipping badge update."
+                  exit 0
+              }
 
-                # Badge directory
-                $badgeDir = Join-Path $env:BUILD_SOURCESDIRECTORY "docs/badges"
-                if (-not (Test-Path $badgeDir)) {
-                    New-Item -ItemType Directory -Path $badgeDir -Force | Out-Null
-                }
+              Write-Host "Latest version tag: $versionTag"
 
-                # -------------------------
-                # Generate SVG badge (ADO-safe)
-                # -------------------------
-                $svgPath = Join-Path $badgeDir "version.svg"
+              # Badge directory
+              $badgeDir = Join-Path $env:BUILD_SOURCESDIRECTORY "docs/badges"
+              if (-not (Test-Path $badgeDir)) {
+                  New-Item -ItemType Directory -Path $badgeDir -Force | Out-Null
+              }
 
-                $svgLines = @(
-                  '<?xml version="1.0" encoding="UTF-8"?>'
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="130" height="20" role="img" aria-label="version: ' + $versionTag + '">'
-                  '  <linearGradient id="s" x2="0" y2="100%">'
-                  '    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>'
-                  '    <stop offset="1" stop-opacity=".1"/>'
-                  '  </linearGradient>'
-                  '  <mask id="m"><rect width="130" height="20" rx="3" fill="#fff"/></mask>'
-                  '  <g mask="url(#m)">'
-                  '    <rect width="60" height="20" fill="#555"/>'
-                  '    <rect x="60" width="70" height="20" fill="#007ec6"/>'
-                  '    <rect width="130" height="20" fill="url(#s)"/>'
-                  '  </g>'
-                  '  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">'
-                  '    <text x="30" y="15">version</text>'
-                  '    <text x="94" y="15">' + $versionTag + '</text>'
-                  '  </g>'
-                  '</svg>'
-                )
+              # Generate SVG badge
+              $svgPath = Join-Path $badgeDir "version.svg"
+              $svgLines = @(
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<svg xmlns="http://www.w3.org/2000/svg" width="130" height="20" role="img" aria-label="version: ' + $versionTag + '">'
+                '  <linearGradient id="s" x2="0" y2="100%">'
+                '    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>'
+                '    <stop offset="1" stop-opacity=".1"/>'
+                '  </linearGradient>'
+                '  <mask id="m"><rect width="130" height="20" rx="3" fill="#fff"/></mask>'
+                '  <g mask="url(#m)">'
+                '    <rect width="60" height="20" fill="#555"/>'
+                '    <rect x="60" width="70" height="20" fill="#007ec6"/>'
+                '    <rect width="130" height="20" fill="url(#s)"/>'
+                '  </g>'
+                '  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">'
+                '    <text x="30" y="15">version</text>'
+                '    <text x="94" y="15">' + $versionTag + '</text>'
+                '  </g>'
+                '</svg>'
+              )
+              Set-Content -Path $svgPath -Value ($svgLines -join "`n") -Encoding UTF8
 
-                $svgContent = $svgLines -join "`n"
-                Set-Content -Path $svgPath -Value $svgContent -Encoding UTF8
+              # Generate PNG badge
+              try {
+                  Add-Type -AssemblyName System.Drawing
 
-                # -------------------------
-                # Generate PNG badge
-                # -------------------------
-                try {
-                    Add-Type -AssemblyName System.Drawing
+                  $width = 130; $height = 20
+                  $bmp = New-Object System.Drawing.Bitmap($width, $height)
+                  $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+                  $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
-                    $width = 130; $height = 20
-                    $bmp = New-Object System.Drawing.Bitmap($width, $height)
-                    $gfx = [System.Drawing.Graphics]::FromImage($bmp)
-                    $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+                  $leftBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x55,0x55,0x55))
+                  $rightBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x00,0x7e,0xc6))
+                  $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
 
-                    $leftBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x55,0x55,0x55))
-                    $rightBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(0x00,0x7e,0xc6))
-                    $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+                  $gfx.FillRectangle($leftBrush, 0, 0, 60, $height)
+                  $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
 
-                    $gfx.FillRectangle($leftBrush, 0, 0, 60, $height)
-                    $gfx.FillRectangle($rightBrush, 60, 0, ($width - 60), $height)
+                  $font = New-Object System.Drawing.Font('Verdana', 9)
+                  $format = New-Object System.Drawing.StringFormat
+                  $format.Alignment = [System.Drawing.StringAlignment]::Center
+                  $format.LineAlignment = [System.Drawing.StringAlignment]::Center
 
-                    $font = New-Object System.Drawing.Font('Verdana', 9)
-                    $format = New-Object System.Drawing.StringFormat
-                    $format.Alignment = [System.Drawing.StringAlignment]::Center
-                    $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+                  $gfx.DrawString('version', $font, $white, (New-Object System.Drawing.RectangleF(0,0,60,$height)), $format)
+                  $gfx.DrawString($versionTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,($width-60),$height)), $format)
 
-                    $gfx.DrawString('version', $font, $white, (New-Object System.Drawing.RectangleF(0,0,60,$height)), $format)
-                    $gfx.DrawString($versionTag, $font, $white, (New-Object System.Drawing.RectangleF(60,0,($width-60),$height)), $format)
+                  $pngPath = Join-Path $badgeDir "version.png"
+                  $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
 
-                    $pngPath = Join-Path $badgeDir "version.png"
-                    $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+                  $gfx.Dispose(); $bmp.Dispose(); $font.Dispose(); $white.Dispose(); $leftBrush.Dispose(); $rightBrush.Dispose()
+              }
+              catch {
+                  Write-Warning "PNG badge generation failed: $($_.Exception.Message)"
+              }
 
-                    $gfx.Dispose(); $bmp.Dispose(); $font.Dispose(); $white.Dispose(); $leftBrush.Dispose(); $rightBrush.Dispose()
-                }
-                catch {
-                    Write-Warning "PNG badge generation failed: $($_.Exception.Message)"
-                }
+              # Commit and push badge updates
+              git add $badgeDir
+              $staged = git diff --name-only --cached
 
-                # -------------------------
-                # Commit and push badge updates
-                # -------------------------
-                git add $badgeDir
-                $staged = git diff --name-only --cached
+              if ($staged) {
+                  $msg = "chore(badges): update version badges to $versionTag [skip ci]"
+                  git commit -m $msg
+                  git push origin HEAD:main
+                  Write-Host "Badge updates pushed to main"
+              }
+              else {
+                  Write-Host "No badge changes detected; skipping commit"
+              }
 
-                if ($staged) {
-                    $msg = "chore(badges): update version badges to $versionTag [skip ci]"
-                    git commit -m $msg
-                    git push origin HEAD:main
-                    Write-Host "Badge updates pushed to main"
-                }
-                else {
-                    Write-Host "No badge changes detected; skipping commit"
-                }
+              Write-Host "Badge update complete."
+            pwsh: false
 
-                Write-Host "Badge update complete."
-              pwsh: false
+
+        # ---------------------------------------------------------
+        # 4. Cleanup (FINALLY)
+        # ---------------------------------------------------------
+        - task: PowerShell@2
+          displayName: "Clear Git Auth Header"
+          condition: always()
+          inputs:
+            targetType: inline
+            script: |
+              Write-Host "Cleaning up Git auth header..."
+              git config --unset http.extraHeader 2>$null
+            pwsh: false
 
   # =====================================================================
   # STAGE: PUBLISH
@@ -528,329 +513,329 @@ stages:
     jobs:
       - job: PreflightTarget
         steps:
-        - checkout: none
+          - checkout: none
 
         ###########################################################################
         # 1. VALIDATE SERVICE ACCOUNTS
         ###########################################################################
-        - task: PowerShell@2
-          displayName: "Preflight: validate service accounts"
-          env:
-            automationAcctPass: $(automationAcctPass)
-            automationAcctName: $(automationAcctName)
-            appServiceAccountPassword: $(appServiceAccountPassword)
-            webMachineName: $(webMachineName)
-          inputs:
-            targetType: inline
-            pwsh: false
-            script: |
-              $plainPass  = $env:automationAcctPass
-              $userName   = $env:automationAcctName
-              $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
-              $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
+          - task: PowerShell@2
+            displayName: "Preflight: validate service accounts"
+            env:
+              automationAcctPass: $(automationAcctPass)
+              automationAcctName: $(automationAcctName)
+              appServiceAccountPassword: $(appServiceAccountPassword)
+              webMachineName: $(webMachineName)
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: |
+                $plainPass  = $env:automationAcctPass
+                $userName   = $env:automationAcctName
+                $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
+                $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
 
-              Write-Host "== Connecting to target machine $env:webMachineName =="
-              $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
+                Write-Host "== Connecting to target machine $env:webMachineName =="
+                $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
 
-              Invoke-Command -Session $session -ScriptBlock {
-                  param($appSvcAcct, $automationAcctName)
+                Invoke-Command -Session $session -ScriptBlock {
+                    param($appSvcAcct, $automationAcctName)
 
-                  Write-Host "== Validating service accounts exist =="
+                    Write-Host "== Validating service accounts exist =="
 
-                  function Test-AccountExists {
-                      param([string]$AccountName)
-                      try {
-                          $nt  = New-Object System.Security.Principal.NTAccount($AccountName)
-                          $sid = $nt.Translate([System.Security.Principal.SecurityIdentifier])
-                          return $true
-                      }
-                      catch { return $false }
-                  }
+                    function Test-AccountExists {
+                        param([string]$AccountName)
+                        try {
+                            $nt  = New-Object System.Security.Principal.NTAccount($AccountName)
+                            $sid = $nt.Translate([System.Security.Principal.SecurityIdentifier])
+                            return $true
+                        }
+                        catch { return $false }
+                    }
 
-                  foreach ($acct in @($appSvcAcct, $automationAcctName)) {
-                      Write-Host "---- Checking account '$acct' ----"
-                      if (-not (Test-AccountExists -AccountName $acct)) {
-                          throw "Required account '$acct' does not exist on target machine."
-                      }
-                  }
+                    foreach ($acct in @($appSvcAcct, $automationAcctName)) {
+                        Write-Host "---- Checking account '$acct' ----"
+                        if (-not (Test-AccountExists -AccountName $acct)) {
+                            throw "Required account '$acct' does not exist on target machine."
+                        }
+                    }
 
-                  Write-Host "== All service accounts validated =="
-              } -ArgumentList "$(appServiceAccount)", "$(automationAcctName)"
+                    Write-Host "== All service accounts validated =="
+                } -ArgumentList "$(appServiceAccount)", "$(automationAcctName)"
 
         ###########################################################################
         # 2. PREPARE FOLDER STRUCTURE + ACLs
         ###########################################################################
-        - task: PowerShell@2
-          displayName: "Preflight: prepare folder structure"
-          env:
-            automationAcctPass: $(automationAcctPass)
-            automationAcctName: $(automationAcctName)
-            webMachineName: $(webMachineName)
-          inputs:
-            targetType: inline
-            pwsh: false
-            script: |
-              $plainPass  = $env:automationAcctPass
-              $userName   = $env:automationAcctName
-              $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
-              $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
+          - task: PowerShell@2
+            displayName: "Preflight: prepare folder structure"
+            env:
+              automationAcctPass: $(automationAcctPass)
+              automationAcctName: $(automationAcctName)
+              webMachineName: $(webMachineName)
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: |
+                $plainPass  = $env:automationAcctPass
+                $userName   = $env:automationAcctName
+                $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
+                $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
 
-              $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
+                $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
 
-              Invoke-Command -Session $session -ScriptBlock {
-                  param($deployRoot, $appSvcAcct, $automationAcctName)
+                Invoke-Command -Session $session -ScriptBlock {
+                    param($deployRoot, $appSvcAcct, $automationAcctName)
 
-                  Write-Host "== Ensuring folder structure exists =="
+                    Write-Host "== Ensuring folder structure exists =="
 
-                  $paths = @(
-                      $deployRoot,
-                      "$deployRoot/wwwroot",
-                      "$deployRoot/logs"
-                  )
+                    $paths = @(
+                        $deployRoot,
+                        "$deployRoot/wwwroot",
+                        "$deployRoot/logs"
+                    )
 
-                  foreach ($p in $paths) {
-                      if (-not (Test-Path $p)) {
-                          New-Item -ItemType Directory -Path $p -Force | Out-Null
-                      }
-                  }
+                    foreach ($p in $paths) {
+                        if (-not (Test-Path $p)) {
+                            New-Item -ItemType Directory -Path $p -Force | Out-Null
+                        }
+                    }
 
-                  Write-Host "== Setting ACLs on deploy root =="
+                    Write-Host "== Setting ACLs on deploy root =="
 
-                  $accounts = @($appSvcAcct, $automationAcctName)
-                  foreach ($acctName in $accounts) {
-                      $acl  = Get-Acl $deployRoot
-                      $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                          $acctName,
-                          "Modify",
-                          "ContainerInherit, ObjectInherit",
-                          "None",
-                          "Allow"
-                      )
-                      $acl.SetAccessRule($rule)
-                      Set-Acl -Path $deployRoot -AclObject $acl
-                  }
+                    $accounts = @($appSvcAcct, $automationAcctName)
+                    foreach ($acctName in $accounts) {
+                        $acl  = Get-Acl $deployRoot
+                        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+                            $acctName,
+                            "Modify",
+                            "ContainerInherit, ObjectInherit",
+                            "None",
+                            "Allow"
+                        )
+                        $acl.SetAccessRule($rule)
+                        Set-Acl -Path $deployRoot -AclObject $acl
+                    }
 
-                  Write-Host "== Folder structure and ACLs applied =="
-              } -ArgumentList "$(deploymentFolder)", "$(appServiceAccount)", "$(automationAcctName)"
+                    Write-Host "== Folder structure and ACLs applied =="
+                } -ArgumentList "$(deploymentFolder)", "$(appServiceAccount)", "$(automationAcctName)"
 
         ###########################################################################
         # 3. CONFIGURE IIS APP POOL
         ###########################################################################
-        - task: PowerShell@2
-          displayName: "Preflight: configure IIS app pool"
-          env:
-            automationAcctPass: $(automationAcctPass)
-            automationAcctName: $(automationAcctName)
-            appServiceAccountPassword: $(appServiceAccountPassword)
-            webMachineName: $(webMachineName)
-            connectionString: $(sqlConnectionString)
-          inputs:
-            targetType: inline
-            pwsh: false
-            script: |
-              $plainPass  = $env:automationAcctPass
-              $userName   = $env:automationAcctName
-              $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
-              $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
+          - task: PowerShell@2
+            displayName: "Preflight: configure IIS app pool"
+            env:
+              automationAcctPass: $(automationAcctPass)
+              automationAcctName: $(automationAcctName)
+              appServiceAccountPassword: $(appServiceAccountPassword)
+              webMachineName: $(webMachineName)
+              connectionString: $(sqlConnectionString)
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: |
+                $plainPass  = $env:automationAcctPass
+                $userName   = $env:automationAcctName
+                $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
+                $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
 
-              # SQL connection string as SecureString for transport
-              $secureConn = ConvertTo-SecureString $env:connectionString -AsPlainText -Force
+                # SQL connection string as SecureString for transport
+                $secureConn = ConvertTo-SecureString $env:connectionString -AsPlainText -Force
 
-              $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
+                $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
 
-              Invoke-Command -Session $session -ScriptBlock {
-                  param(
-                    $appPoolName,
-                    $appSvcAcct,
-                    $appSvcPass,
-                    $aspNetCoreEnv,
-                    $sqlConnSecure
-                  )
+                Invoke-Command -Session $session -ScriptBlock {
+                    param(
+                      $appPoolName,
+                      $appSvcAcct,
+                      $appSvcPass,
+                      $aspNetCoreEnv,
+                      $sqlConnSecure
+                    )
 
-                  Import-Module WebAdministration
+                    Import-Module WebAdministration
 
-                  $sqlConnString = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-                      [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlConnSecure)
-                  )
+                    $sqlConnString = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+                        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlConnSecure)
+                    )
 
-                  Write-Host "== Ensuring IIS app pool exists =="
-                  if (-not (Test-Path "IIS:\AppPools\$appPoolName")) {
-                      New-WebAppPool -Name $appPoolName | Out-Null
-                      Write-Host "---- Created app pool '$appPoolName'"
-                  } else {
-                      Write-Host "---- App pool '$appPoolName' already exists"
-                  }
+                    Write-Host "== Ensuring IIS app pool exists =="
+                    if (-not (Test-Path "IIS:\AppPools\$appPoolName")) {
+                        New-WebAppPool -Name $appPoolName | Out-Null
+                        Write-Host "---- Created app pool '$appPoolName'"
+                    } else {
+                        Write-Host "---- App pool '$appPoolName' already exists"
+                    }
 
-                  Write-Host "== Stopping app pool before identity change =="
-                  try { Stop-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue } catch {}
+                    Write-Host "== Stopping app pool before identity change =="
+                    try { Stop-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue } catch {}
 
-                  Write-Host "== Setting app pool identity =="
-                  Write-Host "---- Target identity: $appSvcAcct"
+                    Write-Host "== Setting app pool identity =="
+                    Write-Host "---- Target identity: $appSvcAcct"
 
-                  # Correct ordering: username → password → identityType
-                  Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.userName   -Value $appSvcAcct
-                  Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.password   -Value $appSvcPass
-                  Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.identityType -Value 3
+                    # Correct ordering: username → password → identityType
+                    Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.userName   -Value $appSvcAcct
+                    Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.password   -Value $appSvcPass
+                    Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.identityType -Value 3
 
-                  Write-Host "== Starting app pool after identity change =="
-                  Start-WebAppPool -Name $appPoolName
+                    Write-Host "== Starting app pool after identity change =="
+                    Start-WebAppPool -Name $appPoolName
 
-                  Write-Host "== Ensuring App Pool environment variables =="
+                    Write-Host "== Ensuring App Pool environment variables =="
 
-                  function Set-AppPoolEnvVar {
-                      param(
-                          [string]$PoolName,
-                          [string]$VarName,
-                          [string]$VarValue
-                      )
+                    function Set-AppPoolEnvVar {
+                        param(
+                            [string]$PoolName,
+                            [string]$VarName,
+                            [string]$VarValue
+                        )
 
-                      $filter = "system.applicationHost/applicationPools/add[@name='$PoolName']/environmentVariables"
+                        $filter = "system.applicationHost/applicationPools/add[@name='$PoolName']/environmentVariables"
 
-                      $existing = Get-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
-                          -filter "$filter/add[@name='$VarName']" -name "value" -ErrorAction SilentlyContinue
+                        $existing = Get-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
+                            -filter "$filter/add[@name='$VarName']" -name "value" -ErrorAction SilentlyContinue
 
-                      if ($existing) {
-                          Write-Host "---- Updating existing env var '$VarName'"
-                          Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
-                              -filter "$filter/add[@name='$VarName']" `
-                              -name "value" `
-                              -value $VarValue
-                      }
-                      else {
-                          Write-Host "---- Creating env var '$VarName'"
-                          Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
-                              -filter $filter `
-                              -name "." `
-                              -value @{ name=$VarName; value=$VarValue }
-                      }
-                  }
+                        if ($existing) {
+                            Write-Host "---- Updating existing env var '$VarName'"
+                            Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
+                                -filter "$filter/add[@name='$VarName']" `
+                                -name "value" `
+                                -value $VarValue
+                        }
+                        else {
+                            Write-Host "---- Creating env var '$VarName'"
+                            Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
+                                -filter $filter `
+                                -name "." `
+                                -value @{ name=$VarName; value=$VarValue }
+                        }
+                    }
 
-                  Set-AppPoolEnvVar -PoolName $appPoolName -VarName "ASPNETCORE_ENVIRONMENT" -VarValue $aspNetCoreEnv
-                  Set-AppPoolEnvVar -PoolName $appPoolName -VarName "ConnectionStrings__PtoTrackDbContext" -VarValue $sqlConnString
+                    Set-AppPoolEnvVar -PoolName $appPoolName -VarName "ASPNETCORE_ENVIRONMENT" -VarValue $aspNetCoreEnv
+                    Set-AppPoolEnvVar -PoolName $appPoolName -VarName "ConnectionStrings__PtoTrackDbContext" -VarValue $sqlConnString
 
-                  Write-Host "== App Pool environment variables applied =="
-              } -ArgumentList "$(appPoolName)", "$(appServiceAccount)", $env:appServiceAccountPassword, "$(pto-track-env)", $secureConn
+                    Write-Host "== App Pool environment variables applied =="
+                } -ArgumentList "$(appPoolName)", "$(appServiceAccount)", $env:appServiceAccountPassword, "$(pto-track-env)", $secureConn
 
         ###########################################################################
         # 4. CONFIGURE WEBSITE + BINDINGS
         ###########################################################################
-        - task: PowerShell@2
-          displayName: "Preflight: configure IIS website and bindings"
-          env:
-            automationAcctPass: $(automationAcctPass)
-            automationAcctName: $(automationAcctName)
-            webMachineName: $(webMachineName)
-          inputs:
-            targetType: inline
-            pwsh: false
-            script: |
-              $plainPass  = $env:automationAcctPass
-              $userName   = $env:automationAcctName
-              $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
-              $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
+          - task: PowerShell@2
+            displayName: "Preflight: configure IIS website and bindings"
+            env:
+              automationAcctPass: $(automationAcctPass)
+              automationAcctName: $(automationAcctName)
+              webMachineName: $(webMachineName)
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: |
+                $plainPass  = $env:automationAcctPass
+                $userName   = $env:automationAcctName
+                $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
+                $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
 
-              $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
+                $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
 
-              Invoke-Command -Session $session -ScriptBlock {
-                  param(
-                    $websiteName,
-                    $deployRoot,
-                    $appPoolName,
-                    $hostname,
-                    $certThumbprint
-                  )
+                Invoke-Command -Session $session -ScriptBlock {
+                    param(
+                      $websiteName,
+                      $deployRoot,
+                      $appPoolName,
+                      $hostname,
+                      $certThumbprint
+                    )
 
-                  Import-Module WebAdministration
+                    Import-Module WebAdministration
 
-                  Write-Host "== Ensuring IIS website '$websiteName' exists =="
+                    Write-Host "== Ensuring IIS website '$websiteName' exists =="
 
-                  if (-not (Test-Path "IIS:\Sites\$websiteName")) {
-                      Write-Host "---- Creating new website '$websiteName'"
-                      New-Website -Name $websiteName -PhysicalPath $deployRoot -ApplicationPool $appPoolName | Out-Null
-                  } else {
-                      Write-Host "---- Website '$websiteName' already exists"
-                      Set-ItemProperty "IIS:\Sites\$websiteName" -Name physicalPath   -Value $deployRoot
-                      Set-ItemProperty "IIS:\Sites\$websiteName" -Name applicationPool -Value $appPoolName
-                  }
+                    if (-not (Test-Path "IIS:\Sites\$websiteName")) {
+                        Write-Host "---- Creating new website '$websiteName'"
+                        New-Website -Name $websiteName -PhysicalPath $deployRoot -ApplicationPool $appPoolName | Out-Null
+                    } else {
+                        Write-Host "---- Website '$websiteName' already exists"
+                        Set-ItemProperty "IIS:\Sites\$websiteName" -Name physicalPath   -Value $deployRoot
+                        Set-ItemProperty "IIS:\Sites\$websiteName" -Name applicationPool -Value $appPoolName
+                    }
 
-                  Write-Host "== Configuring HTTP binding (port 80) =="
-                  $httpBinding = Get-WebBinding -Name $websiteName -Protocol "http" -Port 80 -HostHeader $hostname -ErrorAction SilentlyContinue
-                  if (-not $httpBinding) {
-                      New-WebBinding -Name $websiteName -Protocol "http" -Port 80 -HostHeader $hostname
-                  }
+                    Write-Host "== Configuring HTTP binding (port 80) =="
+                    $httpBinding = Get-WebBinding -Name $websiteName -Protocol "http" -Port 80 -HostHeader $hostname -ErrorAction SilentlyContinue
+                    if (-not $httpBinding) {
+                        New-WebBinding -Name $websiteName -Protocol "http" -Port 80 -HostHeader $hostname
+                    }
 
-                  Write-Host "== Configuring HTTPS binding (port 443) =="
-                  $httpsBinding = Get-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname -ErrorAction SilentlyContinue
-                  if (-not $httpsBinding) {
-                      New-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname
-                  }
+                    Write-Host "== Configuring HTTPS binding (port 443) =="
+                    $httpsBinding = Get-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname -ErrorAction SilentlyContinue
+                    if (-not $httpsBinding) {
+                        New-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname
+                    }
 
-                  Write-Host "== Associating SSL certificate with HTTPS binding =="
-                  $binding = Get-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname
-                  $binding.AddSslCertificate($certThumbprint, "WebHosting")
+                    Write-Host "== Associating SSL certificate with HTTPS binding =="
+                    $binding = Get-WebBinding -Name $websiteName -Protocol "https" -Port 443 -HostHeader $hostname
+                    $binding.AddSslCertificate($certThumbprint, "WebHosting")
 
-                  Write-Host "== Starting website if stopped =="
-                  if ((Get-WebsiteState -Name $websiteName).Value -ne "Started") {
-                      Start-Website -Name $websiteName
-                  }
+                    Write-Host "== Starting website if stopped =="
+                    if ((Get-WebsiteState -Name $websiteName).Value -ne "Started") {
+                        Start-Website -Name $websiteName
+                    }
 
-                  Write-Host "== IIS website and bindings configured =="
-              } -ArgumentList "$(websiteName)", "$(deploymentFolder)", "$(appPoolName)", "$(webServer)", "$(certificateThumbprint)"
+                    Write-Host "== IIS website and bindings configured =="
+                } -ArgumentList "$(websiteName)", "$(deploymentFolder)", "$(appPoolName)", "$(webServer)", "$(certificateThumbprint)"
 
         ###########################################################################
         # 5. VALIDATE AUTHENTICATION CONFIGURATION
         ###########################################################################
-        - task: PowerShell@2
-          displayName: "Preflight: validate authentication configuration"
-          env:
-            automationAcctPass: $(automationAcctPass)
-            automationAcctName: $(automationAcctName)
-            webMachineName: $(webMachineName)
-          inputs:
-            targetType: inline
-            pwsh: false
-            script: |
-              $plainPass  = $env:automationAcctPass
-              $userName   = $env:automationAcctName
-              $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
-              $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
+          - task: PowerShell@2
+            displayName: "Preflight: validate authentication configuration"
+            env:
+              automationAcctPass: $(automationAcctPass)
+              automationAcctName: $(automationAcctName)
+              webMachineName: $(webMachineName)
+            inputs:
+              targetType: inline
+              pwsh: false
+              script: |
+                $plainPass  = $env:automationAcctPass
+                $userName   = $env:automationAcctName
+                $securePass = ConvertTo-SecureString $plainPass -AsPlainText -Force
+                $creds      = New-Object System.Management.Automation.PSCredential($userName, $securePass)
 
-              $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
+                $session = New-PSSession -ComputerName $env:webMachineName -Credential $creds
 
-              Invoke-Command -Session $session -ScriptBlock {
-                  Import-Module WebAdministration
+                Invoke-Command -Session $session -ScriptBlock {
+                    Import-Module WebAdministration
 
-                  Write-Host "== Validating authentication configuration in applicationHost.config =="
+                    Write-Host "== Validating authentication configuration in applicationHost.config =="
 
-                  $errors = @()
+                    $errors = @()
 
-                  Write-Host "---- Checking Windows Authentication ----"
-                  $winAuthOverride = Get-WebConfiguration `
-                      -pspath 'MACHINE/WEBROOT/APPHOST' `
-                      -filter 'system.webServer/security/authentication/windowsAuthentication' |
-                      Select-Object -ExpandProperty OverrideMode -ErrorAction SilentlyContinue
+                    Write-Host "---- Checking Windows Authentication ----"
+                    $winAuthOverride = Get-WebConfiguration `
+                        -pspath 'MACHINE/WEBROOT/APPHOST' `
+                        -filter 'system.webServer/security/authentication/windowsAuthentication' |
+                        Select-Object -ExpandProperty OverrideMode -ErrorAction SilentlyContinue
 
-                  if ($winAuthOverride -eq 'Deny') {
-                      $errors += "Windows Authentication overrideMode='Deny'."
-                  }
+                    if ($winAuthOverride -eq 'Deny') {
+                        $errors += "Windows Authentication overrideMode='Deny'."
+                    }
 
-                  Write-Host "---- Checking Anonymous Authentication ----"
-                  $anonAuthOverride = Get-WebConfiguration `
-                      -pspath 'MACHINE/WEBROOT/APPHOST' `
-                      -filter 'system.webServer/security/authentication/anonymousAuthentication' |
-                      Select-Object -ExpandProperty OverrideMode -ErrorAction SilentlyContinue
+                    Write-Host "---- Checking Anonymous Authentication ----"
+                    $anonAuthOverride = Get-WebConfiguration `
+                        -pspath 'MACHINE/WEBROOT/APPHOST' `
+                        -filter 'system.webServer/security/authentication/anonymousAuthentication' |
+                        Select-Object -ExpandProperty OverrideMode -ErrorAction SilentlyContinue
 
-                  if ($anonAuthOverride -eq 'Deny') {
-                      $errors += "Anonymous Authentication overrideMode='Deny'."
-                  }
+                    if ($anonAuthOverride -eq 'Deny') {
+                        $errors += "Anonymous Authentication overrideMode='Deny'."
+                    }
 
-                  if ($errors.Count -gt 0) {
-                      foreach ($err in $errors) { Write-Host "ERROR: $err" -ForegroundColor Red }
-                      throw "Authentication configuration validation failed."
-                  }
+                    if ($errors.Count -gt 0) {
+                        foreach ($err in $errors) { Write-Host "ERROR: $err" -ForegroundColor Red }
+                        throw "Authentication configuration validation failed."
+                    }
 
-                  Write-Host "== Authentication configuration validated successfully =="
-              }
+                    Write-Host "== Authentication configuration validated successfully =="
+                }
 
       - job: DeployJob
         dependsOn: PreflightTarget
@@ -931,7 +916,6 @@ stages:
             displayName: "Health check (live)"
             inputs:
               targetType: inline
-              workingDirectory: $(Agent.TempDirectory)
               pwsh: false
               script: |
                   Write-Host "Checking live health at $env:healthUrl"
@@ -945,10 +929,8 @@ stages:
 
           - task: PowerShell@2
             displayName: "Health check (ready)"
-            condition: false            
             inputs:
               targetType: inline
-              workingDirectory: $(Agent.TempDirectory)
               pwsh: false
               script: |
                   if ($env:checkReady -ne "true" -and $env:checkReady -ne "True") {
@@ -957,7 +939,7 @@ stages:
                   }
 
                   Write-Host "Checking ready health at $env:readyHealthUrl"
-                  $resp = Invoke-WebRequest -Uri "$(readyHealthUrl) -UseBasicParsing -TimeoutSec 30
+                  $resp = Invoke-WebRequest -Uri "$(readyHealthUrl)" -UseBasicParsing -TimeoutSec 30
                   if ($resp.StatusCode -ne 200) {
                       throw "Ready health check failed with status code $($resp.StatusCode)"
                   }
@@ -972,7 +954,6 @@ stages:
             inputs:
               targetType: inline
               pwsh: false
-              workingDirectory: $(Agent.TempDirectory)
               script: |
 
                 Write-Host "***************************RANT START***************************"
