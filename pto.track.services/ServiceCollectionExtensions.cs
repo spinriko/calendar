@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using pto.track.data;
 using pto.track.services.Authentication;
+using pto.track.services.Identity;
 using pto.track.services.Mapping;
+using pto.track.services.Workers;
 
 namespace pto.track.services;
 
@@ -49,13 +51,32 @@ public static class ServiceCollectionExtensions
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // Configure and register identity sync
+        var syncConfig = new UserSyncConfig();
+        var syncSection = configuration.GetSection("IdentitySync");
+        if (syncSection.Exists())
+        {
+            if (bool.TryParse(syncSection["Enabled"], out var enabled)) syncConfig.Enabled = enabled;
+            if (int.TryParse(syncSection["IntervalMinutes"], out var interval)) syncConfig.IntervalMinutes = interval;
+            if (bool.TryParse(syncSection["EnableOnDemandSync"], out var onDemand)) syncConfig.EnableOnDemandSync = onDemand;
+            if (!string.IsNullOrEmpty(syncSection["IdentityServiceUrl"])) syncConfig.IdentityServiceUrl = syncSection["IdentityServiceUrl"];
+            if (!string.IsNullOrEmpty(syncSection["AdpDataMartUrl"])) syncConfig.AdpDataMartUrl = syncSection["AdpDataMartUrl"];
+            if (!string.IsNullOrEmpty(syncSection["IdentityServiceApiKey"])) syncConfig.IdentityServiceApiKey = syncSection["IdentityServiceApiKey"];
+            if (!string.IsNullOrEmpty(syncSection["AdpDataMartApiKey"])) syncConfig.AdpDataMartApiKey = syncSection["AdpDataMartApiKey"];
+            if (int.TryParse(syncSection["MaxConcurrency"], out var concurrency)) syncConfig.MaxConcurrency = concurrency;
+        }
+        services.AddSingleton(syncConfig);
+
         // Register application services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IAbsenceService, AbsenceService>();
         services.AddScoped<IUserSyncService, UserSyncService>();
         services.AddScoped<IGroupService, GroupService>();
-        services.AddSingleton<Identity.IIdentityEnricher, Identity.NoOpIdentityEnricher>();
+        services.AddScoped<Identity.IIdentityEnricher, Identity.UserSyncIdentityEnricher>();
+
+        // Register background worker for optional scheduled identity sync
+        services.AddHostedService<UserSyncBackgroundService>();
 
         // Register authentication based on configuration
         var authMode = configuration["Authentication:Mode"] ?? "Mock";

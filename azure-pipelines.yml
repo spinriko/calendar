@@ -965,6 +965,7 @@ stages:
 
       - job: HealthChecksRant
         steps:
+          - checkout: none
           - task: PowerShell@2
             displayName: "Health check rant"
             inputs:

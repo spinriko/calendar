@@ -113,3 +113,5 @@ pto.track/appsettings.local.json
 # Test artifacts
 pto.track/test-assets/
 
+
+artifacts/metrics/*.md

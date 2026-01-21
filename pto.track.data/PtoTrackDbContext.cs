@@ -60,6 +60,11 @@ namespace pto.track.data
             modelBuilder.Entity<Resource>()
                 .Property(r => r.ModifiedDate)
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            // Add index on AssociateId for efficient ADP matching
+            modelBuilder.Entity<Resource>()
+                .HasIndex(r => r.AssociateId)
+                .IsUnique(false);
         }
 
         private void SeedData(ModelBuilder modelBuilder)

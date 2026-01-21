@@ -114,6 +114,18 @@ public static class AppServiceExtensions
 
         builder.Services.AddAuthorization();
 
+        // Register Active Directory service
+        // Use NoOpActiveDirectoryService for local development (non-domain-joined machines)
+        // Use ActiveDirectoryService for production (domain-joined servers)
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("local"))
+        {
+            builder.Services.AddSingleton<pto.track.services.Identity.IActiveDirectoryService, pto.track.services.Identity.NoOpActiveDirectoryService>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<pto.track.services.Identity.IActiveDirectoryService, pto.track.services.Identity.ActiveDirectoryService>();
+        }
+
         // Register default claims enricher (no-op). Tests may override this registration.
         builder.Services.AddTransient<Microsoft.AspNetCore.Authentication.IClaimsTransformation, ClaimsEnricher>();
 
