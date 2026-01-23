@@ -1,0 +1,508 @@
+{
+    "identityName": "ASB\\tlittle",
+    "normalizedIdentity": "tlittle",
+    "authenticationType": "Negotiate",
+    "isAuthenticated": true,
+    "claims": [
+        {
+            "type": "employeeID",
+            "value": "14305"
+        },
+        {
+            "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/employeenumber",
+            "value": "14305"
+        },
+        {
+            "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn",
+            "value": "tlittle@asbhawaii.com"
+        },
+        {
+            "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+            "value": "tlittle@asbhawaii.com"
+        },
+        {
+            "type": "displayName",
+            "value": "Timothy Little"
+        },
+        {
+            "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+            "value": "Timothy Little"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDS-DEVELOPER,OU=EDS,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=IT-CS&ED,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDS_DM_TECH_APPLICATION_DEVELOPMENT_FC,OU=EDS,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=SN-All-Tech,OU=ServiceNow,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Middleware Support,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Mobile_Device_User_PRD,OU=Intune,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=WUG Readers,OU=WhatsUp Gold,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Illumio_Viewers,OU=Illumio,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=AAD-M365-E3Teams,OU=Azure License Groups,OU=Azure AD,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=AAD-VIS-Plan2,OU=Azure License Groups,OU=Azure AD,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=AAD-M365-E3Sharepoint,OU=Azure License Groups,OU=Azure AD,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=AAD-M365-E3Baseline,OU=Azure License Groups,OU=Azure AD,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=6750-ITD,OU=ServiceNow,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=SN-Test-Users,OU=ServiceNow,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDW_Package_UPF_Sensitive_Fields_Full_Access,OU=Cognos,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Tech-Dev,OU=Custom Groups,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=tss-AppDevTeam,OU=Teams,OU=Groups,OU=Thycotic Objects Production,OU=Thycotic,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=DVAdmin,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Tech-Development,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=tss-Tech-EntApplications,OU=Teams,OU=Groups,OU=Thycotic Objects Production,OU=Thycotic,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=Discovery Users,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=VPN Users,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=COG-Output_R,OU=EDW,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=DV_Admin,OU=Denodo,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDW-Developer,OU=EDW,OU=Application Roles,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=INFPRD-Import,OU=Informatica,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=INFDEV-Import,OU=Informatica,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=SW_Report_RO,OU=SolarWinds,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDW-InternalReview_R,OU=EDW,OU=Application Privileges,OU=Application Access,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDW Cognos Professional,OU=Azure Sync Mail Enabled,OU=EDW,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=EDWUsers,OU=Distribution Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=5900-Delegate,OU=Delegate Dept-Branch,OU=Dept-Branch,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=5900,OU=Dept-Branch,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            "value": "CN=6750,OU=Dept-Branch,OU=Security Groups,OU=asb,DC=corp,DC=asbhawaii,DC=com"
+        },
+        {
+            "type": "ad_enriched",
+            "value": "true"
+        },
+        {
+            "type": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+            "value": "ASB\\tlittle"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-79413"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarygroupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-513"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-513"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-1-0"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-32-545"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-2"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-11"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-15"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61494"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54356"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61535"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-39444"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-64966"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61489"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61493"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-65837"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61485"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61487"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-59321"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-40056"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-76262"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61488"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61490"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-73631"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-66321"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-74907"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61492"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-73633"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-73636"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61491"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-78862"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-61486"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-74887"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-55971"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-51037"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-51043"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-57826"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-31552"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-39443"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-70594"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54754"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-52971"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-26982"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-55316"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54592"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54894"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-58635"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54235"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-69260"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-51154"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-10537"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54355"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-70342"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-64880"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-65959"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-79500"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-51215"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-44889"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-64878"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-50078"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-18636"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-51059"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-46071"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-35316"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54363"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-42176"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-42399"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-52132"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-58173"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-56491"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54892"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-55333"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-53291"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-46597"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-47554"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-53624"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-54891"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-7334"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-53862"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-60848"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-5-21-1617767100-1661673603-930774774-79241"
+        },
+        {
+            "type": "http://schemas.microsoft.com/ws/2008/06/identity/claims/groupsid",
+            "value": "S-1-18-1"
+        }
+    ],
+    "claimCount": 124,
+    "enriched": {
+        "membership_refresh": "1768962124"
+    }
+}

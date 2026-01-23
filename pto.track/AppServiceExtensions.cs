@@ -115,11 +115,19 @@ public static class AppServiceExtensions
         builder.Services.AddAuthorization();
 
         // Register Active Directory service
-        // Use NoOpActiveDirectoryService for local development (non-domain-joined machines)
-        // Use ActiveDirectoryService for production (domain-joined servers)
+        // In Development/local: default to NoOp, but allow opting-in to real DirectoryServices via config flag
+        // In non-dev: use ActiveDirectoryService (domain-joined servers)
+        var useRealDirectoryServices = builder.Configuration.GetValue<bool>("DirectoryServices:UseReal");
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("local"))
         {
-            builder.Services.AddSingleton<pto.track.services.Identity.IActiveDirectoryService, pto.track.services.Identity.NoOpActiveDirectoryService>();
+            if (useRealDirectoryServices)
+            {
+                builder.Services.AddSingleton<pto.track.services.Identity.IActiveDirectoryService, pto.track.services.Identity.ActiveDirectoryService>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<pto.track.services.Identity.IActiveDirectoryService, pto.track.services.Identity.NoOpActiveDirectoryService>();
+            }
         }
         else
         {
